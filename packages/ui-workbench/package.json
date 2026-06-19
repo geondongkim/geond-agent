@@ -1,0 +1,11 @@
+{
+  "name": "@geond-agent/ui-workbench",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared workbench UI components for geond-agent.",
+  "scripts": {
+    "build": "echo \"ui-workbench build not implemented yet\"",
+    "lint": "echo \"ui-workbench lint not implemented yet\"",
+    "test": "echo \"ui-workbench test not implemented yet\""
+  }
+}

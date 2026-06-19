@@ -1,0 +1,11 @@
+{
+  "name": "@geond-agent/zai-provider",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Z.ai GLM Coding Plan provider helpers for geond-agent.",
+  "scripts": {
+    "build": "echo \"zai-provider build not implemented yet\"",
+    "lint": "echo \"zai-provider lint not implemented yet\"",
+    "test": "echo \"zai-provider test not implemented yet\""
+  }
+}
