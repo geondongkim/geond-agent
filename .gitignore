@@ -1,0 +1,23 @@
+.DS_Store
+node_modules/
+dist/
+build/
+.turbo/
+.next/
+.vite/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+
+# Local agent state
+.claude/
+.goose/
+.crush/
+.kilo/
+
+# OS/editor
+.idea/
+.vscode/
+*.swp
