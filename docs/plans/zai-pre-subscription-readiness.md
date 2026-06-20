@@ -4,6 +4,15 @@ This checklist defines when `geond-agent` is ready for a meaningful paid Z.ai
 GLM Coding Plan evaluation. It does not require a real Z.ai API key, a paid
 provider call, or a live Claude Code/Cline/OpenCode run before subscription.
 
+## Companion Docs
+
+- [Z.ai coding tools setup](../guides/zai-coding-tools-setup.md)
+- [Z.ai GLM Coding Plan evaluation plan](zai-coding-plan-evaluation.md)
+- [Z.ai evaluation task queue](zai-evaluation-task-queue.md)
+- [Z.ai evaluation scorecard](zai-evaluation-scorecard.md)
+- [Z.ai provider README](../../packages/zai-provider/README.md)
+- [Claude Code bridge README](../../packages/claude-code-bridge/README.md)
+
 ## Readiness Goal
 
 Before subscribing, the repository should have enough local structure that a
@@ -38,6 +47,8 @@ Updated on 2026-06-21:
       see [Z.ai evaluation run: OpenCode Task 3](zai-evaluation-run-opencode-task3.md).
 - [x] The fourth paid evaluation task has been run and scored with Cline;
       see [Z.ai evaluation run: Cline Task 4](zai-evaluation-run-cline-task4.md).
+- [x] The fifth paid evaluation task has been run and scored with OpenCode;
+      see [Z.ai evaluation run: OpenCode Task 5](zai-evaluation-run-opencode-task5.md).
 
 ## Current Code Boundaries
 

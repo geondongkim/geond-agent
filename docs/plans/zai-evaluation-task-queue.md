@@ -7,6 +7,33 @@ clean worktree, with one tool at a time.
 Do not use toy prompts. Ask the tool to inspect the repository, make the change,
 run verification, and report what changed.
 
+## Companion Docs
+
+This queue is one step in the evaluation flow:
+
+- [Z.ai coding tools setup](../guides/zai-coding-tools-setup.md) covers local
+  tool and env setup before any paid run.
+- [Z.ai GLM Coding Plan evaluation plan](zai-coding-plan-evaluation.md) defines
+  subscription timing and the scoring thresholds.
+- [Z.ai evaluation scorecard](zai-evaluation-scorecard.md) records the result of
+  each task below.
+- [Z.ai pre-subscription readiness](zai-pre-subscription-readiness.md) lists the
+  code boundaries each task exercises.
+
+Tasks 2 and 3 exercise the provider and bridge boundary helpers. Their names and
+behavior are documented in the package READMEs, not duplicated here:
+
+- [Z.ai provider README](../../packages/zai-provider/README.md) —
+  `createZaiProviderConfig`, `createZaiAnthropicCompatibleEnvironment`,
+  `getZaiModelProfile`.
+- [Claude Code bridge README](../../packages/claude-code-bridge/README.md) —
+  `defineClaudeCodeAcpBoundary`, `redactClaudeCodeAcpBoundary`,
+  `shouldRedactEnvName`, `createClaudeCodeAdapterMetadata`.
+
+Task 4 uses the evaluation run model in
+`packages/ui-workbench/src/evaluation/evaluation-run.ts`; the scorecard maps its
+fields one-to-one.
+
 ## Task 1: Bug Fix - Invalid UI Language Persistence
 
 Type: small bug fix

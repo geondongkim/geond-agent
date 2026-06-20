@@ -50,6 +50,8 @@ Use these companion docs before starting a paid evaluation:
 - [Model and backend selection roadmap](model-and-backend-selection-roadmap.md)
 - [Z.ai evaluation task queue](zai-evaluation-task-queue.md)
 - [Z.ai evaluation scorecard](zai-evaluation-scorecard.md)
+- [Z.ai provider README](../../packages/zai-provider/README.md)
+- [Claude Code bridge README](../../packages/claude-code-bridge/README.md)
 
 ## Subscription Timing Criteria
 
@@ -66,8 +68,9 @@ Subscribe only when all of these are true:
 
 Do not subscribe until each item is complete:
 
-- [ ] Current branch installs and verifies with `pnpm install`, `pnpm lint`,
-      `pnpm test`, and `pnpm build`.
+- [ ] Current branch installs and verifies with `pnpm install`, then
+      `git diff --check`, `pnpm lint`, `pnpm test`, and `pnpm build` (or one
+      `pnpm verify`).
 - [ ] Claude Code, Cline, and OpenCode setup paths are documented without
       committing secrets.
 - [ ] Local-only environment variable names are understood:

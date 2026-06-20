@@ -3,6 +3,19 @@
 Use this scorecard for every queued task in
 `docs/plans/zai-evaluation-task-queue.md`.
 
+## Companion Docs
+
+This scorecard is one step in the evaluation flow:
+
+- [Z.ai coding tools setup](../guides/zai-coding-tools-setup.md)
+- [Z.ai GLM Coding Plan evaluation plan](zai-coding-plan-evaluation.md)
+- [Z.ai pre-subscription readiness](zai-pre-subscription-readiness.md)
+- [Z.ai evaluation task queue](zai-evaluation-task-queue.md)
+
+The run model lives in code at
+`packages/ui-workbench/src/evaluation/evaluation-run.ts`. The field names used in
+the Model Mapping table below match that module exactly.
+
 ## Task Metadata
 
 | Field | Value |

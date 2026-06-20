@@ -100,7 +100,8 @@ Not allowed:
 
 ## Pre-Subscription Setup Checklist
 
-- [ ] Confirm `pnpm install`, `pnpm lint`, `pnpm test`, and `pnpm build` pass.
+- [ ] Confirm `git diff --check`, `pnpm lint`, `pnpm test`, and `pnpm build` pass
+      (run `pnpm install` first, then `pnpm verify` to run the whole set).
 - [ ] Confirm `.env.local` or shell env is ignored and not staged.
 - [ ] Install or update Claude Code locally from the official source.
 - [ ] Install or update Cline locally from the official source.
@@ -121,3 +122,31 @@ Not allowed:
 - [ ] Record the tool, task ID, commands run, failures, and scorecard results.
 - [ ] Run the repository verification commands before accepting any result.
 - [ ] Run a secret scan before committing evaluation-driven changes.
+
+## Companion Docs and Boundary Helpers
+
+This guide is the entry point of one evaluation flow. Follow these links in
+order; each doc owns its own step and does not repeat the others:
+
+- [Z.ai GLM Coding Plan evaluation plan](../plans/zai-coding-plan-evaluation.md)
+  ties setup, timing, queue, scorecard, and readiness together.
+- [Z.ai evaluation task queue](../plans/zai-evaluation-task-queue.md) holds the
+  real repo tasks to run.
+- [Z.ai evaluation scorecard](../plans/zai-evaluation-scorecard.md) records the
+  result of each task.
+- [Z.ai pre-subscription readiness](../plans/zai-pre-subscription-readiness.md)
+  lists the code boundaries that must exist before subscribing.
+
+The provider and bridge helper names referenced by Tasks 2 and 3 live with the
+code and are documented in each package README. The docs and code use the same
+names:
+
+- [Z.ai provider README](../../packages/zai-provider/README.md) documents
+  `createZaiProviderConfig`, `createZaiAnthropicCompatibleEnvironment`, and
+  `getZaiModelProfile`.
+- [Claude Code bridge README](../../packages/claude-code-bridge/README.md)
+  documents `defineClaudeCodeAcpBoundary`, `redactClaudeCodeAcpBoundary`,
+  `shouldRedactEnvName`, and `createClaudeCodeAdapterMetadata`.
+
+These helpers are pure metadata and redaction helpers. They never make provider
+network calls and never return or persist the `ZAI_API_KEY` value.
