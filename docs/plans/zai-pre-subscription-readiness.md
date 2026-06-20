@@ -49,6 +49,13 @@ Updated on 2026-06-21:
       see [Z.ai evaluation run: Cline Task 4](zai-evaluation-run-cline-task4.md).
 - [x] The fifth paid evaluation task has been run and scored with OpenCode;
       see [Z.ai evaluation run: OpenCode Task 5](zai-evaluation-run-opencode-task5.md).
+- [x] Claude Code live route validation has been run and scored; see
+      [Claude Code smoke](zai-evaluation-run-claude-code-smoke.md),
+      [Claude Code Task 3](zai-evaluation-run-claude-code-task3.md),
+      [Claude Code Task 4](zai-evaluation-run-claude-code-task4.md), and
+      [Claude Code session probe](zai-evaluation-run-claude-code-session-probe.md).
+- [x] A tool route decision has been recorded; see
+      [Z.ai Claude Code route decision](zai-claude-code-route-decision.md).
 
 ## Current Code Boundaries
 
@@ -129,7 +136,7 @@ Run at least two routes if possible:
 
 | Route | Why it matters | Current repo posture |
 | --- | --- | --- |
-| Claude Code | First bridge target and likely ACP/external CLI path. | Adapter metadata exists; execution is deferred until the user-installed tool is available. |
+| Claude Code | First bridge target and likely ACP/external CLI path. | Live route, task replay, and session/event probe completed. Best current route for adapter/event work. |
 | Cline | Alternative IDE-style agent loop and Z.ai provider path. | Setup/evaluation docs cover it as a comparison route. |
 | OpenCode | Alternative CLI/workbench route with ACP/provider model patterns. | Setup/evaluation docs cover it as a comparison route. |
 

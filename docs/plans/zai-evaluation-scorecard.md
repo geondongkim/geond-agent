@@ -11,6 +11,7 @@ This scorecard is one step in the evaluation flow:
 - [Z.ai GLM Coding Plan evaluation plan](zai-coding-plan-evaluation.md)
 - [Z.ai pre-subscription readiness](zai-pre-subscription-readiness.md)
 - [Z.ai evaluation task queue](zai-evaluation-task-queue.md)
+- [Z.ai Claude Code route decision](zai-claude-code-route-decision.md)
 
 The run model lives in code at
 `packages/ui-workbench/src/evaluation/evaluation-run.ts`. The field names used in
