@@ -45,6 +45,7 @@ meaningful work:
 Use these companion docs before starting a paid evaluation:
 
 - [Z.ai coding tools setup](../guides/zai-coding-tools-setup.md)
+- [Z.ai pre-subscription readiness](zai-pre-subscription-readiness.md)
 - [Backend horizontal expansion](backend-horizontal-expansion.md)
 - [Model and backend selection roadmap](model-and-backend-selection-roadmap.md)
 - [Z.ai evaluation task queue](zai-evaluation-task-queue.md)
@@ -79,6 +80,12 @@ Do not subscribe until each item is complete:
 - [ ] The five evaluation tasks are queued in
       `zai-evaluation-task-queue.md`.
 - [ ] The scorecard is ready before the first paid run.
+- [ ] The readiness checklist in
+      `zai-pre-subscription-readiness.md` is green except for live commercial
+      checks and local-only secret setup.
+- [ ] Workbench event replay, Z.ai model catalog, and Claude Code adapter
+      capability metadata are present so paid tool runs can be compared against
+      the same boundary model.
 - [ ] Current Z.ai price, cancellation, refund, and auto-renewal behavior have
       been checked outside this repository.
 - [ ] The evaluator has a focused multi-day window to run and review tasks.

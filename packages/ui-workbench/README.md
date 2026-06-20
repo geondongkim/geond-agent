@@ -46,6 +46,24 @@ await runtime.setAgentResponseLanguage("en");
 UI language controls workbench labels. Agent response language is a separate
 preference that bridge/provider packages may pass to model prompts later.
 
+## Event Replay Boundary
+
+The package exposes normalized workbench events and deterministic replay helpers
+for pre-UI evaluation skeletons:
+
+```ts
+import {
+  replayWorkbenchEvents,
+  ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS
+} from "@geond-agent/ui-workbench";
+
+const state = replayWorkbenchEvents(ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS);
+```
+
+The replay state includes session lifecycle, assistant text, plan updates, tool
+calls, command output, diffs, approvals, warning/error notices, and the
+per-session backend/model selection snapshot.
+
 ## Future Direction
 
 The UI workbench should eventually render backend picker and model picker
