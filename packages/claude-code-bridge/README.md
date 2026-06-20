@@ -15,3 +15,22 @@ Claude Code is treated as an external user-installed tool. This package should
 communicate through documented CLI, process, or protocol surfaces only.
 
 Do not copy Claude Code internals or redistribute Claude Code binaries.
+
+## Current API Boundary
+
+```ts
+import {
+  defineClaudeCodeAcpBoundary,
+  redactClaudeCodeAcpBoundary
+} from "@geond-agent/claude-code-bridge";
+
+const boundary = defineClaudeCodeAcpBoundary({
+  executable: "claude",
+  transport: "stdio"
+});
+
+const safeForLogs = redactClaudeCodeAcpBoundary(boundary);
+```
+
+The package models an external CLI/ACP boundary only. Execution, process
+management, and ACP message handling will be added in later slices.

@@ -17,3 +17,18 @@ hard reasoning tasks  -> glm-5.2
 ```
 
 Real API keys and subscription/account state must stay outside the repository.
+
+## Current API Boundary
+
+```ts
+import {
+  createZaiAnthropicCompatibleEnvironment,
+  createZaiProviderConfig
+} from "@geond-agent/zai-provider";
+
+const config = createZaiProviderConfig(process.env);
+const env = createZaiAnthropicCompatibleEnvironment(config);
+```
+
+The helper returns endpoint/model environment values only. It reports key
+presence through `hasApiKey`, but it does not expose or persist key values.

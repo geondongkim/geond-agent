@@ -3,9 +3,14 @@
   "version": "0.0.0",
   "private": true,
   "description": "Z.ai GLM Coding Plan provider helpers for geond-agent.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
-    "build": "echo \"zai-provider build not implemented yet\"",
-    "lint": "echo \"zai-provider lint not implemented yet\"",
-    "test": "echo \"zai-provider test not implemented yet\""
+    "build": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "tsc -p tsconfig.json --noEmit"
   }
 }

@@ -8,17 +8,28 @@ implementation detail.
 ├── apps/
 │   └── desktop/
 │       ├── README.md
-│       └── package.json
+│       ├── package.json
+│       ├── src/
+│       └── tsconfig.json
 ├── packages/
 │   ├── claude-code-bridge/
 │   │   ├── README.md
-│   │   └── package.json
+│   │   ├── package.json
+│   │   ├── src/
+│   │   └── tsconfig.json
 │   ├── ui-workbench/
 │   │   ├── README.md
-│   │   └── package.json
+│   │   ├── package.json
+│   │   ├── src/
+│   │   │   ├── i18n/
+│   │   │   ├── settings/
+│   │   │   └── workbench/
+│   │   └── tsconfig.json
 │   └── zai-provider/
 │       ├── README.md
-│       └── package.json
+│       ├── package.json
+│       ├── src/
+│       └── tsconfig.json
 ├── docs/
 │   ├── adr/
 │   ├── guides/
@@ -28,6 +39,7 @@ implementation detail.
 ├── LICENSE
 ├── NOTICE
 ├── README.md
+├── tsconfig.base.json
 └── SECURITY.md
 ```
 

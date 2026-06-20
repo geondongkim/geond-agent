@@ -10,6 +10,8 @@
 
 ## Milestone 1: Local Bridge Spike
 
+- Make the pnpm workspace installable and type-checkable.
+- Add initial UI localization settings for English and Korean.
 - Launch Goose-style session from the desktop shell.
 - Route session through `claude-agent-acp`.
 - Verify Z.ai endpoint/model routing.
@@ -23,6 +25,7 @@
 - Plan/checklist panel.
 - Terminal output panel.
 - Diff summary panel.
+- Settings surface for UI language and separate agent response language.
 
 ## Milestone 3: Review and Approval UX
 
@@ -47,3 +50,5 @@
 - Other ACP-compatible agent backends.
 - Local model provider experiments.
 - Extension/MCP management.
+- Provider-aware agent language preferences that remain separate from UI
+  localization.

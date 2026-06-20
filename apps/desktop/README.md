@@ -21,3 +21,14 @@ Native desktop app layer for `geond-agent`.
 
 This app may learn from Goose Desktop UX patterns, but third-party source code
 must not be copied without preserving its license and notices.
+
+## Current Boundary
+
+`apps/desktop` currently exposes `createDesktopWorkbench`, a framework-neutral
+bootstrap helper that composes:
+
+- `packages/ui-workbench` language settings and i18n runtime,
+- `packages/zai-provider` endpoint/model routing helpers,
+- `packages/claude-code-bridge` external CLI/ACP boundary.
+
+The desktop framework remains undecided.

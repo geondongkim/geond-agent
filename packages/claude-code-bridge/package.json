@@ -3,9 +3,14 @@
   "version": "0.0.0",
   "private": true,
   "description": "Claude Code ACP bridge experiments for geond-agent.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
-    "build": "echo \"claude-code-bridge build not implemented yet\"",
-    "lint": "echo \"claude-code-bridge lint not implemented yet\"",
-    "test": "echo \"claude-code-bridge test not implemented yet\""
+    "build": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "tsc -p tsconfig.json --noEmit"
   }
 }
