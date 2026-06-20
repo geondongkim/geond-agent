@@ -45,6 +45,7 @@ meaningful work:
 Use these companion docs before starting a paid evaluation:
 
 - [Z.ai coding tools setup](../guides/zai-coding-tools-setup.md)
+- [Backend horizontal expansion](backend-horizontal-expansion.md)
 - [Z.ai evaluation task queue](zai-evaluation-task-queue.md)
 - [Z.ai evaluation scorecard](zai-evaluation-scorecard.md)
 
@@ -118,8 +119,21 @@ Evaluate Z.ai through more than one supported tool if possible.
 | Cline | Alternative agent loop and IDE-style workflow | TBD |
 | OpenCode | Alternative CLI/workbench loop | TBD |
 
-This keeps the evaluation from becoming a single-tool verdict. If Claude Code
-underperforms, Z.ai may still be useful through another supported tool.
+This keeps the evaluation from becoming a single-tool verdict. Claude Code is
+the first bridge target, not the only possible agent route. If Claude Code
+underperforms, do not stop the Z.ai evaluation immediately. Check Cline,
+OpenCode, or another supported path before deciding whether Z.ai itself is a
+poor fit.
+
+Separate these verdicts:
+
+- provider verdict: whether Z.ai GLM Coding Plan is useful and cost-effective,
+- tool verdict: whether a specific client such as Claude Code, Cline, or
+  OpenCode fits the workflow,
+- workbench verdict: whether `geond-agent` adapter boundaries need adjustment.
+
+This separation matches the horizontal backend direction in
+[backend-horizontal-expansion.md](backend-horizontal-expansion.md).
 
 ## Scoring Rubric
 

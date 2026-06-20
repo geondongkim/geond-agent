@@ -72,6 +72,11 @@ Goose-style desktop frontend
 The code should keep this bridge modular so that other ACP agents and providers
 can be added without rewriting the desktop UI.
 
+Claude Code is the first bridge target, not the only backend direction. The
+workbench should stay adapter-neutral so future ACP-compatible backends,
+external CLI tools, IDE/plugin-mediated tools, and provider-routing adapters can
+share the same session, plan, diff, terminal, approval, and review surfaces.
+
 ## Docs
 
 - [Project brief](docs/project-brief.md)

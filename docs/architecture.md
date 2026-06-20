@@ -9,11 +9,18 @@ desktop UI, backend bridges, provider routing, and shared UI components.
 User
   -> apps/desktop
   -> packages/ui-workbench
-  -> packages/claude-code-bridge
-  -> ACP-compatible agent backend
-  -> packages/zai-provider
-  -> model provider endpoint
+  -> backend adapter boundary
+     -> ACP-compatible backend
+     -> external CLI/process backend
+     -> IDE/plugin mediated backend
+     -> provider/model routing backend
+  -> external agent tool or model provider
 ```
+
+The workbench UI is adapter-neutral. It should render sessions, plans, tool
+calls, terminal output, diffs, approvals, and backend metadata without depending
+on one agent implementation. Claude Code is the first bridge target, not the
+shape of the whole system.
 
 ## Packages
 
@@ -61,6 +68,10 @@ Bridge package for Claude Code and ACP-related behavior:
 
 This package must not copy proprietary Claude Code internals.
 
+This package is a Claude Code adapter prototype. It does not define the complete
+backend abstraction for `geond-agent`; future packages may adapt other ACP
+servers, external CLI tools, IDE/plugin surfaces, or provider-routing flows.
+
 ### `packages/zai-provider`
 
 Provider package for Z.ai GLM Coding Plan routing:
@@ -86,6 +97,34 @@ preserve their license and attribution requirements if any code is copied.
 
 When integrating with Claude Code, keep the boundary at CLI/process/protocol
 level unless Anthropic publishes code or terms that permit deeper integration.
+
+## Backend Adapter Boundary
+
+The backend adapter layer translates tool-specific behavior into workbench
+events and state. It is the boundary that lets `geond-agent` remain a horizontal
+local agent workbench rather than a Claude Code-only app.
+
+Adapter categories:
+
+- ACP-compatible backend: communicates through ACP or an ACP-like documented
+  protocol and maps sessions, tool calls, permissions, and lifecycle events into
+  workbench state.
+- External CLI/process backend: launches or communicates with a user-installed
+  tool through documented process, stdio, or command-line behavior.
+- IDE/plugin mediated backend: receives events or instructions from an IDE
+  extension or plugin surface while keeping credentials and local plugin state
+  outside the repository.
+- Provider/model routing backend: manages endpoint and model routing metadata
+  for a provider without owning the agent tool UI or storing provider secrets.
+
+Adapter implementations may have different capabilities. The UI should depend on
+capability metadata and normalized events instead of importing tool-specific
+state from a concrete adapter package.
+
+The first implementation can prove this boundary with
+`packages/claude-code-bridge`, but workbench concepts such as session lists,
+resume/fork actions, tool-call cards, terminal output, diff events, approval
+prompts, model routing, and usage reporting must remain adapter-neutral.
 
 ## Local Settings Boundary
 
