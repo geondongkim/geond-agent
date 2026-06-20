@@ -66,12 +66,31 @@ export const EVALUATION_SCORE_AREAS: readonly EvaluationScoreArea[] = [
   "workflow-fit"
 ];
 
+/** Display labels for each scorecard area. */
+export const EVALUATION_SCORE_AREA_LABELS: Readonly<
+  Record<EvaluationScoreArea, string>
+> = {
+  "repo-understanding": "Repo understanding",
+  "edit-quality": "Edit quality",
+  verification: "Verification",
+  recovery: "Recovery",
+  "cost-value": "Cost/value",
+  "workflow-fit": "Workflow fit"
+};
+
 /** Ordered list of every supported evaluation tool. */
 export const EVALUATION_TOOL_NAMES: readonly EvaluationToolName[] = [
   "claude-code",
   "cline",
   "opencode"
 ];
+
+/** Display labels for supported evaluation tools. */
+export const EVALUATION_TOOL_LABELS: Readonly<Record<EvaluationToolName, string>> = {
+  "claude-code": "Claude Code",
+  cline: "Cline",
+  opencode: "OpenCode"
+};
 
 /** Ordered list of every supported task status. */
 export const EVALUATION_TASK_STATUSES: readonly EvaluationTaskStatus[] = [
@@ -178,6 +197,17 @@ export function isEvaluationToolName(value: unknown): value is EvaluationToolNam
   );
 }
 
+/** Returns true when `value` is a known {@link EvaluationTaskStatus}. */
+export function isEvaluationTaskStatus(value: unknown): value is EvaluationTaskStatus {
+  return (
+    value === "queued" ||
+    value === "running" ||
+    value === "passed" ||
+    value === "failed" ||
+    value === "inconclusive"
+  );
+}
+
 /**
  * Creates a scorecard where every area has the same explicit score. Omit
  * `scores` on an {@link EvaluationRun} until a run has actually been reviewed.
@@ -209,6 +239,28 @@ export function isCompleteScorecard(value: unknown): value is EvaluationScorecar
     }
     return isValidEvaluationScore((entry as { score: unknown }).score);
   });
+}
+
+/** Returns the ordered score values aligned with {@link EVALUATION_SCORE_AREAS}. */
+export function scorecardValues(scorecard: EvaluationScorecard): readonly EvaluationScore[] {
+  return EVALUATION_SCORE_AREAS.map((area) => scorecard[area].score);
+}
+
+/** Average of the six scorecard categories. */
+export function averageScorecard(scorecard: EvaluationScorecard): number {
+  const values = scorecardValues(scorecard);
+  const total = values.reduce((sum, score) => sum + score, 0);
+  return total / values.length;
+}
+
+/** Runtime guard that every score area has a non-empty display label. */
+export function verifyScoreAreaLabelsAreComplete(): void {
+  for (const area of EVALUATION_SCORE_AREAS) {
+    const label = EVALUATION_SCORE_AREA_LABELS[area];
+    if (!label) {
+      throw new Error(`Missing scorecard label for evaluation score area: ${area}`);
+    }
+  }
 }
 
 /**

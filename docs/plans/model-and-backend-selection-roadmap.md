@@ -150,9 +150,13 @@ Examples:
 1. Add a document/type-level selection model.
 2. Add a Z.ai model profile catalog.
 3. Add a Claude Code backend profile.
-4. Add a UI settings boundary for backend/model picker data.
-5. Add a per-session backend/model selection snapshot.
-6. Add auto routing policy after manual selection and metadata reporting are
+4. Pave the Claude Code implementation route through event normalization,
+   session/resume handling, and permission metadata.
+5. Add a UI settings boundary for backend/model picker data.
+6. Add a per-session backend/model selection snapshot.
+7. Add OpenCode as the next horizontal-expansion route after the Claude Code
+   path is stable.
+8. Add auto routing policy after manual selection and metadata reporting are
    stable.
 
 ## Do Not Do Yet

@@ -64,6 +64,26 @@ The replay state includes session lifecycle, assistant text, plan updates, tool
 calls, command output, diffs, approvals, warning/error notices, and the
 per-session backend/model selection snapshot.
 
+## Evaluation Run Boundary
+
+The package also exposes a small evaluation run model for Z.ai tool comparisons:
+
+```ts
+import {
+  CLAUDE_CODE_TASK4_SAMPLE_EVALUATION_RUN,
+  averageScorecard
+} from "@geond-agent/ui-workbench/evaluation";
+
+const score = CLAUDE_CODE_TASK4_SAMPLE_EVALUATION_RUN.scores
+  ? averageScorecard(CLAUDE_CODE_TASK4_SAMPLE_EVALUATION_RUN.scores)
+  : undefined;
+```
+
+This boundary records tool, model route, status, verification commands,
+scorecard values, and notes. It stores no API keys, raw provider responses, or
+local session state. Current implementation should use Claude Code as the
+default route first; OpenCode remains a later horizontal-expansion route.
+
 ## Future Direction
 
 The UI workbench should eventually render backend picker and model picker

@@ -19,8 +19,8 @@ User
 
 The workbench UI is adapter-neutral. It should render sessions, plans, tool
 calls, terminal output, diffs, approvals, and backend metadata without depending
-on one agent implementation. Claude Code is the first bridge target, not the
-shape of the whole system.
+on one agent implementation. Claude Code is the default implementation route for
+the next slices, but not the shape of the whole system.
 
 ## Packages
 
@@ -71,6 +71,11 @@ This package must not copy proprietary Claude Code internals.
 This package is a Claude Code adapter prototype. It does not define the complete
 backend abstraction for `geond-agent`; future packages may adapt other ACP
 servers, external CLI tools, IDE/plugin surfaces, or provider-routing flows.
+
+Claude Code is currently the default implementation route because it provides
+the deepest useful surface for session/resume behavior, `stream-json` events,
+permission policy, model alias routing, and usage metadata. OpenCode horizontal
+expansion is intentionally deferred until this first path is stable.
 
 ### `packages/zai-provider`
 

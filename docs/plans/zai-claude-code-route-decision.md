@@ -5,18 +5,31 @@ OpenCode and Cline evaluations.
 
 ## Decision
 
-Use Claude Code as the first-class adapter/protocol validation route for
-`geond-agent`, but keep OpenCode as the default cost-controlled implementation
-route until the Claude Code adapter normalizes stream events.
+Use Claude Code as the default implementation route for `geond-agent`'s next
+workbench slices.
+
+This is an implementation sequencing decision, not a permanent single-backend
+product lock-in. The workbench stays adapter-neutral, but the first paved path
+should be Claude Code because it exercises the external CLI/ACP boundary,
+session/resume behavior, `stream-json` event shape, permission policy, model
+selection aliases, and usage metadata that `geond-agent` needs to understand
+for the long-term product.
 
 Practical default:
 
 - Claude Code: use for backend adapter work, ACP/session/resume/event-shape
-  work, and hard feature-design slices where usage/cost metadata matters.
-- OpenCode: use for routine docs/code implementation tasks and as the control
-  route when evaluating Z.ai provider quality.
+  work, routine implementation slices, and hard feature-design slices where
+  usage/cost/model metadata matters.
+- OpenCode: defer as the next horizontal-expansion route and keep it as a
+  comparison/control path when Z.ai provider quality needs to be separated from
+  Claude Code tool behavior.
 - Cline: keep as a viable alternate route, preferably non-JSON with lower
   thinking settings, but do not make it the default route yet.
+
+The small-task cost/value caveat is understood. Z.ai's Claude Code route may
+select a higher model tier than a Haiku-class path for some tasks. Even so,
+Claude Code remains the default implementation route because it gives better
+evidence for the adapter and workbench UX foundations.
 
 ## Evidence
 
@@ -26,7 +39,7 @@ Practical default:
 | Claude Code Task 3 | Correct bug fix and strong fixtures; broader public API than needed. | Good quality, higher review burden. |
 | Claude Code Task 4 | Strong design reference and docs; wider than the minimal accepted slice. | Good feature design route. |
 | Claude Code session probe | `stream-json`, usage metadata, session id, and `--resume` worked. | Best route for adapter work. |
-| OpenCode Tasks 1/3/5 | Focused diffs, readable workflow, good docs/code alignment. | Best current default for cost-controlled work. |
+| OpenCode Tasks 1/3/5 | Focused diffs, readable workflow, good docs/code alignment. | Strong next horizontal-expansion/control route. |
 | Cline Tasks 2/4 | Usable but noisier and needed more controller cleanup. | Keep as backup/comparison route. |
 
 ## Important CLI Findings
@@ -44,7 +57,7 @@ Practical default:
 | Verdict | Decision |
 | --- | --- |
 | Z.ai provider route | Pass. Claude Code, OpenCode, and Cline all produced useful paid evaluation evidence. |
-| Claude Code as a tool | Pass for adapter/event work; maybe for small fixes when budget matters. |
+| Claude Code as a tool | Pass as the default implementation route, with cost review on small tasks. |
 | geond-agent workbench model | Pass with adapter work needed. Current events can represent Claude concepts, but a normalizer is required. |
 
 ## Next Implementation Slice
@@ -54,3 +67,5 @@ add a Claude Code event-normalization boundary that converts Claude Code
 `stream-json` into the existing workbench event model using sanitized fixtures
 derived from the probe shape, not raw logs or secrets.
 
+OpenCode horizontal expansion should come after this Claude Code path has a
+stable adapter boundary, not before.

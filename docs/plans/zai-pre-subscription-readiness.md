@@ -136,13 +136,15 @@ Run at least two routes if possible:
 
 | Route | Why it matters | Current repo posture |
 | --- | --- | --- |
-| Claude Code | First bridge target and likely ACP/external CLI path. | Live route, task replay, and session/event probe completed. Best current route for adapter/event work. |
+| Claude Code | First bridge target and default implementation route. | Live route, task replay, and session/event probe completed. Use this route to pave the adapter/event path first, while reviewing small-task cost. |
 | Cline | Alternative IDE-style agent loop and Z.ai provider path. | Setup/evaluation docs cover it as a comparison route. |
-| OpenCode | Alternative CLI/workbench route with ACP/provider model patterns. | Setup/evaluation docs cover it as a comparison route. |
+| OpenCode | Alternative CLI/workbench route with ACP/provider model patterns. | Defer as the next horizontal-expansion route after the Claude Code path stabilizes. |
 
-Do not make a single-tool verdict. If Claude Code underperforms, keep the Z.ai
-provider evaluation alive long enough to test Cline or OpenCode. Separate the
-provider verdict from the tool verdict and the `geond-agent` workbench verdict.
+The product implementation route is Claude Code-first. Still avoid collapsing
+every result into a single provider verdict: separate the Z.ai provider verdict,
+the Claude Code tool verdict, and the `geond-agent` workbench verdict. Cline and
+OpenCode remain available comparison paths if Claude Code behavior hides whether
+a problem comes from the provider, the tool, or the local adapter.
 
 ## Verification Before First Paid Run
 

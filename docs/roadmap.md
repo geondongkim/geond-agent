@@ -13,7 +13,8 @@
 - Make the pnpm workspace installable and type-checkable.
 - Add initial UI localization settings for English and Korean.
 - Launch Goose-style session from the desktop shell.
-- Route session through `claude-agent-acp`.
+- Route the first implementation path through the Claude Code external CLI/ACP
+  boundary.
 - Verify Z.ai endpoint/model routing.
 - Show basic session status and backend metadata.
 
@@ -89,6 +90,9 @@
   - add future Copilot SDK-like backend research without adding GitHub/Copilot
     dependencies to the repo.
 - Backend selection after the Claude Code first target:
+  - keep Claude Code as the default implementation route until session/event
+    normalization is stable,
+  - defer OpenCode as the next horizontal-expansion route,
   - ACP-compatible backend,
   - external CLI/process backend,
   - IDE/plugin mediated backend,

@@ -22,6 +22,11 @@ Claude Code-specific. Future adapter packages may target other ACP-compatible
 backends, external CLI tools, IDE/plugin-mediated surfaces, or provider-routing
 flows.
 
+For the next implementation slices, Claude Code is the default route. That means
+new adapter/event/session work should pave the Claude Code path first while
+keeping the public workbench state adapter-neutral. OpenCode remains the next
+horizontal-expansion candidate after this route stabilizes.
+
 ## Current API Boundary
 
 ```ts
@@ -102,3 +107,6 @@ const originalValue = boundary.process.env?.["ANTHROPIC_API_KEY"];
 shouldRedactEnvName("OPENAI_KEY"); // true
 shouldRedactEnvName("HOME");       // false
 ```
+
+`redaction.fixtures.ts` contains callable fixture checks for the redaction
+contract. They use synthetic values only and are safe to keep in tracked source.

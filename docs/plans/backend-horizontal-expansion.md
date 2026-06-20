@@ -2,7 +2,8 @@
 
 `geond-agent` should become a local agent workbench that can connect to multiple
 coding agent tools, backend protocols, and provider-routing paths. Claude Code is
-the first adapter target, not a single permanent dependency.
+the first and default implementation route for the next slices, not a single
+permanent product dependency.
 
 ## Why Avoid Claude Code-Only Coupling
 
@@ -107,13 +108,17 @@ worth keeping.
 ## Initial Path
 
 Start with `packages/claude-code-bridge` because it gives the project a concrete
-adapter prototype. Keep `apps/desktop` and `packages/ui-workbench`
-adapter-neutral while the first bridge is built.
+adapter prototype and the deepest evidence for session/resume, event streams,
+permissions, model aliases, and usage metadata. Keep `apps/desktop` and
+`packages/ui-workbench` adapter-neutral while the first bridge is built.
 
 As soon as the first Claude Code slice can report useful backend metadata, add a
 small adapter capability model before adding the second adapter. That capability
 model should describe what the UI can expect instead of forcing all backends to
 pretend they support the same features.
+
+OpenCode is the next horizontal-expansion route after Claude Code stabilizes.
+Do not start by spreading implementation effort across both routes.
 
 ## Adapter Capability Matrix Draft
 

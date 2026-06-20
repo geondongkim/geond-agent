@@ -126,15 +126,14 @@ Evaluate Z.ai through more than one supported tool if possible.
 
 | Tool | Purpose | Result |
 | --- | --- | --- |
-| Claude Code | Primary ACP/CLI bridge candidate | TBD |
-| Cline | Alternative agent loop and IDE-style workflow | TBD |
-| OpenCode | Alternative CLI/workbench loop | TBD |
+| Claude Code | Default implementation route and primary ACP/CLI bridge candidate | Live smoke, task replay, and session/event probe completed |
+| Cline | Alternative agent loop and IDE-style workflow | Useful comparison route, but noisier |
+| OpenCode | Alternative CLI/workbench loop | Strong comparison route; defer horizontal expansion until Claude Code path stabilizes |
 
-This keeps the evaluation from becoming a single-tool verdict. Claude Code is
-the first bridge target, not the only possible agent route. If Claude Code
-underperforms, do not stop the Z.ai evaluation immediately. Check Cline,
-OpenCode, or another supported path before deciding whether Z.ai itself is a
-poor fit.
+The next implementation sequence is Claude Code-first. This does not make the
+evaluation a single-tool provider verdict. If Claude Code underperforms, do not
+stop the Z.ai evaluation immediately. Check Cline, OpenCode, or another
+supported path before deciding whether Z.ai itself is a poor fit.
 
 Separate these verdicts:
 
