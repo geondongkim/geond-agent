@@ -12,9 +12,15 @@
 
 - Make the pnpm workspace installable and type-checkable.
 - Add initial UI localization settings for English and Korean.
-- Launch Goose-style session from the desktop shell.
+- Scaffold the Tauri v2 desktop shell with a React + Vite + TypeScript renderer.
+- Add Tailwind CSS and shadcn/ui component conventions without weakening local
+  workbench ownership of timeline, diff, terminal, approval, and picker UI.
 - Route the first implementation path through the Claude Code external CLI/ACP
   boundary.
+- Normalize Claude Code `--bare -p --verbose --output-format stream-json` into
+  workbench events.
+- Persist local sessions/events/snapshots in SQLite after the event shape is
+  stable enough to replay.
 - Verify Z.ai endpoint/model routing.
 - Show basic session status and backend metadata.
 
@@ -27,6 +33,9 @@
 - Terminal output panel.
 - Diff summary panel.
 - Settings surface for UI language and separate agent response language.
+- Tauri app data JSON for small non-secret preferences.
+- SQLite-backed local sessions, events, snapshots, approvals, tool calls,
+  command output summaries, diff summaries, and usage metadata.
 - Backend and Model Picker UX:
   - backend picker for Claude Code adapter, ACP-compatible backend, external
     CLI/process backend, IDE/plugin mediated backend, and future local model or
@@ -37,6 +46,7 @@
 - Workbench UX quality bar:
   - event-driven rendering from normalized backend events,
   - fixture replay tests for session state,
+  - Vitest coverage for reducers, parsers, settings, and i18n helpers,
   - compact and wide layout snapshots for dense workbench surfaces,
   - complete English/Korean labels for settings, picker, approval, and status
     surfaces.
@@ -65,12 +75,16 @@
 - Session import/export research based on adapter-neutral history snapshots, so
   future adapters can move local work without binding the workbench to one
   external tool's session format.
+- Optional `geond-agent-protocol` export/import research for shared evidence
+  without making protocol storage required for the desktop MVP.
 
 ## Milestone 5: Provider and Agent Expansion
 
 - Direct Z.ai provider mode.
 - Claude Code ACP mode.
 - Other ACP-compatible agent backends.
+- Optional `geond-agent-protocol` integration for shared memory, reservations,
+  handoffs, review context, and cross-agent evidence.
 - Local model provider experiments.
 - Extension/MCP management.
 - Provider-aware agent language preferences that remain separate from UI

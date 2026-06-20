@@ -88,6 +88,8 @@ share the same session, plan, diff, terminal, approval, and review surfaces.
 - [Integration notes](docs/reference/integrations.md)
 - [Backend horizontal expansion plan](docs/plans/backend-horizontal-expansion.md)
 - [Model and backend selection roadmap](docs/plans/model-and-backend-selection-roadmap.md)
+- [Desktop workbench stack ADR](docs/adr/0003-desktop-workbench-stack.md)
+- [geond-agent-protocol integration strategy](docs/plans/geond-agent-protocol-integration-strategy.md)
 - [Z.ai pre-subscription readiness](docs/plans/zai-pre-subscription-readiness.md)
 - [Licensing policy](docs/reference/licensing.md)
 

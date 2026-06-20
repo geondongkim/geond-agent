@@ -29,6 +29,11 @@ the next slices, but not the shape of the whole system.
 The native desktop app shell. This app should own windowing, navigation,
 session layout, and integration with the local operating system.
 
+The first desktop shell is Tauri v2 with a React + Vite + TypeScript renderer.
+Tauri commands own local process execution, filesystem access, and native OS
+integration. The renderer should stay a workbench client over typed commands and
+shared package contracts, not a place where backend adapters are implemented.
+
 ### `packages/ui-workbench`
 
 Shared UI components for the agent workbench:
@@ -211,6 +216,11 @@ started, assistant text delta, plan update, tool call started, command output,
 diff emitted, approval requested, approval resolved, warning, error, and turn
 completed.
 
+State ownership is local-first and event-driven. `geond-agent` owns normalized
+`WorkbenchEvent` streams, reducers/projections derive visible state, and React
+renders the derived state. `geond-agent-protocol` is a later optional
+evidence/export target, not the live UI state owner.
+
 The workbench reducer owns the visible state:
 
 - current session and selection snapshot,
@@ -235,3 +245,18 @@ contracts and storage interfaces, while `apps/desktop` later decides whether
 those settings live in app data, platform preferences, or another local-only
 store. API keys, tokens, and session-private provider state are not part of the
 UI settings contract.
+
+For the first desktop implementation, Tauri app data JSON stores small
+non-secret preferences such as UI language, agent response language, default
+backend, default provider route, default model alias, and layout preference.
+SQLite stores local sessions, workbench events, session snapshots, approvals,
+tool calls, command output summaries, diff summaries, and usage metadata when
+available.
+
+Do not persist API key values, tokens, provider account state, raw Claude Code
+logs by default, raw private transcripts, or local user session files in tracked
+source or portable app exports.
+
+`geond-agent-protocol` remains a separate optional integration target for shared
+evidence, reservations, handoffs, and review context. The strategy lives in
+`docs/plans/geond-agent-protocol-integration-strategy.md`.

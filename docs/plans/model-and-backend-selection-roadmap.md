@@ -75,6 +75,8 @@ Initial profiles can include:
 
 - `glm-4.7`,
 - `glm-5.2`,
+- `sonnet` alias for normal Claude Code implementation work,
+- `opus` alias for hard feature and architecture slices,
 - `auto`.
 
 The picker should show model availability and constraints without exposing API
@@ -152,11 +154,13 @@ Examples:
 3. Add a Claude Code backend profile.
 4. Pave the Claude Code implementation route through event normalization,
    session/resume handling, and permission metadata.
-5. Add a UI settings boundary for backend/model picker data.
-6. Add a per-session backend/model selection snapshot.
-7. Add OpenCode as the next horizontal-expansion route after the Claude Code
+5. Use manual routing first: `sonnet` alias for normal work, `opus` alias for
+   hard feature/architecture work.
+6. Add a UI settings boundary for backend/model picker data.
+7. Add a per-session backend/model selection snapshot.
+8. Add OpenCode as the next horizontal-expansion route after the Claude Code
    path is stable.
-8. Add auto routing policy after manual selection and metadata reporting are
+9. Add auto routing policy after manual selection and metadata reporting are
    stable.
 
 ## Do Not Do Yet
@@ -167,3 +171,4 @@ Examples:
   in tracked files.
 - Do not copy third-party source code.
 - Do not absorb `geond-agent-protocol` into this repository.
+- Do not make `geond-agent-protocol` storage required for the desktop MVP.
