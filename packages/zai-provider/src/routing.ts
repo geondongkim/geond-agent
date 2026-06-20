@@ -1,6 +1,7 @@
 export const ZAI_ANTHROPIC_BASE_URL = "https://api.z.ai/api/anthropic";
 
 export type ZaiCodingPlanModel = "glm-4.7" | "glm-5-turbo" | "glm-5.2";
+export type ZaiModelProfileId = ZaiCodingPlanModel | "auto";
 export type AnthropicModelAlias = "haiku" | "sonnet" | "opus";
 export type CodingTaskClass = "ordinary" | "hard";
 export type ZaiRouteKey = AnthropicModelAlias | CodingTaskClass;
@@ -38,4 +39,8 @@ export function resolveZaiModel(
   routing: ZaiModelRouting = createZaiModelRouting()
 ): ZaiCodingPlanModel {
   return routing[routeKey];
+}
+
+export function isZaiModelProfileId(value: string): value is ZaiModelProfileId {
+  return value === "glm-4.7" || value === "glm-5-turbo" || value === "glm-5.2" || value === "auto";
 }
