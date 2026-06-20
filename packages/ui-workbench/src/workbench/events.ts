@@ -1,0 +1,154 @@
+import type { WorkbenchSelectionSnapshot } from "./selection.js";
+
+export type WorkbenchSessionLifecycle =
+  | "created"
+  | "started"
+  | "resumed"
+  | "paused"
+  | "completed"
+  | "failed";
+
+export type PlanItemStatus = "pending" | "in_progress" | "completed" | "failed";
+
+export interface WorkbenchPlanItemSnapshot {
+  readonly id: string;
+  readonly title: string;
+  readonly status: PlanItemStatus;
+}
+
+export type WorkbenchToolCallStatus = "pending" | "running" | "succeeded" | "failed";
+
+export interface WorkbenchToolCallSnapshot {
+  readonly id: string;
+  readonly name: string;
+  readonly status: WorkbenchToolCallStatus;
+  readonly inputSummary?: string;
+  readonly outputSummary?: string;
+}
+
+export type CommandOutputStream = "stdout" | "stderr" | "status";
+export type CommandStatus = "running" | "succeeded" | "failed" | "interrupted";
+
+export interface WorkbenchDiffFileSnapshot {
+  readonly path: string;
+  readonly changeKind: "added" | "modified" | "deleted" | "renamed";
+  readonly additions?: number;
+  readonly deletions?: number;
+}
+
+export interface WorkbenchDiffSnapshot {
+  readonly id: string;
+  readonly title?: string;
+  readonly files: readonly WorkbenchDiffFileSnapshot[];
+  readonly summary?: string;
+}
+
+export type ApprovalKind = "command" | "diff" | "filesystem" | "network" | "mcp";
+export type ApprovalDecision = "approved" | "rejected" | "cancelled";
+
+export interface WorkbenchApprovalSnapshot {
+  readonly id: string;
+  readonly kind: ApprovalKind;
+  readonly title: string;
+  readonly reason?: string;
+  readonly status: "pending" | "resolved";
+  readonly requestedAt?: string;
+  readonly resolvedAt?: string;
+  readonly decision?: ApprovalDecision;
+  readonly subject?: string;
+}
+
+export type WorkbenchEvent =
+  | {
+      readonly type: "session.lifecycle";
+      readonly sessionId: string;
+      readonly lifecycle: WorkbenchSessionLifecycle;
+      readonly at?: string;
+      readonly title?: string;
+      readonly workspacePath?: string;
+      readonly selection?: WorkbenchSelectionSnapshot;
+    }
+  | {
+      readonly type: "selection.snapshot.updated";
+      readonly sessionId: string;
+      readonly selection: WorkbenchSelectionSnapshot;
+      readonly at?: string;
+    }
+  | {
+      readonly type: "assistant.text.delta";
+      readonly sessionId: string;
+      readonly messageId: string;
+      readonly text: string;
+      readonly at?: string;
+    }
+  | {
+      readonly type: "assistant.text.completed";
+      readonly sessionId: string;
+      readonly messageId: string;
+      readonly text?: string;
+      readonly at?: string;
+    }
+  | {
+      readonly type: "plan.updated";
+      readonly sessionId: string;
+      readonly items: readonly WorkbenchPlanItemSnapshot[];
+      readonly at?: string;
+    }
+  | {
+      readonly type: "tool.call.started";
+      readonly sessionId: string;
+      readonly toolCall: WorkbenchToolCallSnapshot;
+      readonly at?: string;
+    }
+  | {
+      readonly type: "tool.call.updated";
+      readonly sessionId: string;
+      readonly toolCallId: string;
+      readonly status?: WorkbenchToolCallStatus;
+      readonly outputSummary?: string;
+      readonly at?: string;
+    }
+  | {
+      readonly type: "command.output";
+      readonly sessionId: string;
+      readonly commandId: string;
+      readonly stream: CommandOutputStream;
+      readonly text: string;
+      readonly status?: CommandStatus;
+      readonly exitCode?: number;
+      readonly at?: string;
+    }
+  | {
+      readonly type: "diff.emitted";
+      readonly sessionId: string;
+      readonly diff: WorkbenchDiffSnapshot;
+      readonly at?: string;
+    }
+  | {
+      readonly type: "approval.requested";
+      readonly sessionId: string;
+      readonly approval: WorkbenchApprovalSnapshot;
+      readonly at?: string;
+    }
+  | {
+      readonly type: "approval.resolved";
+      readonly sessionId: string;
+      readonly approvalId: string;
+      readonly decision: ApprovalDecision;
+      readonly at?: string;
+    }
+  | {
+      readonly type: "warning";
+      readonly sessionId: string;
+      readonly id: string;
+      readonly message: string;
+      readonly at?: string;
+    }
+  | {
+      readonly type: "error";
+      readonly sessionId: string;
+      readonly id: string;
+      readonly message: string;
+      readonly at?: string;
+    };
+
