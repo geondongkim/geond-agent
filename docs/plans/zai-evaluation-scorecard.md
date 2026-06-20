@@ -17,6 +17,45 @@ Use this scorecard for every queued task in
 | Verification commands |  |
 | Accepted for normal work? | Yes / No / Maybe |
 
+## Model Mapping
+
+The evaluation run model lives in
+`packages/ui-workbench/src/evaluation/evaluation-run.ts`. It is a plain,
+framework-neutral TypeScript value object. It does not open a database, render
+UI, call a provider, or store secrets, tokens, or provider account state. Each
+field maps back to a scorecard concept:
+
+| Scorecard field | Model type |
+| --- | --- |
+| Task ID | `EvaluationRun.taskId` |
+| Task title | `EvaluationRun.title` |
+| Tool (Claude Code / Cline / OpenCode) | `EvaluationRun.tool` (`EvaluationToolName`) |
+| Model or route | `EvaluationRun.modelOrRoute` |
+| Branch/worktree | `EvaluationRun.branchOrWorktree` |
+| Started at / Finished at | `EvaluationRun.startedAt` / `finishedAt` |
+| Verification commands | `EvaluationRun.verificationCommands` |
+| Accepted for normal work? | `EvaluationRun.accepted` (`EvaluationAcceptance`) |
+| Task lifecycle | `EvaluationRun.status` (`EvaluationTaskStatus`: queued, running, passed, failed, inconclusive) |
+| Score (1-5 scale) | `EvaluationAreaScore.score` (`EvaluationScore`) |
+| Scorecard area row | `EvaluationAreaScore` |
+| Whole scorecard | `EvaluationScorecard` (a record keyed by `EvaluationScoreArea`) |
+
+The six scorecard areas map one-to-one to `EvaluationScoreArea` values:
+
+| Area (scorecard) | `EvaluationScoreArea` |
+| --- | --- |
+| Repo understanding | `repo-understanding` |
+| Edit quality | `edit-quality` |
+| Verification | `verification` |
+| Recovery | `recovery` |
+| Cost/value | `cost-value` |
+| Workflow fit | `workflow-fit` |
+
+The model keeps the recording rules from
+`docs/plans/zai-evaluation-task-queue.md` in one place. Notes captured under
+"Task Notes" map to `EvaluationRun.notes`; area-level reviewer comments map to
+`EvaluationAreaScore.notes`.
+
 ## Scoring Scale
 
 | Score | Meaning |

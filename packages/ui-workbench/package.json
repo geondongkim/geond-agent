@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./evaluation": "./src/evaluation/index.ts",
     "./i18n": "./src/i18n/index.ts",
     "./settings": "./src/settings/index.ts",
     "./workbench": "./src/workbench/index.ts"

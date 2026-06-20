@@ -36,6 +36,8 @@ Updated on 2026-06-21:
       see [Z.ai evaluation run: Cline Task 2](zai-evaluation-run-cline-task2.md).
 - [x] The third paid evaluation task has been run and scored with OpenCode;
       see [Z.ai evaluation run: OpenCode Task 3](zai-evaluation-run-opencode-task3.md).
+- [x] The fourth paid evaluation task has been run and scored with Cline;
+      see [Z.ai evaluation run: Cline Task 4](zai-evaluation-run-cline-task4.md).
 
 ## Current Code Boundaries
 
