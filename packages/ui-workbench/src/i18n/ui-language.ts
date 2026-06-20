@@ -7,7 +7,11 @@ export function isSupportedUiLanguage(value: string): value is SupportedUiLangua
   return SUPPORTED_UI_LANGUAGES.includes(value as SupportedUiLanguage);
 }
 
-export function normalizeUiLanguage(value: string | undefined | null): SupportedUiLanguage {
+export function normalizeUiLanguage(value: unknown): SupportedUiLanguage {
+  if (typeof value !== "string") {
+    return DEFAULT_UI_LANGUAGE;
+  }
+
   if (!value) {
     return DEFAULT_UI_LANGUAGE;
   }

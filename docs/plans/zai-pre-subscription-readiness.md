@@ -30,7 +30,8 @@ Updated on 2026-06-21:
 - [x] The local env values provide `ZAI_API_KEY`, the Z.ai Anthropic-compatible
       base URL, and Claude Code default model aliases without exposing the key
       in tracked files.
-- [ ] The first paid evaluation task has been run and scored.
+- [x] The first paid evaluation task has been run and scored with OpenCode;
+      see [Z.ai evaluation run: OpenCode Task 1](zai-evaluation-run-opencode-task1.md).
 
 ## Current Code Boundaries
 

@@ -16,7 +16,7 @@ export interface WorkbenchLanguageSettings {
 }
 
 interface WorkbenchLanguageSettingsInput {
-  readonly uiLanguage?: string | null;
+  readonly uiLanguage?: unknown;
   readonly agentResponseLanguage?: unknown;
 }
 
