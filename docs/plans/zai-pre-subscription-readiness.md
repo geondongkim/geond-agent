@@ -16,6 +16,22 @@ paid evaluation can start immediately and produce useful evidence:
 - Claude Code external CLI/ACP adapter capability metadata,
 - docs that connect setup, task queue, scorecard, and readiness checks.
 
+## Paid Evaluation State
+
+Updated on 2026-06-21:
+
+- [x] User reports the GLM Coding Plan subscription is active.
+- [x] User reports subscription auto-renewal is disabled.
+- [x] A repo-local `.env.local` file exists locally, is gitignored, and uses
+      mode `0600`.
+- [x] `.env` exists locally as a gitignored symlink to `.env.local`, so
+      dotenv-style tools can read the same local-only values without
+      duplicating the key.
+- [x] The local env values provide `ZAI_API_KEY`, the Z.ai Anthropic-compatible
+      base URL, and Claude Code default model aliases without exposing the key
+      in tracked files.
+- [ ] The first paid evaluation task has been run and scored.
+
 ## Current Code Boundaries
 
 | Boundary | Current file(s) | Ready state |
@@ -43,10 +59,12 @@ paid evaluation can start immediately and produce useful evidence:
       executing Claude Code.
 - [x] Setup, task queue, scorecard, and readiness docs are linked.
 - [x] Current Z.ai price, cancellation, refund, and auto-renewal behavior were
-      checked against official docs on 2026-06-21; re-check the payment UI
-      immediately before charging.
+      checked against official docs on 2026-06-21; the user reports the
+      subscription is now active and auto-renewal is disabled.
 - [ ] A focused multi-day evaluation window is available.
-- [x] Local-only secrets storage path is prepared outside git.
+- [x] Local-only secrets storage paths are prepared outside git
+      (`~/.config/geond-agent/zai.env`, ignored `.env.local`, and ignored
+      `.env` symlink).
 
 ## Official Check Snapshot
 
@@ -101,7 +119,7 @@ Do not make a single-tool verdict. If Claude Code underperforms, keep the Z.ai
 provider evaluation alive long enough to test Cline or OpenCode. Separate the
 provider verdict from the tool verdict and the `geond-agent` workbench verdict.
 
-## Verification Before Payment
+## Verification Before First Paid Run
 
 Run these commands on the subscription-start branch:
 
@@ -114,5 +132,5 @@ pnpm verify
 ```
 
 Also run the repository secret scan pattern used by the controller before
-entering any real API key locally. The scan must be clean before payment and
-again before any commit made during paid evaluation.
+starting any quota-consuming task. The scan must be clean before the first paid
+run and again before any commit made during paid evaluation.
