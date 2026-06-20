@@ -126,6 +126,34 @@ The first implementation can prove this boundary with
 resume/fork actions, tool-call cards, terminal output, diff events, approval
 prompts, model routing, and usage reporting must remain adapter-neutral.
 
+## OSS Reference Patterns
+
+The design should learn from OSS workbench patterns without importing their
+source code. The current reference snapshot is documented in
+`docs/research/oss-agent-workbench-reference.md`.
+
+Reference patterns to preserve:
+
+- Goose-style canonical model registry and provider capability metadata, where
+  model entries can expose tool support, reasoning or thinking support,
+  modalities, context limits, pricing, and release metadata.
+- Goose-style session import/export direction, but implemented through
+  `geond-agent`'s own adapter-neutral session snapshot shape.
+- Cline-style provider/model catalog, model picker flow, GLM
+  thinking/reasoning route separation, and host abstraction for workspace,
+  terminal, diff, and environment services.
+- OpenCode-style session selected provider/model/mode metadata, explicit
+  provider/model dialogs, permission diff prompts, and target-specific TUI
+  plugin boundaries.
+- OpenHands-style LLM profiles, settings/secrets separation, key-present
+  metadata, usage/cost/context metrics, and security risk indicators.
+- Codex-style protocol/event-driven UI, execution policy boundary, approval
+  overlays, and snapshot-tested TUI regressions.
+
+OpenHands `enterprise/` is explicitly excluded as an implementation reference
+because it is under a PolyForm license. Other third-party source still requires
+license review before copying or vendoring.
+
 ## Backend and Model Selection Boundary
 
 Backend selection and model selection are related but separate concerns.
@@ -169,6 +197,31 @@ GitHub Copilot app and Copilot Chat are reference product patterns for this
 direction. They do not imply that this repository should add a Copilot SDK
 dependency, call GitHub APIs, copy third-party code, or store GitHub/Copilot
 credentials.
+
+## Event-Driven Workbench UX Boundary
+
+The UI should be driven by normalized workbench events, not by concrete adapter
+internals. Backend adapters emit events such as session configured, turn
+started, assistant text delta, plan update, tool call started, command output,
+diff emitted, approval requested, approval resolved, warning, error, and turn
+completed.
+
+The workbench reducer owns the visible state:
+
+- current session and selection snapshot,
+- chat timeline,
+- plan/checklist state,
+- tool call and terminal output state,
+- diff review state,
+- pending approval queue,
+- usage/quota/cost metadata,
+- recovery/error notices.
+
+This boundary keeps Codex-level UX quality measurable. A UI feature should have
+fixture replay tests, layout snapshots, keyboard/pointer flow coverage,
+English/Korean label coverage, and explicit failure states before it is treated
+as complete. The detailed bar lives in
+`docs/plans/workbench-ux-quality-bar.md`.
 
 ## Local Settings Boundary
 

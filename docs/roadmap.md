@@ -33,6 +33,12 @@
   - model picker for manual per-session model selection,
   - separate controls for UI language, agent response language, backend
     selection, provider route, and model selection.
+- Workbench UX quality bar:
+  - event-driven rendering from normalized backend events,
+  - fixture replay tests for session state,
+  - compact and wide layout snapshots for dense workbench surfaces,
+  - complete English/Korean labels for settings, picker, approval, and status
+    surfaces.
 
 ## Milestone 3: Review and Approval UX
 
@@ -43,6 +49,8 @@
 - Failure summaries for tests and commands.
 - Per-session backend/model selection snapshot shown alongside review and
   approval metadata.
+- Permission and approval surfaces that show concrete command, diff, risk,
+  policy, and available decisions before the user confirms.
 
 ## Milestone 4: Session Continuity
 
@@ -53,6 +61,9 @@
 - Workspace-level session metadata.
 - Resume/fork behavior that preserves the session's selected backend, provider
   route, model profile, and routing mode.
+- Session import/export research based on adapter-neutral history snapshots, so
+  future adapters can move local work without binding the workbench to one
+  external tool's session format.
 
 ## Milestone 5: Provider and Agent Expansion
 
@@ -66,9 +77,15 @@
 - Model catalog, provider registry, and auto routing policy:
   - catalog Z.ai model profiles such as `glm-4.7`, `glm-5.2`, and `auto`,
   - keep provider routes separate from backend adapters,
+  - include provider capability metadata such as tool support, reasoning or
+    thinking support, context limits, pricing/cost visibility, quota visibility,
+    and modality support,
   - evaluate GitHub Copilot app and Copilot Chat as reference products for
     model picker, auto model selection, BYOK/BYOM, and MCP/tool connection
     patterns,
+  - use OSS workbench references such as Goose, Cline, OpenCode, OpenHands, and
+    Codex as design-pattern inputs only; do not copy source code without license
+    review,
   - add future Copilot SDK-like backend research without adding GitHub/Copilot
     dependencies to the repo.
 - Backend selection after the Claude Code first target:

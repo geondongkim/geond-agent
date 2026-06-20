@@ -17,6 +17,12 @@ Shared workbench UI components for `geond-agent`.
 The UI should feel like a workbench, not just a chat transcript. Agent actions
 must be reviewable, reversible, and easy to scan during long coding loops.
 
+The UI quality target is defined in
+`../../docs/plans/workbench-ux-quality-bar.md`. "Codex-level" means verifiable
+behavior: event replay fixtures, approval/diff snapshots, keyboard and pointer
+coverage, compact/wide layout checks, complete English/Korean labels, explicit
+failure states, and clean secret scans.
+
 ## Localization Boundary
 
 The package currently exposes a framework-neutral runtime for UI language
@@ -50,3 +56,11 @@ external CLI/process backend, local model backend, Z.ai model profiles, and
 
 UI language, agent response language, backend selection, provider route, model
 profile, and routing mode are separate settings.
+
+Reference workbench patterns are tracked in
+`../../docs/research/oss-agent-workbench-reference.md`. The package should learn
+from Goose-style model registries, Cline-style provider/model catalogs,
+OpenCode-style provider/model dialogs and permission diff prompts,
+OpenHands-style profiles/metrics/security indicators, and Codex-style
+event-driven UI and snapshot-tested TUI behavior. Those are design references
+only; no upstream UI code is vendored here.

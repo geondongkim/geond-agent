@@ -1,0 +1,64 @@
+# Workbench UX Quality Bar
+
+`geond-agent` should aim for Codex-level workbench quality in a measurable way:
+not by copying Codex UI code, but by adopting verifiable interaction,
+rendering, and safety standards.
+
+## Quality Principles
+
+- Event-driven rendering: UI state changes are derived from normalized backend
+  events and persisted session snapshots.
+- Adapter-neutral controls: backend picker, model picker, approvals, terminal
+  output, diffs, and metrics do not depend on one adapter package.
+- Reviewable actions: every command, tool call, diff, approval, and recovery
+  path gives the user enough context to understand what will happen next.
+- Local-first safety: secrets, account state, and provider credentials stay in
+  local-only stores outside tracked source files.
+- Bilingual baseline: English and Korean UI strings are supported from the
+  start, while agent response language remains a separate preference.
+
+## Verifiable UX Standards
+
+| Area | Minimum bar | Verification |
+| --- | --- | --- |
+| Event protocol | Session lifecycle, assistant text, plan updates, tool calls, command output, diffs, approvals, warnings, and errors have normalized event shapes. | Fixture replay tests reconstruct the same workbench state from the same event stream. |
+| Backend/model picker | Backend adapter, provider route, model profile, and routing mode are separate controls and are captured in a per-session snapshot. | Unit tests cover manual mode, auto placeholder mode, unavailable capability states, and persisted snapshot rendering. |
+| Approval UX | Command, patch, permission, and network/MCP approvals show request identity, reason, affected files or command, and available decisions. | Snapshot tests cover approve/reject/cancel states, keyboard navigation, and queued approval behavior. |
+| Diff review | File changes render with stable paths, change counts, and enough context to approve safely. | Snapshot tests cover add/update/delete/rename, long lines, small widths, and Korean UI labels. |
+| Terminal output | Streaming output is readable, bounded, searchable later, and never shifts layout unpredictably. | Fixture tests cover running, succeeded, failed, truncated, and interrupted command states. |
+| Metrics | Cost, quota, context window, token usage, and backend capability metadata are shown only when adapters provide them. | Tests cover present, missing, stale, and unavailable metadata states. |
+| Settings/secrets | UI settings may persist locally; raw API keys and provider tokens are never in tracked settings payloads. | Secret scans run in verification and settings serializers expose presence flags, not raw secrets. |
+| Localization | `en` and `ko` strings cover visible workbench settings and picker labels. | Type checks require both locales to define the same keys; tests cover fallback to `en`. |
+| Recovery | Failed adapter start, missing CLI, unavailable model, denied approval, and interrupted command states have clear next actions. | Fixture tests cover each failure state without requiring a real provider key. |
+| Layout quality | Dense workbench surfaces remain readable at narrow and wide sizes. | Snapshot or visual regression tests cover compact, standard, and wide layouts. |
+
+## Initial Implementation Order
+
+1. Define normalized workbench event and session snapshot types.
+2. Add backend/model selection metadata types without provider calls.
+3. Add fixture-driven reducer tests for event replay.
+4. Add UI settings coverage for language, agent response language, backend,
+   provider route, model profile, and routing mode.
+5. Add approval and diff snapshot tests once concrete UI components exist.
+6. Add usage/quota/cost display only after adapters expose metadata safely.
+
+## Out Of Scope For The First Slice
+
+- GitHub Copilot SDK dependency.
+- Real Claude Code, Cline, OpenCode, Goose, or OpenHands execution.
+- Provider API calls or account introspection.
+- API key storage in source-controlled settings.
+- Third-party source code import.
+
+## Acceptance Criteria For "Codex-Level"
+
+The workbench can claim the Codex-level quality bar for a feature only when:
+
+- the feature is event-driven and replayable from fixtures,
+- state survives session resume through a documented snapshot shape,
+- approvals and risky actions have explicit decision states,
+- keyboard and pointer flows are covered by tests,
+- compact and wide layouts are snapshot-tested,
+- English and Korean UI labels are complete,
+- secret scans remain clean,
+- failure and recovery states are rendered, not hidden in logs.

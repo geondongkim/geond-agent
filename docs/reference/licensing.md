@@ -10,7 +10,9 @@ time.
 ## Current Repository State
 
 The repository currently contains original project scaffolding and
-documentation. It does not vendor third-party application source code.
+documentation. It does not vendor third-party application source code. OSS
+agent workbench repositories may be cloned locally for research, but those
+clones are not part of this repository and must not be committed.
 
 ## Third-Party References
 
@@ -25,6 +27,8 @@ Third-party names are mentioned only for interoperability and research:
 - OpenHands
 - OpenCode
 - Factory
+- GitHub Copilot
+- OpenAI Codex
 
 Those names may be trademarks of their owners. This project is independent and
 not endorsed by those projects or companies.
@@ -42,9 +46,27 @@ their code is currently included in this repository.
 | Cline | Plan/act and review UX reference | Apache-2.0 |
 | Claude Code | External installed tool only | Proprietary/external product boundary |
 | Z.ai GLM Coding Plan | External provider only | External service/API terms |
+| OpenCode | Provider/model picker, ACP session, permission prompt reference | MIT |
+| OpenHands | LLM profiles, settings/secrets, metrics, security indicator reference | MIT outside `enterprise/`; `enterprise/` is PolyForm Free Trial and excluded |
+| OpenAI Codex | Event-driven UI, exec policy, approval overlay, snapshot TUI reference | Apache-2.0 |
+| GitHub Copilot app/Chat/SDK | Product pattern and future integration research only | GitHub terms; no dependency or source import |
 
 If a future change copies code from any source-available or proprietary project,
 stop and review the license before merging.
+
+## OSS Research Snapshot
+
+The following repositories were cloned outside the worktree for design research.
+This table records the investigated commits and license posture. It does not
+authorize source import.
+
+| Project | Investigated commit | License posture | Use allowed in current repo |
+| --- | --- | --- | --- |
+| Goose | `6c2ec554de1632636d484e4124fbb3c011105342` | Apache-2.0 | Design-pattern notes only |
+| Cline | `ee59f81706981e0a64c8b32f8f0415c9d39561fa` | Apache-2.0 | Design-pattern notes only |
+| OpenCode | `009f3799cd6d28cad5a3e1b3902a80f60f93122e` | MIT | Design-pattern notes only |
+| OpenHands | `7b228db6ae143598b4caf65c6f7ed759b511f922` | MIT outside `enterprise/`; PolyForm Free Trial under `enterprise/` | Only non-enterprise design patterns; no `enterprise/` reuse |
+| OpenAI Codex | `d66708232299bdbf373ec55b0d6b938c246cfa60` | Apache-2.0 | Design-pattern notes only |
 
 ## Rules for Adding Third-Party Code
 
@@ -68,6 +90,12 @@ Before copying, vendoring, or forking third-party code:
   review them before use.
 - Proprietary tools should stay behind CLI, API, or protocol boundaries unless
   their license explicitly allows deeper integration.
+- PolyForm-licensed code must be treated as restricted until a project-specific
+  legal review allows a narrower use. OpenHands `enterprise/` is in this
+  category.
+- Research notes may summarize architecture and UX patterns, but should not
+  include copied implementation text, generated bundles, assets, or test
+  fixtures from upstream projects.
 
 ## Claude Code Boundary
 
