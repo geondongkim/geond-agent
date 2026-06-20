@@ -40,6 +40,14 @@ meaningful work:
 - basic pnpm/typecheck verification flow,
 - a queue of real repo tasks.
 
+## Evaluation Kit
+
+Use these companion docs before starting a paid evaluation:
+
+- [Z.ai coding tools setup](../guides/zai-coding-tools-setup.md)
+- [Z.ai evaluation task queue](zai-evaluation-task-queue.md)
+- [Z.ai evaluation scorecard](zai-evaluation-scorecard.md)
+
 ## Subscription Timing Criteria
 
 Subscribe only when all of these are true:
@@ -51,17 +59,32 @@ Subscribe only when all of these are true:
 - Current Z.ai pricing, cancellation, and refund policy have been checked again.
 - Auto-renewal cancellation path is known.
 
+## Pre-Subscription Checklist
+
+Do not subscribe until each item is complete:
+
+- [ ] Current branch installs and verifies with `pnpm install`, `pnpm lint`,
+      `pnpm test`, and `pnpm build`.
+- [ ] Claude Code, Cline, and OpenCode setup paths are documented without
+      committing secrets.
+- [ ] Local-only environment variable names are understood:
+      `ZAI_API_KEY`, `ANTHROPIC_BASE_URL`,
+      `ANTHROPIC_DEFAULT_HAIKU_MODEL`,
+      `ANTHROPIC_DEFAULT_SONNET_MODEL`, and
+      `ANTHROPIC_DEFAULT_OPUS_MODEL`.
+- [ ] Real API keys will live only in shell env, keychain, ignored `.env.local`,
+      or ignored tool-specific local settings.
+- [ ] The five evaluation tasks are queued in
+      `zai-evaluation-task-queue.md`.
+- [ ] The scorecard is ready before the first paid run.
+- [ ] Current Z.ai price, cancellation, refund, and auto-renewal behavior have
+      been checked outside this repository.
+- [ ] The evaluator has a focused multi-day window to run and review tasks.
+
 ## Evaluation Task Queue
 
-Use real repo work, not toy prompts.
-
-### Required Tasks
-
-1. Small bug fix 1
-2. Small bug fix 2
-3. Small bug fix 3
-4. One new feature slice
-5. One long-context task that changes both docs and code
+Use real repo work, not toy prompts. The current task queue lives in
+[zai-evaluation-task-queue.md](zai-evaluation-task-queue.md).
 
 ### Capability Checks
 
@@ -100,7 +123,8 @@ underperforms, Z.ai may still be useful through another supported tool.
 
 ## Scoring Rubric
 
-Score each task from 1 to 5.
+Score each task from 1 to 5. Use the detailed template in
+[zai-evaluation-scorecard.md](zai-evaluation-scorecard.md).
 
 | Area | What To Measure |
 | --- | --- |

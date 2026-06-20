@@ -33,6 +33,7 @@ implementation detail.
 ├── docs/
 │   ├── adr/
 │   ├── guides/
+│   ├── plans/
 │   └── reference/
 ├── .env.example
 ├── CONTRIBUTING.md
@@ -70,3 +71,9 @@ secrets or subscription/account state.
 
 Owns public-facing integration and licensing notes. Anything that affects
 third-party boundaries should be documented here before code is imported.
+
+### `docs/plans`
+
+Owns evaluation plans, task queues, and scorecards for future paid-provider or
+tool workflow decisions. Plans should not contain real secrets, tokens, or
+provider account state.
