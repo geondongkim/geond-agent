@@ -40,3 +40,16 @@ const safeForLogs = redactClaudeCodeAcpBoundary(boundary);
 
 The package models an external CLI/ACP boundary only. Execution, process
 management, and ACP message handling will be added in later slices.
+
+It also exposes adapter capability metadata for readiness checks:
+
+```ts
+import { createClaudeCodeAdapterMetadata } from "@geond-agent/claude-code-bridge";
+
+const metadata = createClaudeCodeAdapterMetadata();
+```
+
+The metadata describes session, resume/fork, tool call, terminal output, diff,
+approval, model metadata, model routing, and usage/quota reporting support as
+supported, candidate, unknown, or unsupported. It is descriptive only and does
+not execute Claude Code.
