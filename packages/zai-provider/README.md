@@ -33,7 +33,12 @@ const env = createZaiAnthropicCompatibleEnvironment(config);
 
 The helper returns endpoint/model environment values only. It reports key
 presence through `hasApiKey`, but it does not expose or persist key values.
-Empty or whitespace-only environment values are treated as missing.
+
+Empty or whitespace-only values for `ANTHROPIC_BASE_URL`, the
+`ANTHROPIC_DEFAULT_HAIKU_MODEL`, `ANTHROPIC_DEFAULT_SONNET_MODEL`, and
+`ANTHROPIC_DEFAULT_OPUS_MODEL` aliases, and `ZAI_API_KEY` are treated as
+missing. The default endpoint and model routing therefore stay stable, and
+`hasApiKey` stays `false` until a non-empty key is present.
 
 The package also exposes a pre-subscription model catalog and route metadata:
 

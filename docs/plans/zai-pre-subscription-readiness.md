@@ -32,6 +32,8 @@ Updated on 2026-06-21:
       in tracked files.
 - [x] The first paid evaluation task has been run and scored with OpenCode;
       see [Z.ai evaluation run: OpenCode Task 1](zai-evaluation-run-opencode-task1.md).
+- [x] The second paid evaluation task has been run and scored with Cline;
+      see [Z.ai evaluation run: Cline Task 2](zai-evaluation-run-cline-task2.md).
 
 ## Current Code Boundaries
 
