@@ -53,3 +53,52 @@ The metadata describes session, resume/fork, tool call, terminal output, diff,
 approval, model metadata, model routing, and usage/quota reporting support as
 supported, candidate, unknown, or unsupported. It is descriptive only and does
 not execute Claude Code.
+
+## Environment Redaction
+
+`redactClaudeCodeAcpBoundary` returns a new boundary object whose `process.env`
+is safe to write to logs. An env value is replaced with `[redacted]` when its
+name is secret-like: case-insensitively containing `key`, `token`, `secret`,
+`auth`, `password`, or `session`. This covers mixed-case names such as
+`ApiKey` or `MySecret`, common provider aliases such as `ANTHROPIC_API_KEY`,
+`OPENAI_KEY`, `AZURE_OPENAI_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`,
+`GITHUB_TOKEN`, `AWS_SECRET_ACCESS_KEY`, and `SESSION_ID`.
+
+Non-secret values such as `PATH`, `HOME`, `NODE_ENV`, or `EDITOR` are left
+visible so diagnostics stay useful. Empty and `undefined` values are preserved
+as-is, which signals that a secret-named variable is unset without revealing any
+real value.
+
+Redaction is for logs and diagnostics only. It produces a fresh copy and never
+mutates the boundary passed in, the bridge runtime config, or the real process
+environment. The redaction helpers are pure and side-effect free.
+
+```ts
+import {
+  defineClaudeCodeAcpBoundary,
+  redactClaudeCodeAcpBoundary,
+  shouldRedactEnvName
+} from "@geond-agent/claude-code-bridge";
+
+const boundary = defineClaudeCodeAcpBoundary({
+  executable: "claude",
+  transport: "stdio",
+  env: {
+    PATH: "/usr/bin",
+    ANTHROPIC_API_KEY: "<provider-secret-value>",
+    NODE_ENV: "development"
+  }
+});
+
+const safeForLogs = redactClaudeCodeAcpBoundary(boundary);
+const redactedValue = safeForLogs.process.env["ANTHROPIC_API_KEY"];
+const visiblePath = safeForLogs.process.env.PATH;
+const originalValue = boundary.process.env?.["ANTHROPIC_API_KEY"];
+
+// redactedValue is "[redacted]".
+// visiblePath is "/usr/bin".
+// originalValue is unchanged.
+
+shouldRedactEnvName("OPENAI_KEY"); // true
+shouldRedactEnvName("HOME");       // false
+```
