@@ -1,4 +1,8 @@
-import { ZAI_ANTHROPIC_BASE_URL, type ZaiModelProfileId } from "./routing.js";
+import {
+  ZAI_ANTHROPIC_BASE_URL,
+  ZAI_CODING_OPENAI_BASE_URL,
+  type ZaiModelProfileId
+} from "./routing.js";
 
 export type ZaiReasoningCapability = "standard" | "thinking" | "reasoning" | "auto";
 
@@ -13,6 +17,7 @@ export interface ZaiModelProfile {
     readonly thinking: boolean;
     readonly reasoning: ZaiReasoningCapability;
     readonly anthropicCompatible: boolean;
+    readonly openAiCompatible: boolean;
   };
   readonly notes?: readonly string[];
 }
@@ -21,6 +26,16 @@ export interface ZaiAnthropicRouteMetadata {
   readonly id: "zai.anthropic-compatible";
   readonly providerId: "zai";
   readonly label: "Z.ai Anthropic-compatible route";
+  readonly endpoint: string;
+  readonly hasApiKey: boolean;
+  readonly apiKeyState: "present" | "missing";
+  readonly modelProfileIds: readonly ZaiModelProfileId[];
+}
+
+export interface ZaiOpenAiCompatibleRouteMetadata {
+  readonly id: "zai.openai-compatible-coding";
+  readonly providerId: "zai";
+  readonly label: "Z.ai OpenAI-compatible coding route";
   readonly endpoint: string;
   readonly hasApiKey: boolean;
   readonly apiKeyState: "present" | "missing";
@@ -38,7 +53,8 @@ export const ZAI_MODEL_PROFILES: readonly ZaiModelProfile[] = [
       toolCalling: true,
       thinking: true,
       reasoning: "thinking",
-      anthropicCompatible: true
+      anthropicCompatible: true,
+      openAiCompatible: true
     }
   },
   {
@@ -51,7 +67,8 @@ export const ZAI_MODEL_PROFILES: readonly ZaiModelProfile[] = [
       toolCalling: true,
       thinking: true,
       reasoning: "reasoning",
-      anthropicCompatible: true
+      anthropicCompatible: true,
+      openAiCompatible: true
     }
   },
   {
@@ -64,7 +81,8 @@ export const ZAI_MODEL_PROFILES: readonly ZaiModelProfile[] = [
       toolCalling: true,
       thinking: false,
       reasoning: "standard",
-      anthropicCompatible: true
+      anthropicCompatible: true,
+      openAiCompatible: true
     }
   },
   {
@@ -77,7 +95,8 @@ export const ZAI_MODEL_PROFILES: readonly ZaiModelProfile[] = [
       toolCalling: true,
       thinking: true,
       reasoning: "auto",
-      anthropicCompatible: true
+      anthropicCompatible: true,
+      openAiCompatible: true
     },
     notes: ["Pre-subscription helper only; no provider call is made to resolve auto."]
   }
@@ -85,6 +104,23 @@ export const ZAI_MODEL_PROFILES: readonly ZaiModelProfile[] = [
 
 export function listZaiModelProfiles(): readonly ZaiModelProfile[] {
   return ZAI_MODEL_PROFILES;
+}
+
+export function createZaiOpenAiRouteMetadata(input: {
+  readonly endpoint?: string;
+  readonly hasApiKey?: boolean;
+} = {}): ZaiOpenAiCompatibleRouteMetadata {
+  const hasApiKey = input.hasApiKey ?? false;
+
+  return {
+    id: "zai.openai-compatible-coding",
+    providerId: "zai",
+    label: "Z.ai OpenAI-compatible coding route",
+    endpoint: input.endpoint ?? ZAI_CODING_OPENAI_BASE_URL,
+    hasApiKey,
+    apiKeyState: hasApiKey ? "present" : "missing",
+    modelProfileIds: ZAI_MODEL_PROFILES.map((profile) => profile.id)
+  };
 }
 
 export function getZaiModelProfile(id: ZaiModelProfileId): ZaiModelProfile | undefined {
@@ -107,4 +143,3 @@ export function createZaiAnthropicRouteMetadata(input: {
     modelProfileIds: ZAI_MODEL_PROFILES.map((profile) => profile.id)
   };
 }
-

@@ -1,4 +1,5 @@
 export const ZAI_ANTHROPIC_BASE_URL = "https://api.z.ai/api/anthropic";
+export const ZAI_CODING_OPENAI_BASE_URL = "https://api.z.ai/api/coding/paas/v4";
 
 export type ZaiCodingPlanModel = "glm-4.7" | "glm-5-turbo" | "glm-5.2";
 export type ZaiModelProfileId = ZaiCodingPlanModel | "auto";

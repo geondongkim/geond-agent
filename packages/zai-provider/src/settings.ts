@@ -6,9 +6,11 @@ import {
 } from "./routing.js";
 import {
   createZaiAnthropicRouteMetadata,
+  createZaiOpenAiRouteMetadata,
   listZaiModelProfiles,
   type ZaiAnthropicRouteMetadata,
-  type ZaiModelProfile
+  type ZaiModelProfile,
+  type ZaiOpenAiCompatibleRouteMetadata
 } from "./catalog.js";
 
 export interface ZaiProviderEnvironment {
@@ -24,6 +26,7 @@ export interface ZaiProviderConfig {
   readonly routing: ZaiModelRouting;
   readonly hasApiKey: boolean;
   readonly route: ZaiAnthropicRouteMetadata;
+  readonly openAiCompatibleRoute: ZaiOpenAiCompatibleRouteMetadata;
   readonly modelProfiles: readonly ZaiModelProfile[];
 }
 
@@ -60,6 +63,9 @@ export function createZaiProviderConfig(
     hasApiKey,
     route: createZaiAnthropicRouteMetadata({
       endpoint: anthropicBaseUrl,
+      hasApiKey
+    }),
+    openAiCompatibleRoute: createZaiOpenAiRouteMetadata({
       hasApiKey
     }),
     modelProfiles: listZaiModelProfiles()

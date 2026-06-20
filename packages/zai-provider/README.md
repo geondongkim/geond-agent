@@ -49,3 +49,8 @@ const hardTaskModel = getZaiModelProfile(config.routing.hard);
 
 The catalog is metadata only. It does not call Z.ai, verify subscription state,
 or store account/session data.
+
+Route metadata includes both the Anthropic-compatible endpoint for Claude
+Code/Goose-style paths and the OpenAI-compatible coding endpoint for tools such
+as Cline/OpenCode. Choose the endpoint expected by the target tool before a paid
+evaluation run.

@@ -25,6 +25,7 @@ paid evaluation can start immediately and produce useful evidence:
 | Evaluation fixture | `packages/ui-workbench/src/workbench/fixtures.ts` | Pre-subscription sample stream connects Z.ai route, Claude Code adapter metadata, and Task 1-style evaluation flow. |
 | Backend/model selection | `packages/ui-workbench/src/workbench/selection.ts` | Backend adapter, provider route, model profile, routing mode, capability state, UI language, and agent response language are separate fields. |
 | Z.ai catalog | `packages/zai-provider/src/catalog.ts` | `glm-4.7`, `glm-5.2`, `glm-5-turbo`, and `auto` model profiles are metadata-only and do not call Z.ai. |
+| Z.ai route metadata | `packages/zai-provider/src/catalog.ts` | Anthropic-compatible and OpenAI-compatible coding route metadata exist without provider calls. |
 | Z.ai env helper | `packages/zai-provider/src/settings.ts` | API key presence is exposed as a boolean only; empty or whitespace values are treated as missing. |
 | Claude Code adapter | `packages/claude-code-bridge/src/capabilities.ts` | External CLI/ACP candidate capabilities are described without bundling or executing Claude Code. |
 | Env redaction | `packages/claude-code-bridge/src/redaction.ts` | Secret-like env names are redacted for logs without mutating runtime env. |
@@ -41,11 +42,37 @@ paid evaluation can start immediately and produce useful evidence:
 - [x] Claude Code adapter capability metadata exists without bundling or
       executing Claude Code.
 - [x] Setup, task queue, scorecard, and readiness docs are linked.
-- [ ] Current Z.ai price, cancellation, refund, and auto-renewal behavior have
-      been checked outside the repository immediately before payment.
+- [x] Current Z.ai price, cancellation, refund, and auto-renewal behavior were
+      checked against official docs on 2026-06-21; re-check the payment UI
+      immediately before charging.
 - [ ] A focused multi-day evaluation window is available.
-- [ ] Local-only secrets storage path is prepared outside git, such as shell
-      env, keychain, ignored `.env.local`, or ignored tool-specific settings.
+- [x] Local-only secrets storage path is prepared outside git.
+
+## Official Check Snapshot
+
+Checked on 2026-06-21 against official Z.ai docs:
+
+- GLM Coding Plan currently starts at 18 USD per month and supports GLM-5.2,
+  GLM-5-Turbo, and GLM-4.7 across plans.
+- Z.ai documents Lite, Pro, and Max usage tiers, with higher concurrency and
+  weekly prompt estimates for higher tiers.
+- Subscriptions auto-renew at the end of each billing cycle. Cancellation is
+  managed from the Subscription page and should be done at least 3 days before
+  the next billing date to avoid renewal.
+- Z.ai's refund policy says subscription purchases are confirmed once purchased
+  and refunds are not supported, even if the plan is unused or partly unused.
+- GLM Coding Plan usage is limited to officially supported tools/products.
+- Endpoint choice matters:
+  - Claude Code and Goose use `https://api.z.ai/api/anthropic`.
+  - Cline/OpenCode-style OpenAI-compatible setup uses
+    `https://api.z.ai/api/coding/paas/v4`.
+
+Official references:
+
+- `https://docs.z.ai/devpack/overview`
+- `https://docs.z.ai/devpack/usage-policy`
+- `https://docs.z.ai/devpack/quick-start`
+- `https://docs.z.ai/devpack/tool/others`
 
 ## First Five Paid Tasks
 
@@ -89,4 +116,3 @@ pnpm verify
 Also run the repository secret scan pattern used by the controller before
 entering any real API key locally. The scan must be clean before payment and
 again before any commit made during paid evaluation.
-
