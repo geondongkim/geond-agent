@@ -126,6 +126,50 @@ The first implementation can prove this boundary with
 resume/fork actions, tool-call cards, terminal output, diff events, approval
 prompts, model routing, and usage reporting must remain adapter-neutral.
 
+## Backend and Model Selection Boundary
+
+Backend selection and model selection are related but separate concerns.
+
+Concepts:
+
+- Backend adapter: owns session and tool execution. Examples include a Claude
+  Code adapter, an ACP-compatible backend, an external CLI/process backend, an
+  IDE/plugin mediated backend, a future SDK-like embedded backend, or a local
+  model backend.
+- Provider route: owns endpoint, auth boundary, and provider-specific model
+  routing metadata. Examples include a Z.ai Anthropic-compatible route, a local
+  OpenAI-compatible route, or a future provider registry entry.
+- Model profile: names a concrete model or alias such as `glm-4.7`, `glm-5.2`,
+  `auto`, or another provider-specific profile.
+- Routing mode: records whether the user selected a model manually or whether
+  the workbench selected one automatically.
+- Per-session selection snapshot: captures the selected backend adapter,
+  provider route, model profile, routing mode, and relevant capability metadata
+  at the time a session starts or resumes.
+
+The UI should show backend and model choices from adapter/provider capability
+metadata. It should not store provider API keys, tokens, local user session
+state, or provider account state. Secret values stay in local shell/keychain or
+ignored tool-specific settings managed outside the tracked repository.
+
+These are separate settings:
+
+- UI language,
+- agent response language,
+- backend selection,
+- provider route selection,
+- model selection,
+- routing mode (`manual` or `auto`).
+
+Manual routing means the user explicitly selects the model profile. Auto routing
+means the workbench or adapter selects a model from available profiles using
+task complexity, model availability, quota/cost, and reliability metadata.
+
+GitHub Copilot app and Copilot Chat are reference product patterns for this
+direction. They do not imply that this repository should add a Copilot SDK
+dependency, call GitHub APIs, copy third-party code, or store GitHub/Copilot
+credentials.
+
 ## Local Settings Boundary
 
 Desktop storage is a shell concern. Shared packages define typed settings

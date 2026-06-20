@@ -70,6 +70,12 @@ Strategy:
 - allow multiple agent tools to use the same provider routing policy,
 - score provider value separately from tool workflow fit.
 
+Provider/model routing backends cooperate with backend adapters through metadata
+instead of ownership. A backend adapter owns the running session and tool
+execution, while a provider route can supply endpoint kind, model profiles,
+manual/auto routing policy, quota/cost metadata, and credential-presence status.
+The session should record both selections as a snapshot.
+
 ## Provider and Agent Tool Evaluation
 
 Evaluate provider quality and agent tool workflow separately.
@@ -121,6 +127,10 @@ pretend they support the same features.
 | Approvals | Protocol-native or adapter-mediated. | Adapter prompts before risky commands/actions. | Plugin-mediated approval UX. | Provider selection approval only. |
 | Model routing | Backend may report selected model. | Env/config driven, adapter reports metadata. | Tool/plugin settings driven. | Primary responsibility. |
 | Usage/quota reporting | Depends on backend telemetry. | Depends on CLI/provider output. | Depends on plugin/provider visibility. | Best place for provider-level metadata when available. |
+| Model picker support | May expose supported models through protocol metadata. | Adapter may expose models accepted by CLI flags/env. | Plugin UI/settings may expose model choices. | Primary source for model catalog and provider route choices. |
+| Auto routing support | Possible when backend can route or accept auto mode. | Possible if adapter can choose env/flags before launch. | Depends on plugin/provider support. | Primary home for task, cost, availability, and reliability policy. |
+| BYOK/BYOM support | Depends on protocol/provider configuration. | Common through local env or ignored config. | Depends on plugin policy and local settings. | Primary place to describe external provider/local model routes. |
+| Quota/cost reporting | Depends on backend telemetry. | Depends on CLI/provider output. | Depends on plugin/provider visibility. | Primary place for provider-level usage metadata when available. |
 
 ## Open Questions
 
@@ -130,3 +140,5 @@ pretend they support the same features.
 - How much process output parsing is acceptable before a CLI adapter becomes too
   brittle?
 - Which evaluation tasks best distinguish provider weakness from tool weakness?
+- Which metadata should be required before a backend/model picker choice is
+  safe to show as available?

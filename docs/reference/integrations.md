@@ -14,7 +14,9 @@ Current categories:
 - first bridge target: Claude Code,
 - candidate integration surfaces: Goose, Cline, OpenCode, OpenHands, Kilo Code,
   and other ACP-compatible or CLI/plugin-mediated tools,
-- provider/model routing target: Z.ai GLM Coding Plan.
+- provider/model routing target: Z.ai GLM Coding Plan,
+- reference product patterns: GitHub Copilot app, GitHub Copilot Chat, GitHub
+  Copilot CLI, and GitHub Copilot SDK.
 
 No third-party source code should be imported before license review and notice
 requirements are documented.
@@ -79,6 +81,33 @@ Z.ai should be evaluated separately from any single agent tool. Compare Claude
 Code, Cline, OpenCode, or other supported routes before deciding whether Z.ai is
 or is not useful for `geond-agent`.
 
+## GitHub Copilot Reference Patterns
+
+GitHub Copilot surfaces are reference products and possible future integration
+research targets. They are not dependencies of this repository.
+
+Official references checked on 2026-06-21:
+
+- [GitHub Copilot app generally available](https://github.blog/changelog/2026-06-17-github-copilot-app-generally-available/)
+- [Changing the AI model for GitHub Copilot Chat](https://docs.github.com/en/copilot/how-tos/use-ai-models/change-the-chat-model)
+- [About Copilot auto model selection](https://docs.github.com/en/copilot/concepts/models/auto-model-selection)
+- [Copilot SDK is now generally available](https://github.blog/changelog/2026-06-02-copilot-sdk-is-now-generally-available/)
+- [Using your own LLM models in GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/use-byok-models)
+
+Current interpretation for `geond-agent`:
+
+- Copilot app: agent-driven desktop reference for sessions, worktrees,
+  integrated terminal/browser validation, pull-request handoff, model choice,
+  and MCP/tool connection.
+- Copilot Chat: model picker and auto model selection reference.
+- Copilot CLI BYOK/BYOM support: reference for local provider/model routing,
+  OpenAI-compatible endpoints, Anthropic-style routes, and local model paths.
+- Copilot SDK: future embedded agent runtime research candidate.
+
+Do not add GitHub Copilot SDK dependencies, call GitHub/Copilot APIs, store
+GitHub/Copilot credentials, or copy GitHub/Copilot source code unless a future
+explicit integration plan and license/security review allows it.
+
 ## Candidate Integration Surfaces
 
 | Tool or surface | Current approach | Notes |
@@ -89,6 +118,10 @@ or is not useful for `geond-agent`.
 | OpenCode | External CLI/workbench process and setup guide reference | Candidate evaluation route for terminal-oriented workflows. No vendored code. |
 | OpenHands | Documented API/protocol or external process reference | Candidate workflow and agent surface reference. No vendored code. |
 | Kilo Code | IDE/plugin mediated backend and UX reference | Candidate review and planning workflow reference. No vendored code. |
+| GitHub Copilot app | Reference product pattern | Agent-driven desktop, per-session model/tool choice, MCP/tool connection. No dependency. |
+| GitHub Copilot Chat | Reference product pattern | Model picker and auto model selection reference. No dependency. |
+| GitHub Copilot SDK | Future integration research | Embedded agent runtime candidate. Do not add dependency yet. |
+| GitHub Copilot CLI BYOK/BYOM | Reference product pattern | External provider/local model routing reference. No secrets or config committed. |
 | Other ACP-compatible backends | Documented protocol adapter | Candidate backend adapter packages may be added later. |
 
 Do not copy code or assets from any project without first checking its license,

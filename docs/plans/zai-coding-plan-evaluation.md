@@ -46,6 +46,7 @@ Use these companion docs before starting a paid evaluation:
 
 - [Z.ai coding tools setup](../guides/zai-coding-tools-setup.md)
 - [Backend horizontal expansion](backend-horizontal-expansion.md)
+- [Model and backend selection roadmap](model-and-backend-selection-roadmap.md)
 - [Z.ai evaluation task queue](zai-evaluation-task-queue.md)
 - [Z.ai evaluation scorecard](zai-evaluation-scorecard.md)
 

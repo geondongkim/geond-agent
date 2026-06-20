@@ -39,3 +39,14 @@ await runtime.setAgentResponseLanguage("en");
 
 UI language controls workbench labels. Agent response language is a separate
 preference that bridge/provider packages may pass to model prompts later.
+
+## Future Direction
+
+The UI workbench should eventually render backend picker and model picker
+surfaces. These controls must come from adapter/provider capability metadata, so
+the UI can show choices such as Claude Code adapter, ACP-compatible backend,
+external CLI/process backend, local model backend, Z.ai model profiles, and
+`auto` routing without storing provider secrets or account state.
+
+UI language, agent response language, backend selection, provider route, model
+profile, and routing mode are separate settings.

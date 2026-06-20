@@ -56,6 +56,7 @@ docs/
 - Diff review panel for file changes.
 - Approval UI for filesystem, shell, network, and MCP actions.
 - Backend bridge layer for ACP agents and provider-specific routing.
+- Backend picker and model picker for per-session manual or auto routing.
 
 ## Integration Strategy
 
@@ -85,6 +86,8 @@ share the same session, plan, diff, terminal, approval, and review surfaces.
 - [Repository structure](docs/repo-structure.md)
 - [Setup guide](docs/guides/setup.md)
 - [Integration notes](docs/reference/integrations.md)
+- [Backend horizontal expansion plan](docs/plans/backend-horizontal-expansion.md)
+- [Model and backend selection roadmap](docs/plans/model-and-backend-selection-roadmap.md)
 - [Licensing policy](docs/reference/licensing.md)
 
 ## License
