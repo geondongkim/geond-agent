@@ -62,7 +62,10 @@ const state = replayWorkbenchEvents(ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS);
 
 The replay state includes session lifecycle, assistant text, plan updates, tool
 calls, command output, diffs, usage/cost/context metadata, approvals,
-warning/error notices, and the per-session backend/model selection snapshot.
+warning/error notices, external adapter session links, and the per-session
+backend/model selection snapshot. Projection helpers mark completed, failed, or
+paused adapter-linked sessions as resumable without making the UI
+Claude-specific.
 
 ## Evaluation Run Boundary
 

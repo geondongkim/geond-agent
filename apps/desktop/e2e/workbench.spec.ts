@@ -23,6 +23,7 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(page.getByLabel("Runner mode")).toContainText("Local fixture");
   await expect(page.getByLabel("Runner mode")).toContainText("Claude Code live");
   await expect(page.getByRole("button", { name: "Choose workspace" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Resume session" }).first()).toBeDisabled();
   await expect(page.getByRole("button", { name: "Unpin session" })).toBeVisible();
   await expect(page.getByText("Approval required")).toBeVisible();
 

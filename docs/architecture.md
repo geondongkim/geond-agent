@@ -244,6 +244,23 @@ English/Korean label coverage, and explicit failure states before it is treated
 as complete. The detailed bar lives in
 `docs/plans/workbench-ux-quality-bar.md`.
 
+## Session Continuity Boundary
+
+Session continuity is adapter-neutral. The workbench owns the local `sessionId`
+and the persisted `WorkbenchEvent` stream. A backend adapter may own a separate
+external conversation id, such as a Claude Code `session_id`, but that value is
+linked through `session.adapter.linked` rather than replacing the workbench
+session id.
+
+For Claude Code, fresh runs can use `--session-id <workbenchSessionId>`, while
+resume runs use `--resume <externalSessionId>`. The Tauri stream channel remains
+the local workbench session id in both cases, so live stdout/stderr and
+normalized events replay into the same session snapshot.
+
+This keeps future resume/fork behavior portable across ACP-compatible backends,
+external CLI/process backends, IDE/plugin mediated backends, and provider/model
+routing backends. See `docs/plans/session-resume-continuity.md`.
+
 ## Local Settings Boundary
 
 Desktop storage is a shell concern. Shared packages define typed settings

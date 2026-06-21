@@ -2,6 +2,7 @@ import type {
   CommandOutputStream,
   CommandStatus,
   WorkbenchApprovalSnapshot,
+  WorkbenchAdapterSessionLinkSnapshot,
   WorkbenchDiffSnapshot,
   WorkbenchEvent,
   WorkbenchPlanItemSnapshot,
@@ -44,6 +45,7 @@ export interface WorkbenchSessionSnapshot {
   readonly title?: string;
   readonly workspacePath?: string;
   readonly selection?: WorkbenchSelectionSnapshot;
+  readonly externalSessions: Readonly<Record<string, WorkbenchAdapterSessionLinkSnapshot>>;
   readonly assistantMessages: Readonly<Record<string, AssistantMessageSnapshot>>;
   readonly plan: readonly WorkbenchPlanItemSnapshot[];
   readonly toolCalls: Readonly<Record<string, WorkbenchToolCallSnapshot>>;
@@ -94,6 +96,20 @@ export function applyWorkbenchEvent(
       return putSession(state, {
         ...session,
         selection: event.selection,
+        updatedAt: event.at ?? session.updatedAt
+      });
+    case "session.adapter.linked":
+      return putSession(state, {
+        ...session,
+        externalSessions: {
+          ...session.externalSessions,
+          [event.adapterId]: {
+            adapterId: event.adapterId,
+            externalSessionId: event.externalSessionId,
+            resumedFromExternalSessionId: event.resumedFromExternalSessionId,
+            linkedAt: event.at
+          }
+        },
         updatedAt: event.at ?? session.updatedAt
       });
     case "assistant.text.delta": {
@@ -280,6 +296,7 @@ function ensureSession(
     state.sessions[sessionId] ?? {
       id: sessionId,
       lifecycle: "created",
+      externalSessions: {},
       assistantMessages: {},
       plan: [],
       toolCalls: {},

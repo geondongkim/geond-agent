@@ -37,6 +37,7 @@ export type UiMessageKey =
   | "workbench.inspector.settings"
   | "workbench.inspector.selection"
   | "workbench.timeline.kind.session"
+  | "workbench.timeline.kind.adapter"
   | "workbench.timeline.kind.selection"
   | "workbench.timeline.kind.assistant"
   | "workbench.timeline.kind.plan"
@@ -81,6 +82,7 @@ export type UiMessageKey =
   | "workbench.selection.routingMode"
   | "workbench.selection.uiLanguage"
   | "workbench.selection.agentLanguage"
+  | "workbench.selection.externalSession"
   | "workbench.selection.warnings"
   | "workbench.selection.ignoredSanitizedRecords"
   | "workbench.selection.manual"
@@ -91,6 +93,7 @@ export type UiMessageKey =
   | "workbench.shell.subtitle"
   | "workbench.actions.newDemoSession"
   | "workbench.actions.runClaudeSession"
+  | "workbench.actions.resumeSession"
   | "workbench.actions.cancelRun"
   | "workbench.actions.settings"
   | "workbench.actions.chooseWorkspace"
@@ -110,6 +113,7 @@ export type UiMessageKey =
   | "workbench.runner.fixtureReady"
   | "workbench.runner.startingFixture"
   | "workbench.runner.startingClaude"
+  | "workbench.runner.resumingClaude"
   | "workbench.runner.appendedEvents"
   | "workbench.runner.failed"
   | "workbench.runner.mode"
@@ -181,6 +185,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.inspector.settings": "Settings",
     "workbench.inspector.selection": "Selection",
     "workbench.timeline.kind.session": "Session",
+    "workbench.timeline.kind.adapter": "Adapter",
     "workbench.timeline.kind.selection": "Selection",
     "workbench.timeline.kind.assistant": "Assistant",
     "workbench.timeline.kind.plan": "Plan",
@@ -225,6 +230,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.selection.routingMode": "Routing mode",
     "workbench.selection.uiLanguage": "UI language",
     "workbench.selection.agentLanguage": "Agent response language",
+    "workbench.selection.externalSession": "External session",
     "workbench.selection.warnings": "Capability warnings",
     "workbench.selection.ignoredSanitizedRecords": "Ignored sanitized records: {count}",
     "workbench.selection.manual": "Manual",
@@ -235,6 +241,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.shell.subtitle": "Local native workbench with session selection, Claude Code runner boundaries, persisted settings, and normalized event storage.",
     "workbench.actions.newDemoSession": "New demo session",
     "workbench.actions.runClaudeSession": "Run Claude session",
+    "workbench.actions.resumeSession": "Resume session",
     "workbench.actions.cancelRun": "Cancel run",
     "workbench.actions.settings": "Settings",
     "workbench.actions.chooseWorkspace": "Choose workspace",
@@ -254,6 +261,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runner.fixtureReady": "Fixture runner ready.",
     "workbench.runner.startingFixture": "Starting local fixture runner...",
     "workbench.runner.startingClaude": "Starting Claude Code stream-json runner...",
+    "workbench.runner.resumingClaude": "Resuming Claude Code session...",
     "workbench.runner.appendedEvents": "Appended {count} events from {executable} stream-json {mode} run #{index}.",
     "workbench.runner.failed": "Runner failed.",
     "workbench.runner.mode": "Runner mode",
@@ -322,6 +330,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.inspector.settings": "설정",
     "workbench.inspector.selection": "선택 메타데이터",
     "workbench.timeline.kind.session": "세션",
+    "workbench.timeline.kind.adapter": "어댑터",
     "workbench.timeline.kind.selection": "선택",
     "workbench.timeline.kind.assistant": "어시스턴트",
     "workbench.timeline.kind.plan": "계획",
@@ -366,6 +375,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.selection.routingMode": "라우팅 모드",
     "workbench.selection.uiLanguage": "UI 언어",
     "workbench.selection.agentLanguage": "에이전트 응답 언어",
+    "workbench.selection.externalSession": "외부 세션",
     "workbench.selection.warnings": "기능 경고",
     "workbench.selection.ignoredSanitizedRecords": "무시된 정제 fixture 레코드: {count}개",
     "workbench.selection.manual": "수동",
@@ -376,6 +386,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.shell.subtitle": "세션 선택, Claude Code 실행 경계, 저장되는 설정, 정규화 이벤트 저장소를 갖춘 로컬 네이티브 워크벤치입니다.",
     "workbench.actions.newDemoSession": "새 데모 세션",
     "workbench.actions.runClaudeSession": "Claude 세션 실행",
+    "workbench.actions.resumeSession": "세션 이어쓰기",
     "workbench.actions.cancelRun": "실행 취소",
     "workbench.actions.settings": "설정",
     "workbench.actions.chooseWorkspace": "워크스페이스 선택",
@@ -395,6 +406,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runner.fixtureReady": "Fixture runner 준비됨.",
     "workbench.runner.startingFixture": "로컬 fixture runner 시작 중...",
     "workbench.runner.startingClaude": "Claude Code stream-json runner 시작 중...",
+    "workbench.runner.resumingClaude": "Claude Code 세션 이어쓰기 중...",
     "workbench.runner.appendedEvents": "{executable} stream-json {mode} 실행 #{index}에서 이벤트 {count}개를 추가했습니다.",
     "workbench.runner.failed": "실행기가 실패했습니다.",
     "workbench.runner.mode": "Runner 모드",

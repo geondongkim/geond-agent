@@ -44,7 +44,7 @@ const safeForLogs = redactClaudeCodeAcpBoundary(boundary);
 ```
 
 The package models an external CLI/ACP boundary only. Execution, process
-management, and ACP message handling will be added in later slices.
+management, and ACP message handling stay behind this adapter package.
 
 The current stream-json boundary accepts both older sanitized workbench-shaped
 fixtures and real Claude Code `--bare -p --verbose --output-format stream-json`
@@ -52,6 +52,12 @@ envelopes such as `system/init`, `stream_event`, `assistant`, `user`, and
 `result`. Committed fixtures are reduced and sanitized: they preserve event
 shape, tool calls, text deltas, and usage metadata, but omit provider key
 sources, raw logs, private transcripts, and machine-local paths.
+
+Fresh live runs use `--session-id <workbenchSessionId>`. Resumed live runs use
+`--resume <externalSessionId>`, where the external id comes from a prior
+`session.adapter.linked` event. The workbench session id remains the stream
+channel and event-store owner, so Claude Code's conversation id never replaces
+the local session id.
 
 It also exposes adapter capability metadata for readiness checks:
 

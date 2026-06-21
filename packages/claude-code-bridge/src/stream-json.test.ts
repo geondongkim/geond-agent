@@ -50,6 +50,7 @@ describe("normalizeClaudeCodeStreamJsonRecords", () => {
     expect(result.ignoredRecords).toHaveLength(0);
     expect(result.events.map((event) => event.type)).toEqual([
       "session.lifecycle",
+      "session.adapter.linked",
       "assistant.text.delta",
       "assistant.text.delta",
       "tool.call.started",
@@ -67,6 +68,14 @@ describe("normalizeClaudeCodeStreamJsonRecords", () => {
       expect(sessionStarted.workspacePath).toBe("/workspace/geond-agent");
       expect(sessionStarted.selection?.modelProfile?.label).toBe("GLM 5.2");
     }
+
+    const adapterLinked = result.events[1];
+    expect(adapterLinked).toMatchObject({
+      type: "session.adapter.linked",
+      sessionId: "real-claude-session-1",
+      adapterId: "claude-code.external-cli-acp",
+      externalSessionId: "real-claude-session-1"
+    });
 
     const streamedText = result.events
       .filter((event) => event.type === "assistant.text.delta")
@@ -96,6 +105,26 @@ describe("normalizeClaudeCodeStreamJsonRecords", () => {
         costUsd: 0.001
       }
     });
+  });
+
+  it("keeps workbench session ids separate from Claude Code conversation ids", () => {
+    const result = normalizeClaudeCodeStreamJsonRecords(CLAUDE_CODE_REAL_STREAM_JSON_FIXTURE, {
+      workbenchSessionId: "workbench-session-1",
+      resumedFromExternalSessionId: "real-claude-session-1"
+    });
+
+    expect(result.events[0]).toMatchObject({
+      type: "session.lifecycle",
+      sessionId: "workbench-session-1",
+      lifecycle: "resumed"
+    });
+    expect(result.events[1]).toMatchObject({
+      type: "session.adapter.linked",
+      sessionId: "workbench-session-1",
+      externalSessionId: "real-claude-session-1",
+      resumedFromExternalSessionId: "real-claude-session-1"
+    });
+    expect(result.events.every((event) => event.sessionId === "workbench-session-1")).toBe(true);
   });
 
   it("keeps track of ignored records and emits a warning for unknown sanitized record types", () => {

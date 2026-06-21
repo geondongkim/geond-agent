@@ -16,6 +16,8 @@ export interface ClaudeCodeStreamJsonCommandOptions {
   readonly modelAlias?: string;
   readonly permissionMode?: ClaudeCodePermissionMode;
   readonly sessionId?: string;
+  readonly externalSessionId?: string;
+  readonly streamChannelId?: string;
   readonly timeoutMs?: number;
 }
 
@@ -80,6 +82,7 @@ export function buildClaudeCodeStreamJsonCommand(
     executable: options.executable ?? "claude",
     cwd: options.cwd,
     timeoutMs: options.timeoutMs,
+    streamChannelId: options.streamChannelId ?? options.sessionId,
     args: [
       "--bare",
       "-p",
@@ -90,7 +93,11 @@ export function buildClaudeCodeStreamJsonCommand(
       options.modelAlias ?? "sonnet",
       "--permission-mode",
       options.permissionMode ?? "plan",
-      ...(options.sessionId ? ["--session-id", options.sessionId] : []),
+      ...(options.externalSessionId
+        ? ["--resume", options.externalSessionId]
+        : options.sessionId
+          ? ["--session-id", options.sessionId]
+          : []),
       options.prompt
     ]
   };
@@ -98,7 +105,7 @@ export function buildClaudeCodeStreamJsonCommand(
 
 export function parseClaudeCodeStreamJsonLines(
   input: string,
-  fallbackSessionId?: string
+  options: string | Parameters<typeof normalizeClaudeCodeStreamJsonRecords>[1] = {}
 ): ClaudeCodeStreamJsonParseResult {
   const parseErrors: string[] = [];
   const records = input
@@ -113,7 +120,10 @@ export function parseClaudeCodeStreamJsonLines(
         return [];
       }
     });
-  const normalized = normalizeClaudeCodeStreamJsonRecords(records, { fallbackSessionId });
+  const normalized = normalizeClaudeCodeStreamJsonRecords(
+    records,
+    typeof options === "string" ? { fallbackSessionId: options } : options
+  );
 
   return {
     ...normalized,
@@ -130,7 +140,9 @@ export function createClaudeCodeFixtureReplayRunner(
     run: async (request) => {
       const preparedRecords = prepareFixtureRecords(records, request);
       const normalized = normalizeClaudeCodeStreamJsonRecords(preparedRecords, {
-        fallbackSessionId: request.sessionId
+        fallbackSessionId: request.sessionId,
+        workbenchSessionId: request.sessionId,
+        resumedFromExternalSessionId: request.externalSessionId
       });
 
       return {
@@ -151,7 +163,11 @@ export function createClaudeCodeProcessRunner(
     run: async (request) => {
       const command = buildClaudeCodeStreamJsonCommand(request);
       const execution = await execute(command);
-      const parsed = parseClaudeCodeStreamJsonLines(execution.stdout, request.sessionId);
+      const parsed = parseClaudeCodeStreamJsonLines(execution.stdout, {
+        fallbackSessionId: request.sessionId,
+        workbenchSessionId: request.sessionId,
+        resumedFromExternalSessionId: request.externalSessionId
+      });
 
       return {
         command,
