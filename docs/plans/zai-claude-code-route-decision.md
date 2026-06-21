@@ -69,3 +69,13 @@ derived from the probe shape, not raw logs or secrets.
 
 OpenCode horizontal expansion should come after this Claude Code path has a
 stable adapter boundary, not before.
+
+## GLM 5.2 Advisory Follow-up
+
+Before the next implementation push, Claude Code was routed through the Z.ai
+`opus` alias to have GLM 5.2 review the repo docs, current implementation, and
+next work. The most useful critique was that the existing bridge fixture looked
+like workbench-shaped synthetic events rather than real Claude Code
+`stream-json` envelopes. That advice is accepted: the next code slice should
+prefer a true envelope normalizer before deeper process control, persistence, or
+OpenCode comparison work.

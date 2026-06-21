@@ -18,7 +18,8 @@
 - Route the first implementation path through the Claude Code external CLI/ACP
   boundary.
 - Normalize Claude Code `--bare -p --verbose --output-format stream-json` into
-  workbench events.
+  workbench events using real envelope-shaped sanitized fixtures, including text
+  deltas, tool call/result records, run completion, and usage metadata.
 - Persist local sessions/events/snapshots in SQLite after the event shape is
   stable enough to replay.
 - Verify Z.ai endpoint/model routing.

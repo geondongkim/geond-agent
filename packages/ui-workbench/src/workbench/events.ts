@@ -43,6 +43,21 @@ export interface WorkbenchDiffSnapshot {
   readonly summary?: string;
 }
 
+export interface WorkbenchUsageSnapshot {
+  readonly id: string;
+  readonly source: "backend" | "provider" | "model";
+  readonly model?: string;
+  readonly inputTokens?: number;
+  readonly outputTokens?: number;
+  readonly cacheCreationInputTokens?: number;
+  readonly cacheReadInputTokens?: number;
+  readonly contextWindow?: number;
+  readonly maxOutputTokens?: number;
+  readonly costUsd?: number;
+  readonly serviceTier?: string;
+  readonly note?: string;
+}
+
 export type ApprovalKind = "command" | "diff" | "filesystem" | "network" | "mcp";
 export type ApprovalDecision = "approved" | "rejected" | "cancelled";
 
@@ -125,6 +140,12 @@ export type WorkbenchEvent =
       readonly at?: string;
     }
   | {
+      readonly type: "usage.reported";
+      readonly sessionId: string;
+      readonly usage: WorkbenchUsageSnapshot;
+      readonly at?: string;
+    }
+  | {
       readonly type: "approval.requested";
       readonly sessionId: string;
       readonly approval: WorkbenchApprovalSnapshot;
@@ -151,4 +172,3 @@ export type WorkbenchEvent =
       readonly message: string;
       readonly at?: string;
     };
-
