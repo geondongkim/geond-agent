@@ -37,6 +37,15 @@ export type UiMessageKey =
   | "workbench.terminal.title"
   | "workbench.diff.title"
   | "workbench.approvals.title"
+  | "workbench.approvals.requiredTitle"
+  | "workbench.approvals.requiredDetail"
+  | "workbench.approvals.review"
+  | "workbench.approvals.approve"
+  | "workbench.approvals.reject"
+  | "workbench.approvals.resolved"
+  | "workbench.approvals.decisionApproved"
+  | "workbench.approvals.decisionRejected"
+  | "workbench.approvals.decisionCancelled"
   | "workbench.selection.title"
   | "workbench.selection.backend"
   | "workbench.selection.provider"
@@ -56,9 +65,18 @@ export type UiMessageKey =
   | "workbench.actions.runClaudeSession"
   | "workbench.actions.settings"
   | "workbench.actions.chooseWorkspace"
+  | "workbench.actions.pinSession"
+  | "workbench.actions.unpinSession"
   | "workbench.composer.label"
   | "workbench.composer.placeholder"
+  | "workbench.composer.livePlaceholder"
   | "workbench.composer.dispatch"
+  | "workbench.livePlan.launch"
+  | "workbench.livePlan.normalize"
+  | "workbench.livePlan.inspect"
+  | "workbench.liveWarning.localOnly"
+  | "workbench.liveWarning.selectionLocalOnly"
+  | "workbench.liveWarning.parseFailed"
   | "workbench.runner.fixtureReady"
   | "workbench.runner.startingFixture"
   | "workbench.runner.startingClaude"
@@ -67,6 +85,7 @@ export type UiMessageKey =
   | "workbench.runner.mode"
   | "workbench.runner.fixture"
   | "workbench.runner.claudeLive"
+  | "workbench.runner.running"
   | "workbench.workspace.all"
   | "workbench.status.total"
   | "workbench.status.approvals"
@@ -128,6 +147,15 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.terminal.title": "Terminal",
     "workbench.diff.title": "Diff",
     "workbench.approvals.title": "Approvals",
+    "workbench.approvals.requiredTitle": "Approval required",
+    "workbench.approvals.requiredDetail": "{count} pending approval(s) are blocking this session.",
+    "workbench.approvals.review": "Review",
+    "workbench.approvals.approve": "Approve",
+    "workbench.approvals.reject": "Reject",
+    "workbench.approvals.resolved": "Recorded {decision} for {title}.",
+    "workbench.approvals.decisionApproved": "approved",
+    "workbench.approvals.decisionRejected": "rejected",
+    "workbench.approvals.decisionCancelled": "cancelled",
     "workbench.selection.title": "Selection snapshot",
     "workbench.selection.backend": "Backend",
     "workbench.selection.provider": "Provider route",
@@ -147,9 +175,18 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.runClaudeSession": "Run Claude session",
     "workbench.actions.settings": "Settings",
     "workbench.actions.chooseWorkspace": "Choose workspace",
+    "workbench.actions.pinSession": "Pin session",
+    "workbench.actions.unpinSession": "Unpin session",
     "workbench.composer.label": "Agent command",
     "workbench.composer.placeholder": "Review the current workspace and continue the implementation.",
+    "workbench.composer.livePlaceholder": "Run a concise geond-agent workbench smoke session. Do not modify files.",
     "workbench.composer.dispatch": "Dispatch",
+    "workbench.livePlan.launch": "Launch Claude Code stream-json runner",
+    "workbench.livePlan.normalize": "Normalize stream-json records into WorkbenchEvent state",
+    "workbench.livePlan.inspect": "Review terminal, diff, approvals, and warnings",
+    "workbench.liveWarning.localOnly": "Live execution keeps provider credentials and raw Claude logs outside committed workbench state.",
+    "workbench.liveWarning.selectionLocalOnly": "Live runner selection is a local snapshot; provider credentials are not stored in UI state.",
+    "workbench.liveWarning.parseFailed": "Unable to parse Claude Code stream-json line.",
     "workbench.runner.fixtureReady": "Fixture runner ready.",
     "workbench.runner.startingFixture": "Starting local fixture runner...",
     "workbench.runner.startingClaude": "Starting Claude Code stream-json runner...",
@@ -158,6 +195,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runner.mode": "Runner mode",
     "workbench.runner.fixture": "Local fixture",
     "workbench.runner.claudeLive": "Claude Code live",
+    "workbench.runner.running": "Running...",
     "workbench.workspace.all": "All workspaces",
     "workbench.status.total": "total",
     "workbench.status.approvals": "approvals",
@@ -216,6 +254,15 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.terminal.title": "터미널",
     "workbench.diff.title": "변경 사항",
     "workbench.approvals.title": "승인",
+    "workbench.approvals.requiredTitle": "승인이 필요합니다",
+    "workbench.approvals.requiredDetail": "이 세션에서 {count}개의 승인이 대기 중입니다.",
+    "workbench.approvals.review": "검토",
+    "workbench.approvals.approve": "승인",
+    "workbench.approvals.reject": "거절",
+    "workbench.approvals.resolved": "{title}에 {decision} 결정을 기록했습니다.",
+    "workbench.approvals.decisionApproved": "승인",
+    "workbench.approvals.decisionRejected": "거절",
+    "workbench.approvals.decisionCancelled": "취소",
     "workbench.selection.title": "선택 스냅샷",
     "workbench.selection.backend": "백엔드",
     "workbench.selection.provider": "프로바이더 경로",
@@ -235,9 +282,18 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.runClaudeSession": "Claude 세션 실행",
     "workbench.actions.settings": "설정",
     "workbench.actions.chooseWorkspace": "워크스페이스 선택",
+    "workbench.actions.pinSession": "세션 고정",
+    "workbench.actions.unpinSession": "고정 해제",
     "workbench.composer.label": "에이전트 명령",
     "workbench.composer.placeholder": "현재 워크스페이스를 검토하고 구현을 이어갑니다.",
+    "workbench.composer.livePlaceholder": "간결한 geond-agent 워크벤치 smoke 세션을 실행합니다. 파일은 수정하지 않습니다.",
     "workbench.composer.dispatch": "실행",
+    "workbench.livePlan.launch": "Claude Code stream-json runner 시작",
+    "workbench.livePlan.normalize": "stream-json 레코드를 WorkbenchEvent 상태로 정규화",
+    "workbench.livePlan.inspect": "터미널, 변경 사항, 승인, 경고 검토",
+    "workbench.liveWarning.localOnly": "Live 실행은 프로바이더 인증 정보와 원본 Claude 로그를 커밋되는 워크벤치 상태 밖에 둡니다.",
+    "workbench.liveWarning.selectionLocalOnly": "Live runner 선택은 로컬 스냅샷이며, 프로바이더 인증 정보는 UI 상태에 저장하지 않습니다.",
+    "workbench.liveWarning.parseFailed": "Claude Code stream-json 라인을 파싱하지 못했습니다.",
     "workbench.runner.fixtureReady": "Fixture runner 준비됨.",
     "workbench.runner.startingFixture": "로컬 fixture runner 시작 중...",
     "workbench.runner.startingClaude": "Claude Code stream-json runner 시작 중...",
@@ -246,6 +302,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runner.mode": "Runner 모드",
     "workbench.runner.fixture": "로컬 fixture",
     "workbench.runner.claudeLive": "Claude Code live",
+    "workbench.runner.running": "실행 중...",
     "workbench.workspace.all": "모든 워크스페이스",
     "workbench.status.total": "전체",
     "workbench.status.approvals": "승인",

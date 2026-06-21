@@ -19,6 +19,17 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(page.getByLabel("Runner mode")).toContainText("Local fixture");
   await expect(page.getByLabel("Runner mode")).toContainText("Claude Code live");
   await expect(page.getByRole("button", { name: "Choose workspace" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Unpin session" })).toBeVisible();
+  await expect(page.getByText("Approval required")).toBeVisible();
+
+  await page.getByRole("button", { name: "Unpin session" }).click();
+  await expect(page.getByRole("button", { name: "Pin session" })).toBeVisible();
+  await expect.poll(async () =>
+    page.evaluate(() => window.localStorage.getItem("geond-agent.workbench.pinned-session-ids"))
+  ).toBe("[]");
+
+  await page.getByRole("button", { name: "Pin session" }).click();
+  await expect(page.getByRole("button", { name: "Unpin session" })).toBeVisible();
 
   await page.getByRole("tab", { name: "Settings" }).click();
   await page.getByLabel("UI language").selectOption("ko");
@@ -45,7 +56,7 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await page.getByRole("button", { name: "Dispatch" }).click();
   await expect(page.getByText("2 total")).toBeVisible();
   await expect(page.getByRole("button", { name: /Local demo session 2/ })).toBeVisible();
-  await expect(page.getByText(/Appended 13 events/)).toBeVisible();
+  await expect(page.getByText(/Appended 14 events/)).toBeVisible();
 
   await page.getByRole("tab", { name: "Selection" }).click();
   const selectionPanel = page.getByRole("tabpanel", { name: "Selection" });
@@ -62,6 +73,9 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   const approvalsPanel = page.getByRole("tabpanel", { name: "Approvals" });
   await expect(approvalsPanel.getByText("Review desktop scaffold")).toBeVisible();
   await expect(approvalsPanel.getByText("resolved / approved")).toBeVisible();
+  await expect(approvalsPanel.getByText("Run verification command")).toBeVisible();
+  await approvalsPanel.getByRole("button", { name: "Approve" }).click();
+  await expect(page.getByText("Recorded approved for Run verification command.")).toBeVisible();
 
   expect(errors).toEqual([]);
 });

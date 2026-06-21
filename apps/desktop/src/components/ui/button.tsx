@@ -21,6 +21,7 @@ export function Button({ className, type = "button", variant = "solid", ...props
       type={type}
       className={cn(
         "inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold transition-colors duration-150",
+        "disabled:cursor-not-allowed disabled:opacity-50",
         buttonVariants[variant],
         className
       )}

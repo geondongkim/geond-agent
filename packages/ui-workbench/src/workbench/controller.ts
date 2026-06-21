@@ -18,6 +18,9 @@ export interface WorkbenchSessionController {
     events: readonly WorkbenchEvent[],
     options?: WorkbenchAppendOptions
   ) => WorkbenchSessionControllerSnapshot;
+  readonly setPinnedSessionIds: (
+    sessionIds: readonly string[]
+  ) => WorkbenchSessionControllerSnapshot;
   readonly selectSession: (sessionId: string) => WorkbenchSessionControllerSnapshot;
 }
 
@@ -44,10 +47,11 @@ export function createWorkbenchSessionController(
 ): WorkbenchSessionController {
   let events = [...(options.initialEvents ?? [])];
   let activeSessionId = options.activeSessionId;
+  let pinnedSessionIds = [...(options.pinnedSessionIds ?? [])];
 
   const createSnapshot = (): WorkbenchSessionControllerSnapshot => {
     const projectionOptions: WorkbenchProjectionOptions = {
-      pinnedSessionIds: options.pinnedSessionIds,
+      pinnedSessionIds,
       activeSessionId
     };
     const projection = projectWorkbenchEvents(events, undefined, projectionOptions);
@@ -66,6 +70,10 @@ export function createWorkbenchSessionController(
     appendEvents: (nextEvents, appendOptions = {}) => {
       events = [...events, ...nextEvents];
       activeSessionId = appendOptions.activateSessionId ?? lastSessionId(nextEvents) ?? activeSessionId;
+      return createSnapshot();
+    },
+    setPinnedSessionIds: (sessionIds) => {
+      pinnedSessionIds = [...new Set(sessionIds)];
       return createSnapshot();
     },
     selectSession: (sessionId) => {

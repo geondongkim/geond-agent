@@ -89,6 +89,16 @@ export const CLAUDE_CODE_SANITIZED_STREAM_JSON_FIXTURE = [
     decision: "approved"
   },
   {
+    type: "approval.requested",
+    session_id: "claude-workbench-1",
+    approval_id: "approval-2",
+    approval_kind: "command",
+    timestamp: "2026-06-21T01:00:08.500Z",
+    title: "Run verification command",
+    reason: "Approval policy requires explicit confirmation for local command execution.",
+    subject: "pnpm verify"
+  },
+  {
     type: "warning",
     session_id: "claude-workbench-1",
     id: "warning-sanitized-fixture",

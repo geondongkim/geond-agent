@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import {
   createWorkbenchSettingsLabels,
   createWorkbenchSessionStartEvents,
+  type ApprovalDecision,
   type WorkbenchRuntimeSnapshot,
   type WorkbenchSelectionSnapshot,
   type WorkbenchSessionDefaults,
@@ -75,8 +76,10 @@ export function App({ document }: AppProps) {
     document.activeWorkspace.path
   );
   const [selectedWorkspaces, setSelectedWorkspaces] = useState(document.workspaces);
+  const [pinnedSessionIds, setPinnedSessionIds] = useState(document.pinnedSessionIds);
   const [inspectorTab, setInspectorTab] = useState("diff");
   const [runnerStatus, setRunnerStatus] = useState("");
+  const [runnerBusy, setRunnerBusy] = useState(false);
   const [runnerMode, setRunnerMode] = useState<DesktopRunnerMode>("fixture");
   const [ignoredRecordCount, setIgnoredRecordCount] = useState(document.ignoredRecordCount);
   const [composerPrompt, setComposerPrompt] = useState("");
@@ -100,6 +103,13 @@ export function App({ document }: AppProps) {
   );
   const projection = controllerSnapshot.projection;
   const activeSession = projection.activeSession;
+  const pendingApprovals = useMemo(
+    () => activeSession?.approvals.filter((approval) => approval.status === "pending") ?? [],
+    [activeSession?.approvals]
+  );
+  const activeSessionPinned = activeSession
+    ? pinnedSessionIds.includes(activeSession.id)
+    : false;
   const workspaceOptions = useMemo(() => {
     const options = new Map<string, { readonly label: string; readonly path: string }>();
     selectedWorkspaces.forEach((workspace) => options.set(workspace.path, workspace));
@@ -119,6 +129,10 @@ export function App({ document }: AppProps) {
   };
 
   const startSession = async (mode: DesktopRunnerMode) => {
+    if (runnerBusy) {
+      return;
+    }
+
     const nextIndex = controllerSnapshot.events.length + 1;
     const sessionId = `local-session-${Date.now()}`;
     const title = `Local demo session ${projection.sessions.length + 1}`;
@@ -158,6 +172,7 @@ export function App({ document }: AppProps) {
         document.controller.appendEvents(nextEvents, { activateSessionId: sessionId })
       );
     };
+    setRunnerBusy(true);
     setRunnerStatus(
       mode === "claude-live"
         ? i18n.t("workbench.runner.startingClaude")
@@ -167,10 +182,10 @@ export function App({ document }: AppProps) {
     let unlistenStream: (() => void) | undefined;
     try {
       if (mode === "claude-live") {
-        unlistenStream = await listenToClaudeCodeStream(request, (events) =>
+        unlistenStream = await listenToClaudeCodeStream(request, i18n, (events) =>
           appendEvents(events, { markAsStreamed: true })
         );
-        const preludeEvents = createLiveRunPreludeEvents(request, title);
+        const preludeEvents = createLiveRunPreludeEvents(request, title, i18n);
         await appendEvents(preludeEvents);
       }
 
@@ -204,11 +219,58 @@ export function App({ document }: AppProps) {
       setRunnerStatus(message);
     } finally {
       unlistenStream?.();
+      setRunnerBusy(false);
     }
   };
 
   const startSelectedRunner = () => {
     void startSession(runnerMode);
+  };
+
+  const togglePinnedSession = async () => {
+    if (!activeSession) {
+      return;
+    }
+
+    const nextPinnedSessionIds = activeSessionPinned
+      ? pinnedSessionIds.filter((sessionId) => sessionId !== activeSession.id)
+      : [...pinnedSessionIds, activeSession.id];
+    const savedPinnedSessionIds = await document.savePinnedSessionIds(nextPinnedSessionIds);
+
+    setPinnedSessionIds(savedPinnedSessionIds);
+    setControllerSnapshot(document.controller.setPinnedSessionIds(savedPinnedSessionIds));
+  };
+
+  const resolveApproval = async (
+    approvalId: string,
+    decision: ApprovalDecision
+  ) => {
+    if (!activeSession) {
+      return;
+    }
+
+    const approvalTitle =
+      activeSession.approvals.find((approval) => approval.id === approvalId)?.title ?? approvalId;
+    const events: readonly WorkbenchEvent[] = [
+      {
+        type: "approval.resolved",
+        sessionId: activeSession.id,
+        approvalId,
+        decision,
+        at: new Date().toISOString()
+      }
+    ];
+
+    await document.eventStore.append(events);
+    setControllerSnapshot(
+      document.controller.appendEvents(events, { activateSessionId: activeSession.id })
+    );
+    setRunnerStatus(
+      formatMessage(i18n.t("workbench.approvals.resolved"), {
+        decision: formatApprovalDecision(i18n, decision),
+        title: approvalTitle
+      })
+    );
   };
 
   const chooseWorkspace = async () => {
@@ -282,10 +344,21 @@ export function App({ document }: AppProps) {
                 <option value="claude-live">{i18n.t("workbench.runner.claudeLive")}</option>
               </select>
             </label>
-            <Button onClick={startSelectedRunner}>
-              {runnerMode === "claude-live"
+            <Button onClick={startSelectedRunner} disabled={runnerBusy}>
+              {runnerBusy
+                ? i18n.t("workbench.runner.running")
+                : runnerMode === "claude-live"
                 ? i18n.t("workbench.actions.runClaudeSession")
                 : i18n.t("workbench.actions.newDemoSession")}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => void togglePinnedSession()}
+              disabled={!activeSession}
+            >
+              {activeSessionPinned
+                ? i18n.t("workbench.actions.unpinSession")
+                : i18n.t("workbench.actions.pinSession")}
             </Button>
             <Button variant="outline" onClick={() => setInspectorTab("settings")}>
               {i18n.t("workbench.actions.settings")}
@@ -382,6 +455,24 @@ export function App({ document }: AppProps) {
 
             {runnerStatus ? <div className="run-status-strip">{runnerStatus}</div> : null}
 
+            {pendingApprovals.length ? (
+              <div className="approval-banner">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">
+                    {i18n.t("workbench.approvals.requiredTitle")}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[color:var(--ink-soft)]">
+                    {formatMessage(i18n.t("workbench.approvals.requiredDetail"), {
+                      count: pendingApprovals.length
+                    })}
+                  </p>
+                </div>
+                <Button variant="outline" onClick={() => setInspectorTab("approvals")}>
+                  {i18n.t("workbench.approvals.review")}
+                </Button>
+              </div>
+            ) : null}
+
             {activeSession?.plan.length ? (
               <div className="plan-strip">
                 {activeSession.plan.map((item) => (
@@ -456,7 +547,11 @@ export function App({ document }: AppProps) {
                 }}
               />
               <div className="mt-2 flex justify-end">
-                <Button onClick={startSelectedRunner}>{i18n.t("workbench.composer.dispatch")}</Button>
+                <Button onClick={startSelectedRunner} disabled={runnerBusy}>
+                  {runnerBusy
+                    ? i18n.t("workbench.runner.running")
+                    : i18n.t("workbench.composer.dispatch")}
+                </Button>
               </div>
             </div>
           </section>
@@ -547,11 +642,26 @@ export function App({ document }: AppProps) {
                               {approval.subject ?? approval.reason ?? approval.kind}
                             </p>
                           </div>
-                          <span className="status-pill status-neutral">
+                          <span className={cn("status-pill", approvalTone(approval.status, approval.decision))}>
                             {formatStatusLabel(i18n, approval.status)}
-                            {approval.decision ? ` / ${approval.decision}` : ""}
+                            {approval.decision
+                              ? ` / ${formatApprovalDecision(i18n, approval.decision)}`
+                              : ""}
                           </span>
                         </div>
+                        {approval.status === "pending" ? (
+                          <div className="mt-3 flex flex-wrap justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              onClick={() => void resolveApproval(approval.id, "rejected")}
+                            >
+                              {i18n.t("workbench.approvals.reject")}
+                            </Button>
+                            <Button onClick={() => void resolveApproval(approval.id, "approved")}>
+                              {i18n.t("workbench.approvals.approve")}
+                            </Button>
+                          </div>
+                        ) : null}
                       </div>
                     ))}
                   </div>
@@ -688,13 +798,14 @@ function createRunnerPrompt(
   }
 
   return mode === "claude-live"
-    ? "Run a concise geond-agent workbench smoke session. Do not modify files."
+    ? i18n.t("workbench.composer.livePlaceholder")
     : i18n.t("workbench.composer.placeholder");
 }
 
 function createLiveRunPreludeEvents(
   request: RunnerRequest,
-  title: string
+  title: string,
+  i18n: WorkbenchRuntimeSnapshot["i18n"]
 ): readonly WorkbenchEvent[] {
   const at = new Date().toISOString();
 
@@ -703,7 +814,7 @@ function createLiveRunPreludeEvents(
       sessionId: request.sessionId,
       title,
       workspacePath: request.workspacePath,
-      selection: createSelectionSnapshotFromRequest(request),
+      selection: createSelectionSnapshotFromRequest(request, i18n),
       at
     }),
     {
@@ -712,17 +823,17 @@ function createLiveRunPreludeEvents(
       items: [
         {
           id: "launch-claude-code",
-          title: "Launch Claude Code stream-json runner",
+          title: i18n.t("workbench.livePlan.launch"),
           status: "in_progress"
         },
         {
           id: "normalize-events",
-          title: "Normalize stream-json records into WorkbenchEvent state",
+          title: i18n.t("workbench.livePlan.normalize"),
           status: "pending"
         },
         {
           id: "inspect-workbench",
-          title: "Review terminal, diff, approvals, and warnings",
+          title: i18n.t("workbench.livePlan.inspect"),
           status: "pending"
         }
       ],
@@ -741,8 +852,7 @@ function createLiveRunPreludeEvents(
       type: "warning",
       sessionId: request.sessionId,
       id: "claude-code-local-only-boundary",
-      message:
-        "Live execution keeps provider credentials and raw Claude logs outside committed workbench state.",
+      message: i18n.t("workbench.liveWarning.localOnly"),
       at
     }
   ];
@@ -750,13 +860,14 @@ function createLiveRunPreludeEvents(
 
 async function listenToClaudeCodeStream(
   request: RunnerRequest,
+  i18n: WorkbenchRuntimeSnapshot["i18n"],
   onEvents: (events: readonly WorkbenchEvent[]) => Promise<void>
 ): Promise<(() => void) | undefined> {
   try {
     return await listen<TauriClaudeCodeStreamPayload>(
       CLAUDE_CODE_STREAM_EVENT,
       (event) => {
-        const events = createEventsFromStreamPayload(event.payload, request);
+        const events = createEventsFromStreamPayload(event.payload, request, i18n);
         if (events.length > 0) {
           void onEvents(events);
         }
@@ -769,7 +880,8 @@ async function listenToClaudeCodeStream(
 
 function createEventsFromStreamPayload(
   payload: TauriClaudeCodeStreamPayload,
-  request: RunnerRequest
+  request: RunnerRequest,
+  i18n: WorkbenchRuntimeSnapshot["i18n"]
 ): readonly WorkbenchEvent[] {
   if (!isClaudeStreamPayload(payload) || payload.channelId !== request.sessionId) {
     return [];
@@ -801,7 +913,7 @@ function createEventsFromStreamPayload(
         type: "warning",
         sessionId: request.sessionId,
         id: `claude-code-stream-json-live-parse-${payload.sequence}`,
-        message: error instanceof Error ? error.message : "Unable to parse Claude Code stream-json line.",
+        message: error instanceof Error ? error.message : i18n.t("workbench.liveWarning.parseFailed"),
         at
       }
     ];
@@ -874,7 +986,8 @@ function createLiveRunFailureEvents(
 }
 
 function createSelectionSnapshotFromRequest(
-  request: RunnerRequest
+  request: RunnerRequest,
+  i18n: WorkbenchRuntimeSnapshot["i18n"]
 ): WorkbenchSelectionSnapshot {
   return {
     backendAdapterId: request.backendAdapterId ?? "claude-code.external-cli-acp",
@@ -883,9 +996,7 @@ function createSelectionSnapshotFromRequest(
     routingMode: request.routingMode ?? "manual",
     uiLanguage: request.uiLanguage,
     agentResponseLanguage: normalizeSelectionAgentLanguage(request.agentResponseLanguage),
-    capabilityWarnings: [
-      "Live runner selection is a local snapshot; provider credentials are not stored in UI state."
-    ]
+    capabilityWarnings: [i18n.t("workbench.liveWarning.selectionLocalOnly")]
   };
 }
 
@@ -967,6 +1078,22 @@ function formatRoutingModeLabel(
   }
 }
 
+function formatApprovalDecision(
+  i18n: WorkbenchRuntimeSnapshot["i18n"],
+  decision: string
+): string {
+  switch (decision) {
+    case "approved":
+      return i18n.t("workbench.approvals.decisionApproved");
+    case "rejected":
+      return i18n.t("workbench.approvals.decisionRejected");
+    case "cancelled":
+      return i18n.t("workbench.approvals.decisionCancelled");
+    default:
+      return decision;
+  }
+}
+
 function formatStatusLabel(
   i18n: WorkbenchRuntimeSnapshot["i18n"],
   status: string
@@ -999,6 +1126,21 @@ function formatStatusLabel(
       return i18n.t("workbench.status.failed");
     default:
       return status;
+  }
+}
+
+function approvalTone(status: string, decision?: string): string {
+  if (status === "pending") {
+    return "status-warn";
+  }
+
+  switch (decision) {
+    case "approved":
+      return "status-ok";
+    case "rejected":
+      return "status-danger";
+    default:
+      return "status-neutral";
   }
 }
 

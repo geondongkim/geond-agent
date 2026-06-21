@@ -10,7 +10,9 @@ import {
 import {
   createWorkbenchSettingsLabels,
   createWorkbenchSessionController,
+  loadWorkbenchPinnedSessionIds,
   saveWorkbenchSessionDefaults,
+  saveWorkbenchPinnedSessionIds,
   type AgentResponseLanguage,
   type LocalSettingsStore,
   type UiI18n,
@@ -49,6 +51,7 @@ export interface DesktopDemoDocument {
   readonly providerSummary: string;
   readonly bridgeCommand: string;
   readonly ignoredRecordCount: number;
+  readonly pinnedSessionIds: readonly string[];
   readonly initialControllerSnapshot: WorkbenchSessionControllerSnapshot;
   readonly createRunnerRequest: (options: CreateRunnerRequestOptions) => ClaudeCodeRunnerRequest;
   readonly runSession: (
@@ -61,6 +64,9 @@ export interface DesktopDemoDocument {
   readonly saveSessionDefaults: (
     settings: WorkbenchSessionDefaults
   ) => Promise<WorkbenchSessionDefaults>;
+  readonly savePinnedSessionIds: (
+    sessionIds: readonly string[]
+  ) => Promise<readonly string[]>;
 }
 
 export interface CreateRunnerRequestOptions {
@@ -108,9 +114,16 @@ export async function createDesktopDemoDocument(
           runner,
           sessionDefaults: workbench.sessionDefaults
         });
+  const savedPinnedSessionIds = await loadWorkbenchPinnedSessionIds(settingsStore);
+  const pinnedSessionIds =
+    savedPinnedSessionIds.length > 0
+      ? savedPinnedSessionIds
+      : initialDocument.activeSessionId === initialSessionId
+        ? [initialSessionId]
+        : [];
   const controller = createWorkbenchSessionController({
     initialEvents: initialDocument.events,
-    pinnedSessionIds: initialDocument.activeSessionId === initialSessionId ? [initialSessionId] : [],
+    pinnedSessionIds,
     activeSessionId: initialDocument.activeSessionId
   });
 
@@ -132,6 +145,7 @@ export async function createDesktopDemoDocument(
       .filter((value) => value.length > 0)
       .join(" "),
     ignoredRecordCount: initialDocument.ignoredRecordCount,
+    pinnedSessionIds,
     initialControllerSnapshot: controller.getSnapshot(),
     createRunnerRequest,
     runSession: (mode, request) =>
@@ -140,7 +154,9 @@ export async function createDesktopDemoDocument(
     saveSessionDefaults: async (settings) => {
       await saveWorkbenchSessionDefaults(settingsStore, settings);
       return settings;
-    }
+    },
+    savePinnedSessionIds: (sessionIds) =>
+      saveWorkbenchPinnedSessionIds(settingsStore, sessionIds)
   };
 }
 
