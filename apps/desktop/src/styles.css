@@ -219,6 +219,10 @@ body {
     @apply border-white/10 bg-[color:var(--shell)] text-[color:var(--inverse)];
   }
 
+  .rail-input {
+    @apply h-9 w-full rounded-md border border-white/10 bg-[color:var(--shell)] px-3 text-sm text-[color:var(--inverse)] outline-none placeholder:text-[color:var(--inverse-soft)];
+  }
+
   .session-rail p {
     @apply text-inherit;
   }

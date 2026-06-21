@@ -77,6 +77,7 @@ export function App({ document }: AppProps) {
   );
   const [selectedWorkspaces, setSelectedWorkspaces] = useState(document.workspaces);
   const [pinnedSessionIds, setPinnedSessionIds] = useState(document.pinnedSessionIds);
+  const [sessionQuery, setSessionQuery] = useState("");
   const [inspectorTab, setInspectorTab] = useState("diff");
   const [runnerStatus, setRunnerStatus] = useState("");
   const [runnerBusy, setRunnerBusy] = useState(false);
@@ -116,13 +117,27 @@ export function App({ document }: AppProps) {
     projection.workspaces.forEach((workspace) => options.set(workspace.path, workspace));
     return [...options.values()];
   }, [projection.workspaces, selectedWorkspaces]);
-  const filteredSessions = useMemo(() => {
-    if (workspacePath === "__all__") {
-      return projection.recentSessions;
-    }
-
-    return projection.sessions.filter((session) => session.workspacePath === workspacePath);
-  }, [projection.recentSessions, projection.sessions, workspacePath]);
+  const visibleSessions = useMemo(
+    () =>
+      projection.sessions.filter(
+        (session) =>
+          matchesWorkspaceFilter(session.workspacePath, workspacePath) &&
+          matchesSessionQuery(session, sessionQuery)
+      ),
+    [projection.sessions, sessionQuery, workspacePath]
+  );
+  const visibleSessionIds = useMemo(
+    () => new Set(visibleSessions.map((session) => session.id)),
+    [visibleSessions]
+  );
+  const visiblePinnedSessions = useMemo(
+    () => projection.pinnedSessions.filter((session) => visibleSessionIds.has(session.id)),
+    [projection.pinnedSessions, visibleSessionIds]
+  );
+  const visibleRecentSessions = useMemo(
+    () => projection.recentSessions.filter((session) => visibleSessionIds.has(session.id)),
+    [projection.recentSessions, visibleSessionIds]
+  );
 
   const selectSession = (sessionId: string) => {
     setControllerSnapshot(document.controller.selectSession(sessionId));
@@ -401,17 +416,32 @@ export function App({ document }: AppProps) {
               </Button>
             </div>
 
+            <div className="rail-card">
+              <label className="muted-meta block" htmlFor="session-search">
+                {i18n.t("workbench.sessionSidebar.search")}
+              </label>
+              <input
+                id="session-search"
+                value={sessionQuery}
+                onChange={(event) => setSessionQuery(event.target.value)}
+                className="rail-input mt-2"
+                placeholder={activeSession?.title ?? i18n.t("workbench.timeline.empty")}
+              />
+            </div>
+
             <SessionList
               activeSessionId={activeSession?.id}
               title={i18n.t("workbench.sessionSidebar.pinned")}
-              sessions={projection.pinnedSessions}
+              sessions={visiblePinnedSessions}
+              emptyText={i18n.t("workbench.sessionSidebar.noSessions")}
               i18n={i18n}
               onSelect={selectSession}
             />
             <SessionList
               activeSessionId={activeSession?.id}
               title={i18n.t("workbench.sessionSidebar.recent")}
-              sessions={filteredSessions}
+              sessions={visibleRecentSessions}
+              emptyText={i18n.t("workbench.sessionSidebar.noSessions")}
               i18n={i18n}
               onSelect={selectSession}
             />
@@ -1048,6 +1078,33 @@ function eventIdentity(event: WorkbenchEvent): string {
   return JSON.stringify(event);
 }
 
+function matchesWorkspaceFilter(
+  sessionWorkspacePath: string | undefined,
+  workspacePath: string
+): boolean {
+  return workspacePath === "__all__" || sessionWorkspacePath === workspacePath;
+}
+
+function matchesSessionQuery(
+  session: DesktopDemoDocument["initialControllerSnapshot"]["projection"]["sessions"][number],
+  query: string
+): boolean {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (normalizedQuery.length === 0) {
+    return true;
+  }
+
+  return [
+    session.id,
+    session.title,
+    session.workspacePath,
+    session.backendLabel,
+    session.lifecycle
+  ]
+    .filter((value): value is string => typeof value === "string")
+    .some((value) => value.toLowerCase().includes(normalizedQuery));
+}
+
 function formatAgentLanguageLabel(
   i18n: WorkbenchRuntimeSnapshot["i18n"],
   language: string
@@ -1201,12 +1258,14 @@ function formatProviderSummary(value: string): string {
 
 function SessionList({
   activeSessionId,
+  emptyText,
   i18n,
   onSelect,
   sessions,
   title
 }: {
   readonly activeSessionId?: string;
+  readonly emptyText: string;
   readonly i18n: WorkbenchRuntimeSnapshot["i18n"];
   readonly onSelect: (sessionId: string) => void;
   readonly sessions: readonly DesktopDemoDocument["initialControllerSnapshot"]["projection"]["sessions"][number][];
@@ -1219,15 +1278,19 @@ function SessionList({
         <span className="font-mono text-[11px] text-[color:var(--ink-muted)]">{sessions.length}</span>
       </div>
       <div className="space-y-1.5">
-        {sessions.map((session) => (
-          <SessionCard
-            key={session.id}
-            session={session}
-            active={session.id === activeSessionId}
-            i18n={i18n}
-            onSelect={() => onSelect(session.id)}
-          />
-        ))}
+        {sessions.length ? (
+          sessions.map((session) => (
+            <SessionCard
+              key={session.id}
+              session={session}
+              active={session.id === activeSessionId}
+              i18n={i18n}
+              onSelect={() => onSelect(session.id)}
+            />
+          ))
+        ) : (
+          <EmptyState text={emptyText} />
+        )}
       </div>
     </section>
   );
