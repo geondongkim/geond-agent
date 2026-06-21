@@ -55,6 +55,9 @@ export interface DesktopDemoDocument {
     mode: DesktopRunnerMode,
     request: ClaudeCodeRunnerRequest
   ) => Promise<ClaudeCodeRunnerResult | ClaudeCodeProcessRunnerResult>;
+  readonly chooseWorkspace: (
+    defaultPath?: string
+  ) => Promise<DesktopWorkspaceDescriptor | undefined>;
   readonly saveSessionDefaults: (
     settings: WorkbenchSessionDefaults
   ) => Promise<WorkbenchSessionDefaults>;
@@ -72,7 +75,8 @@ export interface CreateRunnerRequestOptions {
 export async function createDesktopDemoDocument(
   settingsStore: LocalSettingsStore
 ): Promise<DesktopDemoDocument> {
-  const workspaces = await createDesktopWorkspaceResolver().listWorkspaces();
+  const workspaceResolver = createDesktopWorkspaceResolver();
+  const workspaces = await workspaceResolver.listWorkspaces();
   const activeWorkspace = workspaces[0] ?? {
     id: "geond-agent",
     label: "geond-agent",
@@ -132,6 +136,7 @@ export async function createDesktopDemoDocument(
     createRunnerRequest,
     runSession: (mode, request) =>
       mode === "claude-live" ? liveRunner.run(request) : runner.run(request),
+    chooseWorkspace: (defaultPath) => workspaceResolver.chooseWorkspace({ defaultPath }),
     saveSessionDefaults: async (settings) => {
       await saveWorkbenchSessionDefaults(settingsStore, settings);
       return settings;

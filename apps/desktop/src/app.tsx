@@ -74,6 +74,7 @@ export function App({ document }: AppProps) {
   const [workspacePath, setWorkspacePath] = useState(
     document.activeWorkspace.path
   );
+  const [selectedWorkspaces, setSelectedWorkspaces] = useState(document.workspaces);
   const [inspectorTab, setInspectorTab] = useState("diff");
   const [runnerStatus, setRunnerStatus] = useState("");
   const [runnerMode, setRunnerMode] = useState<DesktopRunnerMode>("fixture");
@@ -101,10 +102,10 @@ export function App({ document }: AppProps) {
   const activeSession = projection.activeSession;
   const workspaceOptions = useMemo(() => {
     const options = new Map<string, { readonly label: string; readonly path: string }>();
-    document.workspaces.forEach((workspace) => options.set(workspace.path, workspace));
+    selectedWorkspaces.forEach((workspace) => options.set(workspace.path, workspace));
     projection.workspaces.forEach((workspace) => options.set(workspace.path, workspace));
     return [...options.values()];
-  }, [document.workspaces, projection.workspaces]);
+  }, [projection.workspaces, selectedWorkspaces]);
   const filteredSessions = useMemo(() => {
     if (workspacePath === "__all__") {
       return projection.recentSessions;
@@ -210,6 +211,22 @@ export function App({ document }: AppProps) {
     void startSession(runnerMode);
   };
 
+  const chooseWorkspace = async () => {
+    const selected = await document.chooseWorkspace(
+      workspacePath === "__all__" ? document.activeWorkspace.path : workspacePath
+    );
+    if (!selected) {
+      return;
+    }
+
+    setSelectedWorkspaces((current) => {
+      const next = new Map(current.map((workspace) => [workspace.path, workspace]));
+      next.set(selected.path, selected);
+      return [...next.values()];
+    });
+    setWorkspacePath(selected.path);
+  };
+
   const updateUiLanguage = async (language: string) => {
     const nextSnapshot = await document.runtime.setUiLanguage(language);
     setRuntimeSnapshot(nextSnapshot);
@@ -302,6 +319,13 @@ export function App({ document }: AppProps) {
                   </option>
                 ))}
               </select>
+              <Button
+                variant="outline"
+                className="mt-2 w-full"
+                onClick={() => void chooseWorkspace()}
+              >
+                {i18n.t("workbench.actions.chooseWorkspace")}
+              </Button>
             </div>
 
             <SessionList

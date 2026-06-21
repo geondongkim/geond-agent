@@ -18,10 +18,12 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(page.getByRole("heading", { name: "Inspector", exact: true })).toBeVisible();
   await expect(page.getByLabel("Runner mode")).toContainText("Local fixture");
   await expect(page.getByLabel("Runner mode")).toContainText("Claude Code live");
+  await expect(page.getByRole("button", { name: "Choose workspace" })).toBeVisible();
 
   await page.getByRole("tab", { name: "Settings" }).click();
   await page.getByLabel("UI language").selectOption("ko");
   await expect(page.getByRole("heading", { name: "세션", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "워크스페이스 선택" })).toBeVisible();
 
   await page.getByLabel("UI 언어").selectOption("en");
   await page.getByLabel("Model profile").selectOption("opus");

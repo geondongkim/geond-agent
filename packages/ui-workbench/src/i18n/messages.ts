@@ -55,6 +55,7 @@ export type UiMessageKey =
   | "workbench.actions.newDemoSession"
   | "workbench.actions.runClaudeSession"
   | "workbench.actions.settings"
+  | "workbench.actions.chooseWorkspace"
   | "workbench.composer.label"
   | "workbench.composer.placeholder"
   | "workbench.composer.dispatch"
@@ -145,6 +146,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.newDemoSession": "New demo session",
     "workbench.actions.runClaudeSession": "Run Claude session",
     "workbench.actions.settings": "Settings",
+    "workbench.actions.chooseWorkspace": "Choose workspace",
     "workbench.composer.label": "Agent command",
     "workbench.composer.placeholder": "Review the current workspace and continue the implementation.",
     "workbench.composer.dispatch": "Dispatch",
@@ -232,6 +234,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.newDemoSession": "새 데모 세션",
     "workbench.actions.runClaudeSession": "Claude 세션 실행",
     "workbench.actions.settings": "설정",
+    "workbench.actions.chooseWorkspace": "워크스페이스 선택",
     "workbench.composer.label": "에이전트 명령",
     "workbench.composer.placeholder": "현재 워크스페이스를 검토하고 구현을 이어갑니다.",
     "workbench.composer.dispatch": "실행",
