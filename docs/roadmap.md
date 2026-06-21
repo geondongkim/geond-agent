@@ -24,6 +24,8 @@
   approval requests before attempting interactive approval forwarding.
 - Persist local sessions/events/snapshots in SQLite after the event shape is
   stable enough to replay.
+- Materialize a durable session index so startup can render the session rail
+  without loading every session's full event stream.
 - Verify Z.ai endpoint/model routing.
 - Show basic session status and backend metadata.
 
@@ -39,6 +41,10 @@
 - Tauri app data JSON for small non-secret preferences.
 - SQLite-backed local sessions, events, snapshots, approvals, tool calls,
   command output summaries, diff summaries, and usage metadata.
+- Per-session projection:
+  - load durable session summaries first,
+  - replay detailed event streams for the active session only,
+  - lazy-load selected session events when switching sessions.
 - Backend and Model Picker UX:
   - backend picker for Claude Code adapter, ACP-compatible backend, external
     CLI/process backend, IDE/plugin mediated backend, and future local model or
@@ -85,6 +91,9 @@
 - Workspace-level session metadata.
 - Resume/fork behavior that preserves the session's selected backend, provider
   route, model profile, and routing mode.
+- Durable resume metadata stored in the local session index, with external
+  adapter session ids preserved as adapter metadata rather than workbench
+  session ids.
 - Session import/export research based on adapter-neutral history snapshots, so
   future adapters can move local work without binding the workbench to one
   external tool's session format.

@@ -6,4 +6,5 @@ export * from "./projection.js";
 export * from "./registry.js";
 export * from "./replay.js";
 export * from "./selection.js";
+export * from "./session-index.js";
 export * from "./workbench-runtime.js";

@@ -12,6 +12,11 @@ import {
   type WorkbenchStateSnapshot
 } from "./replay.js";
 import type { WorkbenchSelectionSnapshot } from "./selection.js";
+import {
+  listWorkbenchSessionIndexEntries,
+  type WorkbenchSessionIndexEntry,
+  type WorkbenchSessionIndexSnapshot
+} from "./session-index.js";
 
 export type WorkbenchTimelineEntryKind =
   | "session"
@@ -116,6 +121,39 @@ export function projectWorkbenchEvents(
   return projectWorkbenchState(state, events, options);
 }
 
+export function projectWorkbenchSessionIndex(
+  index: WorkbenchSessionIndexSnapshot,
+  loadedEvents: readonly WorkbenchEvent[] = [],
+  options: WorkbenchProjectionOptions = {}
+): WorkbenchProjection {
+  const sessionIndexEntries = listWorkbenchSessionIndexEntries(index);
+  const sessions = sessionIndexEntries.map(projectSessionIndexEntry);
+  const pinnedSessionIds = new Set(options.pinnedSessionIds ?? []);
+  const activeSessionId =
+    options.activeSessionId && index.sessions[options.activeSessionId]
+      ? options.activeSessionId
+      : sessions[0]?.id;
+  const activeSessionEvents = activeSessionId
+    ? loadedEvents.filter((event) => event.sessionId === activeSessionId)
+    : [];
+  const activeSessionState =
+    activeSessionId && activeSessionEvents.length > 0
+      ? replayWorkbenchEvents(activeSessionEvents).sessions[activeSessionId]
+      : undefined;
+
+  return {
+    activeSessionId,
+    sessions,
+    pinnedSessions: sessions.filter((session) => pinnedSessionIds.has(session.id)),
+    recentSessions: sessions.filter((session) => !pinnedSessionIds.has(session.id)),
+    workspaces: projectWorkspaceSummariesFromIndex(sessionIndexEntries),
+    backendStatuses: projectBackendStatusesFromIndex(sessionIndexEntries),
+    activeSession: activeSessionState
+      ? projectActiveSession(activeSessionState, activeSessionEvents)
+      : undefined
+  };
+}
+
 export function projectWorkbenchState(
   state: WorkbenchStateSnapshot,
   events: readonly WorkbenchEvent[] = [],
@@ -156,6 +194,23 @@ function projectSessionListItem(session: WorkbenchSessionSnapshot): ProjectedSes
     pendingApprovalCount: session.pendingApprovalIds.length,
     warningCount: session.notices.filter((notice) => notice.level === "warning").length,
     errorCount: session.notices.filter((notice) => notice.level === "error").length
+  };
+}
+
+function projectSessionIndexEntry(
+  entry: WorkbenchSessionIndexEntry
+): ProjectedSessionListItem {
+  return {
+    id: entry.id,
+    title: entry.title ?? entry.id,
+    lifecycle: entry.lifecycle,
+    workspacePath: entry.workspacePath,
+    backendLabel: entry.backendLabel,
+    updatedAt: entry.updatedAt,
+    resumable: entry.resumable,
+    pendingApprovalCount: entry.pendingApprovalCount,
+    warningCount: entry.warningCount,
+    errorCount: entry.errorCount
   };
 }
 
@@ -399,6 +454,40 @@ function projectWorkspaceSummaries(
   );
 }
 
+function projectWorkspaceSummariesFromIndex(
+  sessions: readonly WorkbenchSessionIndexEntry[]
+): readonly ProjectedWorkspaceSummary[] {
+  const byPath = new Map<string, ProjectedWorkspaceSummary>();
+
+  sessions.forEach((session) => {
+    if (!session.workspacePath) {
+      return;
+    }
+
+    const current = byPath.get(session.workspacePath);
+    const next: ProjectedWorkspaceSummary = current
+      ? {
+          ...current,
+          sessionCount: current.sessionCount + 1,
+          updatedAt: compareMaybeIso(session.updatedAt, current.updatedAt) > 0
+            ? session.updatedAt
+            : current.updatedAt
+        }
+      : {
+          path: session.workspacePath,
+          label: basename(session.workspacePath),
+          sessionCount: 1,
+          updatedAt: session.updatedAt
+        };
+
+    byPath.set(session.workspacePath, next);
+  });
+
+  return Array.from(byPath.values()).sort((left, right) =>
+    compareMaybeIso(right.updatedAt, left.updatedAt) || left.label.localeCompare(right.label)
+  );
+}
+
 function projectBackendStatuses(
   sessions: readonly WorkbenchSessionSnapshot[]
 ): readonly ProjectedBackendStatus[] {
@@ -428,6 +517,38 @@ function projectBackendStatuses(
           (providerKeyMissing
             ? `${selection.providerRoute?.label ?? "provider route"} key metadata is missing`
             : selection.providerRoute?.label ?? "Selection metadata available"),
+        relatedSessionId: session.id
+      });
+    });
+
+  return Array.from(statuses.values());
+}
+
+function projectBackendStatusesFromIndex(
+  sessions: readonly WorkbenchSessionIndexEntry[]
+): readonly ProjectedBackendStatus[] {
+  const statuses = new Map<string, ProjectedBackendStatus>();
+
+  sessions
+    .slice()
+    .sort((left, right) => compareMaybeIso(right.updatedAt, left.updatedAt))
+    .forEach((session) => {
+      const backendAdapterId = session.backendAdapterId;
+      const label = session.backendLabel;
+
+      if (!backendAdapterId || !label || statuses.has(backendAdapterId)) {
+        return;
+      }
+
+      statuses.set(backendAdapterId, {
+        backendAdapterId,
+        label,
+        level: session.capabilityWarning || session.providerKeyMissing ? "attention" : "ready",
+        detail:
+          session.capabilityWarning ??
+          (session.providerKeyMissing
+            ? `${session.providerRouteLabel ?? "provider route"} key metadata is missing`
+            : session.providerRouteLabel ?? "Selection metadata available"),
         relatedSessionId: session.id
       });
     });

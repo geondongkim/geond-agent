@@ -254,6 +254,15 @@ The workbench reducer owns the visible state:
 - usage/quota/cost metadata,
 - recovery/error notices.
 
+For desktop persistence, the normalized event stream remains the source of
+truth, but the app also maintains a durable session index. The index stores
+compact session-list metadata such as title, lifecycle, workspace path,
+backend label, pending approval count, warning/error counts, external adapter
+session links, and updated time. Startup can render the session rail from this
+index and load only the active session's detailed event stream. Selecting a
+different session lazy-loads that session's events and replays only that active
+session.
+
 This boundary keeps Codex-level UX quality measurable. A UI feature should have
 fixture replay tests, layout snapshots, keyboard/pointer flow coverage,
 English/Korean label coverage, and explicit failure states before it is treated

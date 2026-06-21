@@ -67,6 +67,13 @@ backend/model selection snapshot. Projection helpers mark completed, failed, or
 paused adapter-linked sessions as resumable without making the UI
 Claude-specific.
 
+For desktop-scale session lists, the package also exposes a durable session
+index reducer. The index is rebuilt from `WorkbenchEvent`s and stores compact
+session rail metadata such as lifecycle, workspace, backend label, pending
+approval count, warning/error counts, updated time, and adapter session links.
+Detailed timeline state still comes from replaying the active session's event
+stream.
+
 ## Evaluation Run Boundary
 
 The package also exposes a small evaluation run model for Z.ai tool comparisons:

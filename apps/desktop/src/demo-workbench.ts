@@ -10,10 +10,12 @@ import {
 import {
   createWorkbenchSettingsLabels,
   createWorkbenchSessionController,
+  buildWorkbenchSessionIndex,
   loadWorkbenchPinnedSessionIds,
   saveWorkbenchSessionDefaults,
   saveWorkbenchPinnedSessionIds,
   validateWorkbenchSessionDefaults,
+  createWorkbenchSessionIndexFromEntries,
   type AgentResponseLanguage,
   type LocalSettingsStore,
   type UiI18n,
@@ -24,6 +26,8 @@ import {
   type WorkbenchSessionController,
   type WorkbenchSessionControllerSnapshot,
   type WorkbenchSessionDefaults,
+  type WorkbenchSessionIndexEntry,
+  type WorkbenchSessionIndexSnapshot,
   type WorkbenchSettingsLabels,
   type WorkbenchSelectionCatalog
 } from "@geond-agent/ui-workbench";
@@ -32,6 +36,8 @@ import { createTauriClaudeCodeExecutor } from "./claude-runner.js";
 import { createDesktopWorkbench } from "./index.js";
 import type { DesktopWorkbenchEventStore } from "./persistence/event-store.js";
 import { createDesktopWorkbenchEventStore } from "./persistence/event-store.js";
+import type { DesktopWorkbenchSessionIndexStore } from "./persistence/session-index.js";
+import { createDesktopWorkbenchSessionIndexStore } from "./persistence/session-index.js";
 import type { DesktopWorkspaceDescriptor } from "./workspace.js";
 import { createDesktopWorkspaceResolver } from "./workspace.js";
 
@@ -43,6 +49,7 @@ export interface DesktopDemoDocument {
   readonly runner: ClaudeCodeFixtureReplayRunner;
   readonly liveRunner: ClaudeCodeProcessRunner;
   readonly eventStore: DesktopWorkbenchEventStore;
+  readonly sessionIndexStore: DesktopWorkbenchSessionIndexStore;
   readonly workspaces: readonly DesktopWorkspaceDescriptor[];
   readonly activeWorkspace: DesktopWorkspaceDescriptor;
   readonly i18n: UiI18n;
@@ -102,15 +109,15 @@ export async function createDesktopDemoDocument(
   const runner = createClaudeCodeFixtureReplayRunner();
   const liveRunner = createClaudeCodeProcessRunner(createTauriClaudeCodeExecutor());
   const eventStore = createDesktopWorkbenchEventStore();
+  const sessionIndexStore = createDesktopWorkbenchSessionIndexStore();
   const initialSessionId = "local-session-1";
-  const persistedEvents = await eventStore.list();
+  const persistedSessions = await sessionIndexStore.list();
   const initialDocument =
-    persistedEvents.length > 0
-      ? {
-          events: persistedEvents,
-          ignoredRecordCount: 0,
-          activeSessionId: lastSessionId(persistedEvents) ?? initialSessionId
-        }
+    persistedSessions.length > 0
+      ? await createPersistedSessionDocument({
+          eventStore,
+          persistedSessions
+        })
       : await createInitialFixtureDocument({
           activeWorkspace,
           eventStore,
@@ -119,6 +126,7 @@ export async function createDesktopDemoDocument(
           runner,
           sessionDefaults: workbench.sessionDefaults
         });
+  sessionIndexStore.replaceMemoryIndex(initialDocument.sessionIndex);
   const savedPinnedSessionIds = await loadWorkbenchPinnedSessionIds(settingsStore);
   const pinnedSessionIds =
     savedPinnedSessionIds.length > 0
@@ -128,6 +136,7 @@ export async function createDesktopDemoDocument(
         : [];
   const controller = createWorkbenchSessionController({
     initialEvents: initialDocument.events,
+    initialSessionIndex: initialDocument.sessionIndex,
     pinnedSessionIds,
     activeSessionId: initialDocument.activeSessionId
   });
@@ -138,6 +147,7 @@ export async function createDesktopDemoDocument(
     runner,
     liveRunner,
     eventStore,
+    sessionIndexStore,
     workspaces,
     activeWorkspace,
     i18n: runtimeSnapshot.i18n,
@@ -171,6 +181,27 @@ export async function createDesktopDemoDocument(
   };
 }
 
+async function createPersistedSessionDocument(options: {
+  readonly eventStore: DesktopWorkbenchEventStore;
+  readonly persistedSessions: readonly WorkbenchSessionIndexEntry[];
+}): Promise<{
+  readonly events: readonly WorkbenchEvent[];
+  readonly sessionIndex: WorkbenchSessionIndexSnapshot;
+  readonly ignoredRecordCount: number;
+  readonly activeSessionId: string;
+}> {
+  const sessionIndex = createWorkbenchSessionIndexFromEntries(options.persistedSessions);
+  const activeSessionId = options.persistedSessions[0]?.id ?? "local-session-1";
+  const events = await options.eventStore.list(activeSessionId);
+
+  return {
+    events,
+    sessionIndex,
+    ignoredRecordCount: 0,
+    activeSessionId
+  };
+}
+
 async function createInitialFixtureDocument(options: {
   readonly activeWorkspace: DesktopWorkspaceDescriptor;
   readonly eventStore: DesktopWorkbenchEventStore;
@@ -180,6 +211,7 @@ async function createInitialFixtureDocument(options: {
   readonly sessionDefaults: WorkbenchSessionDefaults;
 }): Promise<{
   readonly events: readonly WorkbenchEvent[];
+  readonly sessionIndex: WorkbenchSessionIndexSnapshot;
   readonly ignoredRecordCount: number;
   readonly activeSessionId: string;
 }> {
@@ -197,6 +229,7 @@ async function createInitialFixtureDocument(options: {
 
   return {
     events: initialRun.events,
+    sessionIndex: buildWorkbenchSessionIndex(initialRun.events),
     ignoredRecordCount: initialRun.ignoredRecords.length,
     activeSessionId: options.initialSessionId
   };

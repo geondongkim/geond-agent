@@ -1,13 +1,19 @@
 import type { WorkbenchEvent } from "./events.js";
 import {
-  projectWorkbenchEvents,
+  projectWorkbenchSessionIndex,
   type WorkbenchProjection,
   type WorkbenchProjectionOptions
 } from "./projection.js";
 import type { WorkbenchSelectionSnapshot } from "./selection.js";
+import {
+  buildWorkbenchSessionIndex,
+  deleteWorkbenchSessionFromIndex,
+  type WorkbenchSessionIndexSnapshot
+} from "./session-index.js";
 
 export interface WorkbenchSessionControllerSnapshot {
   readonly events: readonly WorkbenchEvent[];
+  readonly sessionIndex: WorkbenchSessionIndexSnapshot;
   readonly projection: WorkbenchProjection;
   readonly activeSessionId?: string;
 }
@@ -23,10 +29,15 @@ export interface WorkbenchSessionController {
   ) => WorkbenchSessionControllerSnapshot;
   readonly deleteSession: (sessionId: string) => WorkbenchSessionControllerSnapshot;
   readonly selectSession: (sessionId: string) => WorkbenchSessionControllerSnapshot;
+  readonly loadSessionEvents: (
+    sessionId: string,
+    events: readonly WorkbenchEvent[]
+  ) => WorkbenchSessionControllerSnapshot;
 }
 
 export interface WorkbenchSessionControllerOptions {
   readonly initialEvents?: readonly WorkbenchEvent[];
+  readonly initialSessionIndex?: WorkbenchSessionIndexSnapshot;
   readonly pinnedSessionIds?: readonly string[];
   readonly activeSessionId?: string;
 }
@@ -55,6 +66,10 @@ export function createWorkbenchSessionController(
   options: WorkbenchSessionControllerOptions = {}
 ): WorkbenchSessionController {
   let events = [...(options.initialEvents ?? [])];
+  let sessionIndex = buildWorkbenchSessionIndex(
+    events,
+    options.initialSessionIndex
+  );
   let activeSessionId = options.activeSessionId;
   let pinnedSessionIds = [...(options.pinnedSessionIds ?? [])];
 
@@ -63,12 +78,13 @@ export function createWorkbenchSessionController(
       pinnedSessionIds,
       activeSessionId
     };
-    const projection = projectWorkbenchEvents(events, undefined, projectionOptions);
+    const projection = projectWorkbenchSessionIndex(sessionIndex, events, projectionOptions);
 
     activeSessionId = projection.activeSessionId;
 
     return {
       events,
+      sessionIndex,
       projection,
       activeSessionId
     };
@@ -78,7 +94,9 @@ export function createWorkbenchSessionController(
     getSnapshot: createSnapshot,
     appendEvents: (nextEvents, appendOptions = {}) => {
       events = [...events, ...nextEvents];
-      activeSessionId = appendOptions.activateSessionId ?? lastSessionId(nextEvents) ?? activeSessionId;
+      sessionIndex = buildWorkbenchSessionIndex(nextEvents, sessionIndex);
+      activeSessionId =
+        appendOptions.activateSessionId ?? lastSessionId(nextEvents) ?? activeSessionId;
       return createSnapshot();
     },
     setPinnedSessionIds: (sessionIds) => {
@@ -87,11 +105,21 @@ export function createWorkbenchSessionController(
     },
     deleteSession: (sessionId) => {
       events = events.filter((event) => event.sessionId !== sessionId);
+      sessionIndex = deleteWorkbenchSessionFromIndex(sessionIndex, sessionId);
       pinnedSessionIds = pinnedSessionIds.filter((id) => id !== sessionId);
       activeSessionId = activeSessionId === sessionId ? undefined : activeSessionId;
       return createSnapshot();
     },
     selectSession: (sessionId) => {
+      activeSessionId = sessionId;
+      return createSnapshot();
+    },
+    loadSessionEvents: (sessionId, sessionEvents) => {
+      events = [
+        ...events.filter((event) => event.sessionId !== sessionId),
+        ...sessionEvents
+      ];
+      sessionIndex = buildWorkbenchSessionIndex(sessionEvents, sessionIndex);
       activeSessionId = sessionId;
       return createSnapshot();
     }

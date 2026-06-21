@@ -57,7 +57,10 @@ export function useWorkbenchActions({
   workspacePath
 }: UseWorkbenchActionsOptions) {
   const selectSession = (sessionId: string) => {
-    setControllerSnapshot(document.controller.selectSession(sessionId));
+    void (async () => {
+      const events = await document.eventStore.list(sessionId);
+      setControllerSnapshot(document.controller.loadSessionEvents(sessionId, events));
+    })();
   };
 
   const startSelectedRunner = () => {

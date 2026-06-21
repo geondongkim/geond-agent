@@ -35,6 +35,7 @@ The desktop shell is Tauri v2 with a React + Vite renderer. Native commands own:
 
 - app-data JSON settings for non-secret preferences,
 - SQLite storage for normalized workbench events,
+- a durable SQLite session index for startup/session-rail metadata,
 - workspace discovery for the active local checkout,
 - opt-in Claude Code `stream-json` process execution.
 
