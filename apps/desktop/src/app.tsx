@@ -76,8 +76,10 @@ export function App({ document }: AppProps) {
     document.activeWorkspace.path
   );
   const [selectedWorkspaces, setSelectedWorkspaces] = useState(document.workspaces);
+  const [pinnedSessionIds, setPinnedSessionIds] = useState(document.pinnedSessionIds);
   const [inspectorTab, setInspectorTab] = useState("diff");
   const [runnerStatus, setRunnerStatus] = useState("");
+  const [runnerBusy, setRunnerBusy] = useState(false);
   const [runnerMode, setRunnerMode] = useState<DesktopRunnerMode>("fixture");
   const [ignoredRecordCount, setIgnoredRecordCount] = useState(document.ignoredRecordCount);
   const [composerPrompt, setComposerPrompt] = useState("");
@@ -105,6 +107,9 @@ export function App({ document }: AppProps) {
     () => activeSession?.approvals.filter((approval) => approval.status === "pending") ?? [],
     [activeSession?.approvals]
   );
+  const activeSessionPinned = activeSession
+    ? pinnedSessionIds.includes(activeSession.id)
+    : false;
   const workspaceOptions = useMemo(() => {
     const options = new Map<string, { readonly label: string; readonly path: string }>();
     selectedWorkspaces.forEach((workspace) => options.set(workspace.path, workspace));
@@ -124,6 +129,10 @@ export function App({ document }: AppProps) {
   };
 
   const startSession = async (mode: DesktopRunnerMode) => {
+    if (runnerBusy) {
+      return;
+    }
+
     const nextIndex = controllerSnapshot.events.length + 1;
     const sessionId = `local-session-${Date.now()}`;
     const title = `Local demo session ${projection.sessions.length + 1}`;
@@ -163,6 +172,7 @@ export function App({ document }: AppProps) {
         document.controller.appendEvents(nextEvents, { activateSessionId: sessionId })
       );
     };
+    setRunnerBusy(true);
     setRunnerStatus(
       mode === "claude-live"
         ? i18n.t("workbench.runner.startingClaude")
@@ -209,11 +219,26 @@ export function App({ document }: AppProps) {
       setRunnerStatus(message);
     } finally {
       unlistenStream?.();
+      setRunnerBusy(false);
     }
   };
 
   const startSelectedRunner = () => {
     void startSession(runnerMode);
+  };
+
+  const togglePinnedSession = async () => {
+    if (!activeSession) {
+      return;
+    }
+
+    const nextPinnedSessionIds = activeSessionPinned
+      ? pinnedSessionIds.filter((sessionId) => sessionId !== activeSession.id)
+      : [...pinnedSessionIds, activeSession.id];
+    const savedPinnedSessionIds = await document.savePinnedSessionIds(nextPinnedSessionIds);
+
+    setPinnedSessionIds(savedPinnedSessionIds);
+    setControllerSnapshot(document.controller.setPinnedSessionIds(savedPinnedSessionIds));
   };
 
   const resolveApproval = async (
@@ -319,10 +344,21 @@ export function App({ document }: AppProps) {
                 <option value="claude-live">{i18n.t("workbench.runner.claudeLive")}</option>
               </select>
             </label>
-            <Button onClick={startSelectedRunner}>
-              {runnerMode === "claude-live"
+            <Button onClick={startSelectedRunner} disabled={runnerBusy}>
+              {runnerBusy
+                ? i18n.t("workbench.runner.running")
+                : runnerMode === "claude-live"
                 ? i18n.t("workbench.actions.runClaudeSession")
                 : i18n.t("workbench.actions.newDemoSession")}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => void togglePinnedSession()}
+              disabled={!activeSession}
+            >
+              {activeSessionPinned
+                ? i18n.t("workbench.actions.unpinSession")
+                : i18n.t("workbench.actions.pinSession")}
             </Button>
             <Button variant="outline" onClick={() => setInspectorTab("settings")}>
               {i18n.t("workbench.actions.settings")}
@@ -511,7 +547,11 @@ export function App({ document }: AppProps) {
                 }}
               />
               <div className="mt-2 flex justify-end">
-                <Button onClick={startSelectedRunner}>{i18n.t("workbench.composer.dispatch")}</Button>
+                <Button onClick={startSelectedRunner} disabled={runnerBusy}>
+                  {runnerBusy
+                    ? i18n.t("workbench.runner.running")
+                    : i18n.t("workbench.composer.dispatch")}
+                </Button>
               </div>
             </div>
           </section>

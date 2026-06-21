@@ -50,6 +50,29 @@ describe("createWorkbenchSessionController", () => {
     expect(selected.events).toHaveLength(2);
   });
 
+  it("can update pinned sessions without rewriting the event stream", () => {
+    const controller = createWorkbenchSessionController({
+      initialEvents: [
+        ...createWorkbenchSessionStartEvents({
+          sessionId: "session-a",
+          title: "Session A",
+          at: "2026-06-21T02:00:00.000Z"
+        }),
+        ...createWorkbenchSessionStartEvents({
+          sessionId: "session-b",
+          title: "Session B",
+          at: "2026-06-21T02:01:00.000Z"
+        })
+      ]
+    });
+
+    const pinned = controller.setPinnedSessionIds(["session-a"]);
+
+    expect(pinned.projection.pinnedSessions.map((session) => session.id)).toEqual(["session-a"]);
+    expect(pinned.projection.recentSessions.map((session) => session.id)).toEqual(["session-b"]);
+    expect(pinned.events).toHaveLength(2);
+  });
+
   it("tracks approval requests and resolutions through replayed projection state", () => {
     const controller = createWorkbenchSessionController();
     const sessionEvents = createWorkbenchSessionStartEvents({
