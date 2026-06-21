@@ -55,6 +55,10 @@ export interface ClaudeCodeSanitizedStreamRecord {
   readonly reason?: unknown;
   readonly subject?: unknown;
   readonly decision?: unknown;
+  readonly source?: unknown;
+  readonly usage?: unknown;
+  readonly model?: unknown;
+  readonly cost_usd?: unknown;
   readonly id?: unknown;
   readonly message?: unknown;
 }
@@ -336,6 +340,18 @@ function normalizeClaudeCodeStreamJsonRecordWithState(
             }
           ]
         : [];
+    }
+    case "usage.reported": {
+      const usageEvent = createUsageEvent({
+        sessionId,
+        id: asString(record.id) ?? `sanitized-usage:${sessionId}`,
+        source: normalizeUsageSource(record.source) ?? "provider",
+        usage: record.usage ?? record,
+        model: asString(record.model),
+        costUsd: asNumber(record.cost_usd),
+        at
+      });
+      return usageEvent ? [usageEvent] : [];
     }
     case "approval.requested": {
       const approvalId = asString(record.approval_id);
@@ -828,6 +844,17 @@ function normalizeRoutingMode(value: unknown): WorkbenchSelectionSnapshot["routi
   switch (value) {
     case "manual":
     case "auto":
+      return value;
+    default:
+      return undefined;
+  }
+}
+
+function normalizeUsageSource(value: unknown): "backend" | "provider" | "model" | undefined {
+  switch (value) {
+    case "backend":
+    case "provider":
+    case "model":
       return value;
     default:
       return undefined;
