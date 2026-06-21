@@ -88,6 +88,14 @@ normalizer maps `system/init`, `stream_event`, `assistant`, `user`, and `result`
 records into adapter-neutral `WorkbenchEvent` streams, including assistant text
 deltas, tool calls/results, run completion, and usage metadata.
 
+Claude Code permission handling is staged. The first live-backed approval shape
+maps observed `result.permission_denials` records into local pending
+`approval.requested` events for review. Interactive forwarding back into a
+running Claude Code process remains deferred until a stable approval boundary is
+confirmed. Normal persisted UI defaults expose `plan`, `default`, and
+`acceptEdits`; `bypassPermissions` is reserved for isolated evaluation runs and
+is not a normal settings option.
+
 ### `packages/zai-provider`
 
 Provider package for Z.ai GLM Coding Plan routing:

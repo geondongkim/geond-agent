@@ -214,6 +214,7 @@ function createRunnerRequest(options: CreateRunnerRequestOptions): ClaudeCodeRun
     modelProfileId: options.sessionDefaults.defaultModelAlias,
     backendAdapterId: options.sessionDefaults.defaultBackendAdapterId,
     routingMode: options.sessionDefaults.routingMode,
+    permissionMode: options.sessionDefaults.defaultPermissionMode,
     uiLanguage: options.languageSettings.uiLanguage,
     agentResponseLanguage: normalizeAgentLanguageForRunner(
       options.languageSettings.agentResponseLanguage

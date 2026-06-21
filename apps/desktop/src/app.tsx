@@ -43,6 +43,7 @@ export function App({ document }: AppProps) {
     agentLanguageOptions,
     backendOptions,
     modelAliasOptions,
+    permissionModeOptions,
     providerRouteOptions,
     routingModeOptions,
     settingsLabels
@@ -183,6 +184,7 @@ export function App({ document }: AppProps) {
             i18n={i18n}
             inspectorTab={inspectorTab}
             modelAliasOptions={modelAliasOptions}
+            permissionModeOptions={permissionModeOptions}
             persistenceNotes={document.persistence.notes}
             providerRouteOptions={providerRouteOptions}
             providerSummary={document.providerSummary}

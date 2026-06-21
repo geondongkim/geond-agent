@@ -53,6 +53,12 @@ envelopes such as `system/init`, `stream_event`, `assistant`, `user`, and
 shape, tool calls, text deltas, and usage metadata, but omit provider key
 sources, raw logs, private transcripts, and machine-local paths.
 
+Observed `result.permission_denials` arrays are normalized into pending
+`approval.requested` workbench events. This gives the desktop UI a concrete
+approval review queue for denied commands or filesystem edits. Interactive
+approval forwarding back into a running Claude Code process is intentionally
+deferred until a stable approval boundary is confirmed.
+
 Fresh live runs use `--session-id <workbenchSessionId>`. Resumed live runs use
 `--resume <externalSessionId>`, where the external id comes from a prior
 `session.adapter.linked` event. The workbench session id remains the stream

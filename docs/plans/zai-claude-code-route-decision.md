@@ -51,6 +51,10 @@ evidence for the adapter and workbench UX foundations.
   mode.
 - `--bare -p --verbose --output-format stream-json` is a good adapter/event
   probe mode.
+- `--permission-mode default` can complete with `result.permission_denials`
+  when write or command actions need approval. That shape is now treated as the
+  first stable local approval-review boundary; interactive forwarding is still
+  deferred.
 
 ## Provider / Tool / Workbench Verdict Split
 
@@ -66,6 +70,10 @@ The next implementation slice should not re-run the same code tasks. It should
 add a Claude Code event-normalization boundary that converts Claude Code
 `stream-json` into the existing workbench event model using sanitized fixtures
 derived from the probe shape, not raw logs or secrets.
+
+The approval follow-up for that path is documented in
+`docs/plans/approval-forwarding-probe.md` and
+`docs/adr/0006-approval-review-ux.md`.
 
 OpenCode horizontal expansion should come after this Claude Code path has a
 stable adapter boundary, not before.

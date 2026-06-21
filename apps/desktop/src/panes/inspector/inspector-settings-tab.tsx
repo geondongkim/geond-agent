@@ -15,6 +15,7 @@ export function InspectorSettingsTab({
   backendOptions,
   i18n,
   modelAliasOptions,
+  permissionModeOptions,
   persistenceNotes,
   providerRouteOptions,
   routingModeOptions,
@@ -29,6 +30,7 @@ export function InspectorSettingsTab({
   readonly backendOptions: readonly WorkbenchCatalogOption[];
   readonly i18n: UiI18n;
   readonly modelAliasOptions: readonly WorkbenchCatalogOption[];
+  readonly permissionModeOptions: readonly { readonly value: string; readonly label: string }[];
   readonly persistenceNotes: readonly string[];
   readonly providerRouteOptions: readonly WorkbenchCatalogOption[];
   readonly routingModeOptions: readonly { readonly value: string; readonly label: string }[];
@@ -77,6 +79,17 @@ export function InspectorSettingsTab({
           value={sessionDefaults.routingMode}
           options={routingModeOptions}
           onChange={(value) => void updateSessionDefaults({ routingMode: value === "auto" ? "auto" : "manual" })}
+        />
+        <SettingsSelect
+          label={settingsLabels.fields.permissionMode}
+          value={sessionDefaults.defaultPermissionMode}
+          options={permissionModeOptions}
+          onChange={(value) =>
+            void updateSessionDefaults({
+              defaultPermissionMode:
+                value === "default" || value === "acceptEdits" ? value : "plan"
+            })
+          }
         />
         <SettingsRow
           label={settingsLabels.fields.approvalPolicy}

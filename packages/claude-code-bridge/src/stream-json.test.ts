@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CLAUDE_CODE_PERMISSION_DENIAL_STREAM_JSON_FIXTURE,
   CLAUDE_CODE_REAL_STREAM_JSON_FIXTURE,
   CLAUDE_CODE_SANITIZED_STREAM_JSON_FIXTURE
 } from "./stream-json.fixtures.js";
@@ -125,6 +126,38 @@ describe("normalizeClaudeCodeStreamJsonRecords", () => {
       resumedFromExternalSessionId: "real-claude-session-1"
     });
     expect(result.events.every((event) => event.sessionId === "workbench-session-1")).toBe(true);
+  });
+
+  it("maps Claude Code permission denials into pending approval requests", () => {
+    const result = normalizeClaudeCodeStreamJsonRecords(
+      CLAUDE_CODE_PERMISSION_DENIAL_STREAM_JSON_FIXTURE
+    );
+
+    const approvals = result.events.filter((event) => event.type === "approval.requested");
+    expect(approvals).toHaveLength(2);
+    expect(approvals[0]).toMatchObject({
+      type: "approval.requested",
+      sessionId: "permission-probe-session",
+      approval: {
+        id: "claude-code-permission:call-bash-denied",
+        kind: "command",
+        title: "Approve Claude Code Bash action",
+        subject: "echo ok > approval-probe-output.txt",
+        status: "pending"
+      }
+    });
+    expect(approvals[1]).toMatchObject({
+      type: "approval.requested",
+      sessionId: "permission-probe-session",
+      approval: {
+        id: "claude-code-permission:call-edit-denied",
+        kind: "filesystem",
+        title: "Approve Claude Code Edit action",
+        subject: "/tmp/geond-agent-approval-probe/approval-probe-output.txt",
+        status: "pending"
+      }
+    });
+    expect(result.ignoredRecords).toHaveLength(0);
   });
 
   it("keeps track of ignored records and emits a warning for unknown sanitized record types", () => {

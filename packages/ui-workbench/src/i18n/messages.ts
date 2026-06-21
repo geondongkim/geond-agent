@@ -11,6 +11,10 @@ export type UiMessageKey =
   | "settings.selection.provider"
   | "settings.selection.model"
   | "settings.selection.routingMode"
+  | "settings.selection.permissionMode"
+  | "settings.selection.permissionMode.plan"
+  | "settings.selection.permissionMode.default"
+  | "settings.selection.permissionMode.acceptEdits"
   | "settings.selection.approvalPolicy"
   | "settings.selection.persistence"
   | "settings.selection.approvalPolicy.askFirst"
@@ -69,6 +73,11 @@ export type UiMessageKey =
   | "workbench.approvals.requiredTitle"
   | "workbench.approvals.requiredDetail"
   | "workbench.approvals.review"
+  | "workbench.approvals.riskHigh"
+  | "workbench.approvals.riskMedium"
+  | "workbench.approvals.riskLow"
+  | "workbench.approvals.viewDiff"
+  | "workbench.approvals.viewTerminal"
   | "workbench.approvals.approve"
   | "workbench.approvals.reject"
   | "workbench.approvals.resolved"
@@ -131,6 +140,8 @@ export type UiMessageKey =
   | "workbench.empty.diff"
   | "workbench.empty.terminal"
   | "workbench.empty.approvals"
+  | "workbench.empty.approvals.planMode"
+  | "workbench.empty.approvals.completed"
   | "workbench.empty.usage"
   | "workbench.empty.selection"
   | "workbench.status.created"
@@ -159,6 +170,10 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "settings.selection.provider": "Provider route",
     "settings.selection.model": "Model profile",
     "settings.selection.routingMode": "Routing mode",
+    "settings.selection.permissionMode": "Permission mode",
+    "settings.selection.permissionMode.plan": "Plan only",
+    "settings.selection.permissionMode.default": "Ask before edits",
+    "settings.selection.permissionMode.acceptEdits": "Auto-accept edits",
     "settings.selection.approvalPolicy": "Approval policy",
     "settings.selection.persistence": "Persistence boundary",
     "settings.selection.approvalPolicy.askFirst": "Ask first",
@@ -217,6 +232,11 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.approvals.requiredTitle": "Approval required",
     "workbench.approvals.requiredDetail": "{count} pending approval(s) are blocking this session.",
     "workbench.approvals.review": "Review",
+    "workbench.approvals.riskHigh": "High risk",
+    "workbench.approvals.riskMedium": "Needs review",
+    "workbench.approvals.riskLow": "Low risk",
+    "workbench.approvals.viewDiff": "View diff",
+    "workbench.approvals.viewTerminal": "View terminal",
     "workbench.approvals.approve": "Approve",
     "workbench.approvals.reject": "Reject",
     "workbench.approvals.resolved": "Recorded {decision} for {title}.",
@@ -279,6 +299,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.empty.diff": "No diff events in the active session.",
     "workbench.empty.terminal": "No command output projected yet.",
     "workbench.empty.approvals": "No approval queue for the active session.",
+    "workbench.empty.approvals.planMode": "Plan mode is active, so Claude Code should not request write or command approvals.",
+    "workbench.empty.approvals.completed": "No unresolved approvals remain for this session.",
     "workbench.empty.usage": "No usage metadata reported yet.",
     "workbench.empty.selection": "No selection snapshot on the active session.",
     "workbench.status.created": "created",
@@ -304,6 +326,10 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "settings.selection.provider": "프로바이더 경로",
     "settings.selection.model": "모델 프로필",
     "settings.selection.routingMode": "라우팅 모드",
+    "settings.selection.permissionMode": "권한 모드",
+    "settings.selection.permissionMode.plan": "계획 전용",
+    "settings.selection.permissionMode.default": "수정 전 승인",
+    "settings.selection.permissionMode.acceptEdits": "수정 자동 승인",
     "settings.selection.approvalPolicy": "승인 정책",
     "settings.selection.persistence": "저장 경계",
     "settings.selection.approvalPolicy.askFirst": "먼저 승인 요청",
@@ -362,6 +388,11 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.approvals.requiredTitle": "승인이 필요합니다",
     "workbench.approvals.requiredDetail": "이 세션에서 {count}개의 승인이 대기 중입니다.",
     "workbench.approvals.review": "검토",
+    "workbench.approvals.riskHigh": "높은 위험",
+    "workbench.approvals.riskMedium": "검토 필요",
+    "workbench.approvals.riskLow": "낮은 위험",
+    "workbench.approvals.viewDiff": "변경 보기",
+    "workbench.approvals.viewTerminal": "터미널 보기",
     "workbench.approvals.approve": "승인",
     "workbench.approvals.reject": "거절",
     "workbench.approvals.resolved": "{title}에 {decision} 결정을 기록했습니다.",
@@ -424,6 +455,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.empty.diff": "활성 세션에 변경 이벤트가 없습니다.",
     "workbench.empty.terminal": "아직 표시할 명령 출력이 없습니다.",
     "workbench.empty.approvals": "활성 세션의 승인 대기열이 없습니다.",
+    "workbench.empty.approvals.planMode": "계획 모드가 활성화되어 Claude Code가 쓰기나 명령 승인을 요청하지 않아야 합니다.",
+    "workbench.empty.approvals.completed": "이 세션에 남은 미해결 승인이 없습니다.",
     "workbench.empty.usage": "아직 보고된 사용량 메타데이터가 없습니다.",
     "workbench.empty.selection": "활성 세션에 선택 스냅샷이 없습니다.",
     "workbench.status.created": "생성됨",
