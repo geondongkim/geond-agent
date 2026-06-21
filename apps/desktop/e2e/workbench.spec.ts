@@ -41,7 +41,7 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await page.getByRole("button", { name: "New demo session" }).click();
   await expect(page.getByText("2 total")).toBeVisible();
   await expect(page.getByRole("button", { name: /Local demo session 2/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Appended 13 events/ })).toBeVisible();
+  await expect(page.getByText(/Appended 13 events/)).toBeVisible();
 
   await page.getByRole("tab", { name: "Selection" }).click();
   const selectionPanel = page.getByRole("tabpanel", { name: "Selection" });

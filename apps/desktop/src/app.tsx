@@ -12,18 +12,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs.j
 import { cn } from "./lib/cn.js";
 
 const lifecycleTone = {
-  started: "text-emerald-900 bg-emerald-100",
-  resumed: "text-emerald-900 bg-emerald-100",
-  created: "text-slate-800 bg-slate-200",
-  paused: "text-amber-900 bg-amber-100",
-  completed: "text-cyan-900 bg-cyan-100",
-  failed: "text-rose-900 bg-rose-100"
+  started: "status-ok",
+  resumed: "status-ok",
+  created: "status-neutral",
+  paused: "status-warn",
+  completed: "status-ok",
+  failed: "status-danger"
 } as const;
 
 const backendTone = {
-  ready: "text-emerald-900 bg-emerald-100",
-  attention: "text-amber-900 bg-amber-100",
-  unknown: "text-slate-800 bg-slate-200"
+  ready: "status-ok",
+  attention: "status-warn",
+  unknown: "status-neutral"
 } as const;
 
 const uiLanguageOptions = [
@@ -172,73 +172,79 @@ export function App({ document }: AppProps) {
   };
 
   return (
-    <main className="min-h-screen bg-[color:var(--shell)] px-4 py-5 text-[color:var(--ink)] md:px-6">
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-4">
-        <header className="panel-surface overflow-hidden">
-          <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(108,224,199,0.85),transparent)]" />
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-2">
+    <main className="workbench-shell">
+      <div className="workbench-frame">
+        <header className="command-strip">
+          <div className="brand-lockup">
+            <div className="app-mark">G</div>
+            <div className="min-w-0">
               <p className="eyebrow">{i18n.t("workbench.shell.eyebrow")}</p>
-              <h1 className="text-3xl font-semibold">{i18n.t("workbench.shell.title")}</h1>
-              <p className="max-w-3xl text-sm leading-6 text-[color:var(--ink-soft)]">
-                {i18n.t("workbench.shell.subtitle")}
+              <h1 className="truncate text-lg font-semibold leading-6">
+                {i18n.t("workbench.shell.title")}
+              </h1>
+              <p className="truncate font-mono text-[11px] text-[color:var(--inverse-soft)]">
+                {activeSession?.title ?? i18n.t("workbench.timeline.empty")}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <label className="flex items-center gap-2 rounded-md border border-[color:var(--border)] bg-[color:var(--panel-muted)] px-3 py-2 text-sm">
-                <span className="muted-meta">{i18n.t("workbench.runner.mode")}</span>
-                <select
-                  value={runnerMode}
-                  onChange={(event) => setRunnerMode(event.target.value as DesktopRunnerMode)}
-                  className="rounded-md border border-[color:var(--border-strong)] bg-[color:var(--panel)] px-2 py-1 text-sm outline-none"
-                >
-                  <option value="fixture">{i18n.t("workbench.runner.fixture")}</option>
-                  <option value="claude-live">{i18n.t("workbench.runner.claudeLive")}</option>
-                </select>
-              </label>
-              <Button onClick={startSelectedRunner}>
-                {runnerMode === "claude-live"
-                  ? i18n.t("workbench.actions.runClaudeSession")
-                  : i18n.t("workbench.actions.newDemoSession")}
-              </Button>
-              <Button variant="outline" onClick={() => setInspectorTab("settings")}>
-                {i18n.t("workbench.actions.settings")}
-              </Button>
-              <Button variant="ghost">
-                {runnerStatus || i18n.t("workbench.runner.fixtureReady")}
-              </Button>
-            </div>
+          </div>
+
+          <div className="command-controls">
+            <span className="metric-pill">
+              {projection.sessions.length} {i18n.t("workbench.status.total")}
+            </span>
+            <span className="metric-pill">
+              {activeSession?.approvals.length ?? 0} {i18n.t("workbench.status.approvals")}
+            </span>
+            <label className="inline-field">
+              <span className="text-[10px] font-bold uppercase text-[color:var(--inverse-soft)]">
+                {i18n.t("workbench.runner.mode")}
+              </span>
+              <select
+                value={runnerMode}
+                onChange={(event) => setRunnerMode(event.target.value as DesktopRunnerMode)}
+                className="control-select"
+              >
+                <option value="fixture">{i18n.t("workbench.runner.fixture")}</option>
+                <option value="claude-live">{i18n.t("workbench.runner.claudeLive")}</option>
+              </select>
+            </label>
+            <Button onClick={startSelectedRunner}>
+              {runnerMode === "claude-live"
+                ? i18n.t("workbench.actions.runClaudeSession")
+                : i18n.t("workbench.actions.newDemoSession")}
+            </Button>
+            <Button variant="outline" onClick={() => setInspectorTab("settings")}>
+              {i18n.t("workbench.actions.settings")}
+            </Button>
           </div>
         </header>
 
-        <section className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_360px]">
-          <aside className="panel-surface flex flex-col gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h2 className="panel-title">{i18n.t("workbench.sessionSidebar.title")}</h2>
-                <span className="muted-meta">
-                  {projection.sessions.length} {i18n.t("workbench.status.total")}
-                </span>
-              </div>
+        <section className="workbench-grid">
+          <aside className="session-rail">
+            <div className="flex items-center justify-between">
+              <h2 className="panel-title">{i18n.t("workbench.sessionSidebar.title")}</h2>
+              <span className="font-mono text-[11px] text-[color:var(--ink-muted)]">
+                {projection.sessions.length}
+              </span>
+            </div>
 
-              <div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--panel-muted)] p-3">
-                <label className="muted-meta block" htmlFor="workspace-filter">
-                  {i18n.t("workbench.sessionSidebar.workspaceSwitcher")}
-                </label>
-                <select
-                  id="workspace-filter"
-                  value={workspacePath}
-                  onChange={(event) => setWorkspacePath(event.target.value)}
-                  className="mt-2 w-full rounded-md border border-[color:var(--border-strong)] bg-[color:var(--panel)] px-3 py-2 text-sm outline-none"
-                >
-                  <option value="__all__">{i18n.t("workbench.workspace.all")}</option>
-                  {workspaceOptions.map((workspace) => (
-                    <option key={workspace.path} value={workspace.path}>
-                      {workspace.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="rail-card">
+              <label className="muted-meta block" htmlFor="workspace-filter">
+                {i18n.t("workbench.sessionSidebar.workspaceSwitcher")}
+              </label>
+              <select
+                id="workspace-filter"
+                value={workspacePath}
+                onChange={(event) => setWorkspacePath(event.target.value)}
+                className="mt-2 h-9 w-full rounded-md border border-[color:var(--border-strong)] bg-[color:var(--panel)] px-3 text-sm outline-none"
+              >
+                <option value="__all__">{i18n.t("workbench.workspace.all")}</option>
+                {workspaceOptions.map((workspace) => (
+                  <option key={workspace.path} value={workspace.path}>
+                    {workspace.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <SessionList
@@ -256,75 +262,89 @@ export function App({ document }: AppProps) {
               onSelect={selectSession}
             />
 
-            <section className="space-y-3">
-              <h3 className="text-sm font-semibold uppercase text-[color:var(--ink-soft)]">
+            <section className="mt-auto space-y-2">
+              <h3 className="panel-title">
                 {i18n.t("workbench.sessionSidebar.backendStatus")}
               </h3>
-              <div className="space-y-2">
-                {projection.backendStatuses.map((status) => (
-                  <div key={status.backendAdapterId} className="rounded-lg border border-[color:var(--border)] bg-[color:var(--panel-muted)] p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold">{status.label}</p>
-                        <p className="mt-1 text-xs leading-5 text-[color:var(--ink-soft)]">{status.detail}</p>
-                      </div>
-                      <span className={cn("rounded-md px-2.5 py-1 text-[10px] font-bold uppercase", backendTone[status.level])}>
-                        {formatStatusLabel(i18n, status.level)}
-                      </span>
+              {projection.backendStatuses.map((status) => (
+                <div key={status.backendAdapterId} className="rail-card">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold leading-5">{status.label}</p>
+                      <p className="mt-1 text-xs leading-5 text-[color:var(--ink-soft)]">
+                        {status.detail}
+                      </p>
                     </div>
+                    <span className={cn("status-pill", backendTone[status.level])}>
+                      {formatStatusLabel(i18n, status.level)}
+                    </span>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </section>
           </aside>
 
-          <section className="panel-surface flex flex-col gap-4">
-            <div className="flex flex-col gap-3 border-b border-[color:var(--border)] pb-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <h2 className="panel-title">{i18n.t("workbench.timeline.title")}</h2>
-                  <p className="text-sm text-[color:var(--ink-soft)]">
-                    {activeSession?.title ?? i18n.t("workbench.timeline.empty")}
-                  </p>
-                </div>
-                {activeSession ? (
-                  <span className={cn("rounded-md px-3 py-1 text-[10px] font-bold uppercase", lifecycleTone[activeSession.lifecycle])}>
-                    {formatStatusLabel(i18n, activeSession.lifecycle)}
-                  </span>
-                ) : null}
+          <section className="timeline-surface">
+            <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="panel-title">{i18n.t("workbench.timeline.title")}</h2>
+                <p className="mt-1 truncate text-xl font-semibold">
+                  {activeSession?.title ?? i18n.t("workbench.timeline.empty")}
+                </p>
               </div>
-
-              {activeSession?.plan.length ? (
-                <div className="grid gap-2 md:grid-cols-3">
-                  {activeSession.plan.map((item) => (
-                    <div key={item.id} className="rounded-lg border border-[color:var(--border)] bg-[color:var(--panel-muted)] p-3">
-                      <p className="muted-meta">{formatStatusLabel(i18n, item.status)}</p>
-                      <p className="mt-1 text-sm font-medium">{item.title}</p>
-                    </div>
-                  ))}
-                </div>
+              {activeSession ? (
+                <span className={cn("status-pill", lifecycleTone[activeSession.lifecycle])}>
+                  {formatStatusLabel(i18n, activeSession.lifecycle)}
+                </span>
               ) : null}
             </div>
 
-            <div className="space-y-3">
+            {runnerStatus ? <div className="run-status-strip">{runnerStatus}</div> : null}
+
+            {activeSession?.plan.length ? (
+              <div className="plan-strip">
+                {activeSession.plan.map((item) => (
+                  <div key={item.id} className="plan-step">
+                    <p className="muted-meta">{formatStatusLabel(i18n, item.status)}</p>
+                    <p className="mt-1 text-sm font-medium leading-5">{item.title}</p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="event-stream pt-3">
               {activeSession?.timeline.length ? (
                 activeSession.timeline.map((entry) => (
-                  <article key={entry.id} className="rounded-lg border border-[color:var(--border)] bg-[color:var(--panel)] p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="space-y-1">
-                        <p className="muted-meta">{entry.kind}</p>
-                        <h3 className="text-sm font-semibold">{entry.title}</h3>
-                      </div>
-                      <div className="text-right">
-                        {entry.status ? <p className="muted-meta">{formatStatusLabel(i18n, entry.status)}</p> : null}
-                        {entry.at ? <p className="text-[11px] text-[color:var(--ink-soft)]">{entry.at}</p> : null}
-                      </div>
+                  <article
+                    key={entry.id}
+                    className={cn("event-card", eventCardTone(entry.kind))}
+                  >
+                    <div className="event-rail">
+                      <span className={cn("event-dot", eventDotTone(entry.kind, entry.status))} />
                     </div>
-                    {entry.body ? (
-                      <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[color:var(--ink-soft)]">
-                        {entry.body}
-                      </p>
-                    ) : null}
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="muted-meta">{entry.kind}</p>
+                          <h3 className="truncate text-sm font-semibold">{entry.title}</h3>
+                        </div>
+                        <div className="text-right">
+                          {entry.status ? (
+                            <p className="muted-meta">{formatStatusLabel(i18n, entry.status)}</p>
+                          ) : null}
+                          {entry.at ? (
+                            <p className="font-mono text-[11px] text-[color:var(--ink-muted)]">
+                              {formatEventTime(entry.at)}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                      {entry.body ? (
+                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[color:var(--ink-soft)]">
+                          {entry.body}
+                        </p>
+                      ) : null}
+                    </div>
                   </article>
                 ))
               ) : (
@@ -333,14 +353,21 @@ export function App({ document }: AppProps) {
             </div>
           </section>
 
-          <aside className="panel-surface">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="panel-title">{i18n.t("workbench.inspector.title")}</h2>
-              <span className="muted-meta">{document.providerSummary}</span>
+          <aside className="inspector-surface">
+            <div className="mb-3 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="panel-title">{i18n.t("workbench.inspector.title")}</h2>
+                <span className="font-mono text-[10px] text-[color:var(--ink-muted)]">
+                  {sessionDefaults.defaultModelAlias}
+                </span>
+              </div>
+              <p className="rounded-md border border-[color:var(--border)] bg-[color:var(--panel)] px-3 py-2 font-mono text-[11px] leading-5 text-[color:var(--ink-soft)]">
+                {formatProviderSummary(document.providerSummary)}
+              </p>
             </div>
 
             <Tabs value={inspectorTab} onValueChange={setInspectorTab}>
-              <TabsList>
+              <TabsList className="border-[color:var(--border)] bg-[color:var(--panel)]">
                 <TabsTrigger value="diff">{i18n.t("workbench.inspector.diff")}</TabsTrigger>
                 <TabsTrigger value="terminal">{i18n.t("workbench.inspector.terminal")}</TabsTrigger>
                 <TabsTrigger value="approvals">{i18n.t("workbench.inspector.approvals")}</TabsTrigger>
@@ -348,17 +375,19 @@ export function App({ document }: AppProps) {
                 <TabsTrigger value="selection">{i18n.t("workbench.inspector.selection")}</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="diff">
+              <TabsContent value="diff" className="border-0 bg-transparent p-0">
                 {activeSession?.diffs.length ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {activeSession.diffs.map((diff) => (
-                      <div key={diff.id} className="rounded-lg border border-[color:var(--border)] bg-[color:var(--panel-muted)] p-3">
+                      <div key={diff.id} className="inspector-card">
                         <p className="text-sm font-semibold">{diff.title ?? diff.id}</p>
-                        <p className="mt-1 text-xs leading-5 text-[color:var(--ink-soft)]">{diff.summary}</p>
+                        <p className="mt-1 text-xs leading-5 text-[color:var(--ink-soft)]">
+                          {diff.summary}
+                        </p>
                         <div className="mt-3 space-y-2">
                           {diff.files.map((file) => (
-                            <div key={`${diff.id}:${file.path}`} className="rounded-md bg-[color:var(--panel)] px-3 py-2 text-xs">
-                              <p className="font-medium">{file.path}</p>
+                            <div key={`${diff.id}:${file.path}`} className="rounded-md bg-[color:var(--panel-muted)] px-3 py-2 text-xs">
+                              <p className="font-mono font-medium">{file.path}</p>
                               <p className="mt-1 text-[color:var(--ink-soft)]">
                                 {file.changeKind} +{file.additions ?? 0} / -{file.deletions ?? 0}
                               </p>
@@ -373,19 +402,21 @@ export function App({ document }: AppProps) {
                 )}
               </TabsContent>
 
-              <TabsContent value="terminal">
+              <TabsContent value="terminal" className="border-0 bg-transparent p-0">
                 {activeSession?.commandOutputs.length ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {activeSession.commandOutputs.map((output) => (
-                      <div key={output.id} className="rounded-lg border border-[color:var(--border)] bg-[color:var(--ink)] p-3 text-[color:var(--shell)]">
+                      <div key={output.id} className="terminal-card">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="font-mono text-xs uppercase">{output.id}</p>
-                          <p className="font-mono text-[11px] text-[color:var(--shell-soft)]">
-                            {output.status}
+                          <p className="font-mono text-xs uppercase text-[color:var(--shell-soft)]">
+                            {output.id}
+                          </p>
+                          <p className="font-mono text-[11px] text-[color:var(--inverse-soft)]">
+                            {formatStatusLabel(i18n, output.status)}
                             {output.exitCode !== undefined ? ` / ${output.exitCode}` : ""}
                           </p>
                         </div>
-                        <pre className="mt-3 whitespace-pre-wrap font-mono text-xs leading-6 text-[color:var(--shell-soft)]">
+                        <pre className="mt-3 whitespace-pre-wrap font-mono text-xs leading-6 text-[color:var(--inverse-soft)]">
                           {output.preview}
                         </pre>
                       </div>
@@ -396,11 +427,11 @@ export function App({ document }: AppProps) {
                 )}
               </TabsContent>
 
-              <TabsContent value="approvals">
+              <TabsContent value="approvals" className="border-0 bg-transparent p-0">
                 {activeSession?.approvals.length ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {activeSession.approvals.map((approval) => (
-                      <div key={approval.id} className="rounded-lg border border-[color:var(--border)] bg-[color:var(--panel-muted)] p-3">
+                      <div key={approval.id} className="inspector-card">
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <p className="text-sm font-semibold">{approval.title}</p>
@@ -408,8 +439,8 @@ export function App({ document }: AppProps) {
                               {approval.subject ?? approval.reason ?? approval.kind}
                             </p>
                           </div>
-                          <span className="rounded-md border border-[color:var(--border-strong)] px-2.5 py-1 text-[10px] font-bold uppercase">
-                            {approval.status}
+                          <span className="status-pill status-neutral">
+                            {formatStatusLabel(i18n, approval.status)}
                             {approval.decision ? ` / ${approval.decision}` : ""}
                           </span>
                         </div>
@@ -421,8 +452,8 @@ export function App({ document }: AppProps) {
                 )}
               </TabsContent>
 
-              <TabsContent value="settings">
-                <div className="space-y-3">
+              <TabsContent value="settings" className="border-0 bg-transparent p-0">
+                <div className="space-y-2">
                   <SettingsSelect
                     label={settingsLabels.fields.uiLanguage}
                     value={runtimeSnapshot.languageSettings.uiLanguage}
@@ -471,9 +502,9 @@ export function App({ document }: AppProps) {
                 </div>
               </TabsContent>
 
-              <TabsContent value="selection">
+              <TabsContent value="selection" className="border-0 bg-transparent p-0">
                 {activeSession?.selection ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <SettingsRow
                       label={i18n.t("workbench.selection.backend")}
                       value={activeSession.selection.backendAdapter?.label ?? activeSession.selection.backendAdapterId}
@@ -603,6 +634,52 @@ function formatStatusLabel(
   }
 }
 
+function eventCardTone(kind: string): string {
+  switch (kind) {
+    case "command":
+      return "event-card-command";
+    case "warning":
+    case "error":
+      return "event-card-warning";
+    default:
+      return "";
+  }
+}
+
+function eventDotTone(kind: string, status?: string): string {
+  if (kind === "command") {
+    return "event-dot-command";
+  }
+
+  if (kind === "warning" || kind === "error" || status === "failed") {
+    return "event-dot-warning";
+  }
+
+  if (status === "succeeded" || status === "completed" || status === "approved") {
+    return "event-dot-ok";
+  }
+
+  return "";
+}
+
+function formatEventTime(value: string): string {
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  }).format(parsed);
+}
+
+function formatProviderSummary(value: string): string {
+  return value.replaceAll(" ", " · ");
+}
+
 function SessionList({
   activeSessionId,
   i18n,
@@ -617,12 +694,12 @@ function SessionList({
   readonly title: string;
 }) {
   return (
-    <section className="space-y-3">
+    <section className="space-y-2">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase text-[color:var(--ink-soft)]">{title}</h3>
-        <span className="muted-meta">{sessions.length}</span>
+        <h3 className="panel-title">{title}</h3>
+        <span className="font-mono text-[11px] text-[color:var(--ink-muted)]">{sessions.length}</span>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {sessions.map((session) => (
           <SessionCard
             key={session.id}
@@ -653,27 +730,25 @@ function SessionCard({
       type="button"
       onClick={onSelect}
       className={cn(
-        "w-full rounded-lg border p-3 text-left transition-colors",
-        active
-          ? "border-[color:var(--accent)] bg-[color:var(--panel)] shadow-[0_18px_38px_rgba(10,24,31,0.12)]"
-          : "border-[color:var(--border)] bg-[color:var(--panel-muted)] hover:border-[color:var(--border-strong)]"
+        "session-card",
+        active ? "session-card-active" : "session-card-idle"
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <p className="text-sm font-semibold">{session.title}</p>
+        <div className="min-w-0 space-y-1">
+          <p className="truncate text-sm font-semibold">{session.title}</p>
           <p className="text-xs leading-5 text-[color:var(--ink-soft)]">
             {session.workspacePath ?? i18n.t("workbench.status.unknown")}
           </p>
         </div>
-        <span className={cn("rounded-md px-2.5 py-1 text-[10px] font-bold uppercase", lifecycleTone[session.lifecycle])}>
+        <span className={cn("status-pill", lifecycleTone[session.lifecycle])}>
           {formatStatusLabel(i18n, session.lifecycle)}
         </span>
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-[color:var(--ink-soft)]">
-        <div>
+      <div className="mt-3 grid grid-cols-[minmax(0,1fr)_48px] gap-2 text-[11px] text-[color:var(--ink-soft)]">
+        <div className="min-w-0">
           <p className="muted-meta">{i18n.t("workbench.status.backend")}</p>
-          <p className="mt-1">{session.backendLabel ?? i18n.t("workbench.status.unknown")}</p>
+          <p className="mt-1 truncate">{session.backendLabel ?? i18n.t("workbench.status.unknown")}</p>
         </div>
         <div>
           <p className="muted-meta">{i18n.t("workbench.status.approvals")}</p>
@@ -696,12 +771,12 @@ function SettingsSelect({
   readonly value: string;
 }) {
   return (
-    <label className="block rounded-lg border border-[color:var(--border)] bg-[color:var(--panel-muted)] p-3">
+    <label className="settings-field">
       <span className="muted-meta">{label}</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-md border border-[color:var(--border-strong)] bg-[color:var(--panel)] px-3 py-2 text-sm outline-none"
+        className="mt-2 h-9 w-full rounded-md border border-[color:var(--border-strong)] bg-[color:var(--panel)] px-3 text-sm outline-none"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -723,7 +798,7 @@ function SettingsRow({
   readonly value: string;
 }) {
   return (
-    <div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--panel-muted)] p-3">
+    <div className="settings-field">
       <p className="muted-meta">{label}</p>
       <p className="mt-1 text-sm font-medium">{value}</p>
       {detail ? <p className="mt-2 text-xs leading-5 text-[color:var(--ink-soft)]">{detail}</p> : null}
@@ -733,7 +808,7 @@ function SettingsRow({
 
 function EmptyState({ text }: { readonly text: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-[color:var(--border-strong)] bg-[color:var(--panel-muted)] p-5 text-sm leading-6 text-[color:var(--ink-soft)]">
+    <div className="rounded-md border border-dashed border-[color:var(--border-strong)] bg-[color:var(--panel-muted)] p-5 text-sm leading-6 text-[color:var(--ink-soft)]">
       {text}
     </div>
   );
