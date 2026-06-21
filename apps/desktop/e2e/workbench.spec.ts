@@ -26,6 +26,12 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(page.getByRole("button", { name: "Unpin session" })).toBeVisible();
   await expect(page.getByText("Approval required")).toBeVisible();
 
+  await page.getByRole("tab", { name: "Usage" }).click();
+  const usagePanel = page.getByRole("tabpanel", { name: "Usage" });
+  await expect(usagePanel.getByText("glm-4.7")).toBeVisible();
+  await expect(usagePanel.getByText("Source: Provider")).toBeVisible();
+  await expect(usagePanel.getByText("1,200")).toBeVisible();
+
   await page.getByLabel("Search sessions").fill("no matching session");
   await expect(page.getByText("No matching sessions.").first()).toBeVisible();
   await page.getByLabel("Search sessions").fill("local");
@@ -65,7 +71,7 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await page.getByRole("button", { name: "Dispatch" }).click();
   await expect(page.getByText("2 total")).toBeVisible();
   await expect(page.getByRole("button", { name: /Local demo session 2/ })).toBeVisible();
-  await expect(page.getByText(/Appended 14 events/)).toBeVisible();
+  await expect(page.getByText(/Appended 15 events/)).toBeVisible();
 
   await page.getByRole("tab", { name: "Selection" }).click();
   const selectionPanel = page.getByRole("tabpanel", { name: "Selection" });

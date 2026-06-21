@@ -561,7 +561,7 @@ export function App({ document }: AppProps) {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="muted-meta">{entry.kind}</p>
+                          <p className="muted-meta">{formatTimelineKindLabel(i18n, entry.kind)}</p>
                           <h3 className="truncate text-sm font-semibold">{entry.title}</h3>
                         </div>
                         <div className="text-right">
@@ -638,6 +638,7 @@ export function App({ document }: AppProps) {
                 <TabsTrigger value="diff">{i18n.t("workbench.inspector.diff")}</TabsTrigger>
                 <TabsTrigger value="terminal">{i18n.t("workbench.inspector.terminal")}</TabsTrigger>
                 <TabsTrigger value="approvals">{i18n.t("workbench.inspector.approvals")}</TabsTrigger>
+                <TabsTrigger value="usage">{i18n.t("workbench.inspector.usage")}</TabsTrigger>
                 <TabsTrigger value="settings">{i18n.t("workbench.inspector.settings")}</TabsTrigger>
                 <TabsTrigger value="selection">{i18n.t("workbench.inspector.selection")}</TabsTrigger>
               </TabsList>
@@ -731,6 +732,63 @@ export function App({ document }: AppProps) {
                   </div>
                 ) : (
                   <EmptyState text={i18n.t("workbench.empty.approvals")} />
+                )}
+              </TabsContent>
+
+              <TabsContent value="usage" className="border-0 bg-transparent p-0">
+                {activeSession?.usageReports.length ? (
+                  <div className="space-y-2">
+                    {activeSession.usageReports.map((usage) => (
+                      <div key={usage.id} className="inspector-card">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold">
+                              {usage.model ?? i18n.t("workbench.usage.title")}
+                            </p>
+                            <p className="mt-1 text-xs leading-5 text-[color:var(--ink-soft)]">
+                              {i18n.t("workbench.usage.source")}: {formatUsageSourceLabel(i18n, usage.source)}
+                            </p>
+                          </div>
+                          <span className="status-pill status-neutral">
+                            {formatUsageCost(usage.costUsd)}
+                          </span>
+                        </div>
+                        <div className="usage-grid mt-3">
+                          <UsageMetric
+                            label={i18n.t("workbench.usage.input")}
+                            value={formatUsageNumber(usage.inputTokens)}
+                          />
+                          <UsageMetric
+                            label={i18n.t("workbench.usage.output")}
+                            value={formatUsageNumber(usage.outputTokens)}
+                          />
+                          <UsageMetric
+                            label={i18n.t("workbench.usage.cacheRead")}
+                            value={formatUsageNumber(usage.cacheReadInputTokens)}
+                          />
+                          <UsageMetric
+                            label={i18n.t("workbench.usage.cacheCreate")}
+                            value={formatUsageNumber(usage.cacheCreationInputTokens)}
+                          />
+                          <UsageMetric
+                            label={i18n.t("workbench.usage.context")}
+                            value={formatUsageNumber(usage.contextWindow)}
+                          />
+                          <UsageMetric
+                            label={i18n.t("workbench.usage.maxOutput")}
+                            value={formatUsageNumber(usage.maxOutputTokens)}
+                          />
+                        </div>
+                        {usage.serviceTier ? (
+                          <p className="mt-3 text-xs text-[color:var(--ink-soft)]">
+                            {i18n.t("workbench.usage.serviceTier")}: {usage.serviceTier}
+                          </p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState text={i18n.t("workbench.empty.usage")} />
                 )}
               </TabsContent>
 
@@ -1223,6 +1281,62 @@ function formatStatusLabel(
   }
 }
 
+function formatTimelineKindLabel(
+  i18n: WorkbenchRuntimeSnapshot["i18n"],
+  kind: string
+): string {
+  switch (kind) {
+    case "session":
+      return i18n.t("workbench.timeline.kind.session");
+    case "selection":
+      return i18n.t("workbench.timeline.kind.selection");
+    case "assistant":
+      return i18n.t("workbench.timeline.kind.assistant");
+    case "plan":
+      return i18n.t("workbench.timeline.kind.plan");
+    case "tool":
+      return i18n.t("workbench.timeline.kind.tool");
+    case "command":
+      return i18n.t("workbench.timeline.kind.command");
+    case "diff":
+      return i18n.t("workbench.timeline.kind.diff");
+    case "usage":
+      return i18n.t("workbench.timeline.kind.usage");
+    case "approval":
+      return i18n.t("workbench.timeline.kind.approval");
+    case "warning":
+      return i18n.t("workbench.timeline.kind.warning");
+    case "error":
+      return i18n.t("workbench.timeline.kind.error");
+    default:
+      return kind;
+  }
+}
+
+function formatUsageSourceLabel(
+  i18n: WorkbenchRuntimeSnapshot["i18n"],
+  source: string
+): string {
+  switch (source) {
+    case "backend":
+      return i18n.t("workbench.usage.sourceBackend");
+    case "provider":
+      return i18n.t("workbench.usage.sourceProvider");
+    case "model":
+      return i18n.t("workbench.usage.sourceModel");
+    default:
+      return source;
+  }
+}
+
+function formatUsageNumber(value: number | undefined): string {
+  return value === undefined ? "n/a" : new Intl.NumberFormat("en").format(value);
+}
+
+function formatUsageCost(value: number | undefined): string {
+  return value === undefined ? "n/a" : `$${value.toFixed(4)}`;
+}
+
 function approvalTone(status: string, decision?: string): string {
   if (status === "pending") {
     return "status-warn";
@@ -1242,6 +1356,8 @@ function eventCardTone(kind: string): string {
   switch (kind) {
     case "command":
       return "event-card-command";
+    case "usage":
+      return "event-card-usage";
     case "warning":
     case "error":
       return "event-card-warning";
@@ -1253,6 +1369,10 @@ function eventCardTone(kind: string): string {
 function eventDotTone(kind: string, status?: string): string {
   if (kind === "command") {
     return "event-dot-command";
+  }
+
+  if (kind === "usage") {
+    return "event-dot-usage";
   }
 
   if (kind === "warning" || kind === "error" || status === "failed") {
@@ -1375,6 +1495,21 @@ function SessionCard({
         </div>
       </div>
     </button>
+  );
+}
+
+function UsageMetric({
+  label,
+  value
+}: {
+  readonly label: string;
+  readonly value: string;
+}) {
+  return (
+    <div className="usage-metric">
+      <p className="muted-meta">{label}</p>
+      <p className="mt-1 font-mono text-sm text-[color:var(--ink)]">{value}</p>
+    </div>
   );
 }
 

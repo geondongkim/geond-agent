@@ -56,6 +56,20 @@ export const CLAUDE_CODE_SANITIZED_STREAM_JSON_FIXTURE = [
     status: "running"
   },
   {
+    type: "usage.reported",
+    session_id: "claude-workbench-1",
+    id: "usage-fixture-1",
+    timestamp: "2026-06-21T01:00:05.500Z",
+    source: "provider",
+    model: "glm-4.7",
+    usage: {
+      input_tokens: 1200,
+      output_tokens: 220,
+      cache_read_input_tokens: 180,
+      service_tier: "standard"
+    }
+  },
+  {
     type: "diff.emitted",
     session_id: "claude-workbench-1",
     diff_id: "diff-1",

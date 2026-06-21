@@ -17,6 +17,7 @@ describe("normalizeClaudeCodeStreamJsonRecords", () => {
       "tool.call.started",
       "tool.call.updated",
       "command.output",
+      "usage.reported",
       "diff.emitted",
       "approval.requested",
       "approval.resolved",
@@ -101,13 +102,13 @@ describe("normalizeClaudeCodeStreamJsonRecords", () => {
     const result = normalizeClaudeCodeStreamJsonRecords(CLAUDE_CODE_SANITIZED_STREAM_JSON_FIXTURE);
 
     expect(result.ignoredRecords).toHaveLength(1);
-    expect(result.ignoredRecords[0]?.index).toBe(13);
+    expect(result.ignoredRecords[0]?.index).toBe(14);
 
     const unknownWarning = result.events[result.events.length - 1];
     expect(unknownWarning).toEqual({
       type: "warning",
       sessionId: "claude-workbench-1",
-      id: "sanitized-stream-json-13",
+      id: "sanitized-stream-json-14",
       message: 'Claude stream-json record of type "unknown.record" is not mapped yet.',
       at: "2026-06-21T01:00:12.000Z"
     });

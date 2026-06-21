@@ -33,11 +33,37 @@ export type UiMessageKey =
   | "workbench.inspector.diff"
   | "workbench.inspector.terminal"
   | "workbench.inspector.approvals"
+  | "workbench.inspector.usage"
   | "workbench.inspector.settings"
   | "workbench.inspector.selection"
+  | "workbench.timeline.kind.session"
+  | "workbench.timeline.kind.selection"
+  | "workbench.timeline.kind.assistant"
+  | "workbench.timeline.kind.plan"
+  | "workbench.timeline.kind.tool"
+  | "workbench.timeline.kind.command"
+  | "workbench.timeline.kind.diff"
+  | "workbench.timeline.kind.usage"
+  | "workbench.timeline.kind.approval"
+  | "workbench.timeline.kind.warning"
+  | "workbench.timeline.kind.error"
   | "workbench.plan.title"
   | "workbench.terminal.title"
   | "workbench.diff.title"
+  | "workbench.usage.title"
+  | "workbench.usage.source"
+  | "workbench.usage.sourceBackend"
+  | "workbench.usage.sourceProvider"
+  | "workbench.usage.sourceModel"
+  | "workbench.usage.model"
+  | "workbench.usage.input"
+  | "workbench.usage.output"
+  | "workbench.usage.cacheRead"
+  | "workbench.usage.cacheCreate"
+  | "workbench.usage.context"
+  | "workbench.usage.maxOutput"
+  | "workbench.usage.cost"
+  | "workbench.usage.serviceTier"
   | "workbench.approvals.title"
   | "workbench.approvals.requiredTitle"
   | "workbench.approvals.requiredDetail"
@@ -98,6 +124,7 @@ export type UiMessageKey =
   | "workbench.empty.diff"
   | "workbench.empty.terminal"
   | "workbench.empty.approvals"
+  | "workbench.empty.usage"
   | "workbench.empty.selection"
   | "workbench.status.created"
   | "workbench.status.resumed"
@@ -147,11 +174,37 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.inspector.diff": "Diff",
     "workbench.inspector.terminal": "Terminal",
     "workbench.inspector.approvals": "Approvals",
+    "workbench.inspector.usage": "Usage",
     "workbench.inspector.settings": "Settings",
     "workbench.inspector.selection": "Selection",
+    "workbench.timeline.kind.session": "Session",
+    "workbench.timeline.kind.selection": "Selection",
+    "workbench.timeline.kind.assistant": "Assistant",
+    "workbench.timeline.kind.plan": "Plan",
+    "workbench.timeline.kind.tool": "Tool",
+    "workbench.timeline.kind.command": "Command",
+    "workbench.timeline.kind.diff": "Diff",
+    "workbench.timeline.kind.usage": "Usage",
+    "workbench.timeline.kind.approval": "Approval",
+    "workbench.timeline.kind.warning": "Warning",
+    "workbench.timeline.kind.error": "Error",
     "workbench.plan.title": "Plan",
     "workbench.terminal.title": "Terminal",
     "workbench.diff.title": "Diff",
+    "workbench.usage.title": "Usage reports",
+    "workbench.usage.source": "Source",
+    "workbench.usage.sourceBackend": "Backend",
+    "workbench.usage.sourceProvider": "Provider",
+    "workbench.usage.sourceModel": "Model",
+    "workbench.usage.model": "Model",
+    "workbench.usage.input": "Input",
+    "workbench.usage.output": "Output",
+    "workbench.usage.cacheRead": "Cache read",
+    "workbench.usage.cacheCreate": "Cache create",
+    "workbench.usage.context": "Context",
+    "workbench.usage.maxOutput": "Max output",
+    "workbench.usage.cost": "Cost",
+    "workbench.usage.serviceTier": "Service tier",
     "workbench.approvals.title": "Approvals",
     "workbench.approvals.requiredTitle": "Approval required",
     "workbench.approvals.requiredDetail": "{count} pending approval(s) are blocking this session.",
@@ -212,6 +265,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.empty.diff": "No diff events in the active session.",
     "workbench.empty.terminal": "No command output projected yet.",
     "workbench.empty.approvals": "No approval queue for the active session.",
+    "workbench.empty.usage": "No usage metadata reported yet.",
     "workbench.empty.selection": "No selection snapshot on the active session.",
     "workbench.status.created": "created",
     "workbench.status.resumed": "resumed",
@@ -258,11 +312,37 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.inspector.diff": "변경 사항",
     "workbench.inspector.terminal": "터미널",
     "workbench.inspector.approvals": "승인",
+    "workbench.inspector.usage": "사용량",
     "workbench.inspector.settings": "설정",
     "workbench.inspector.selection": "선택 메타데이터",
+    "workbench.timeline.kind.session": "세션",
+    "workbench.timeline.kind.selection": "선택",
+    "workbench.timeline.kind.assistant": "어시스턴트",
+    "workbench.timeline.kind.plan": "계획",
+    "workbench.timeline.kind.tool": "도구",
+    "workbench.timeline.kind.command": "명령",
+    "workbench.timeline.kind.diff": "변경",
+    "workbench.timeline.kind.usage": "사용량",
+    "workbench.timeline.kind.approval": "승인",
+    "workbench.timeline.kind.warning": "경고",
+    "workbench.timeline.kind.error": "오류",
     "workbench.plan.title": "계획",
     "workbench.terminal.title": "터미널",
     "workbench.diff.title": "변경 사항",
+    "workbench.usage.title": "사용량 보고",
+    "workbench.usage.source": "출처",
+    "workbench.usage.sourceBackend": "백엔드",
+    "workbench.usage.sourceProvider": "프로바이더",
+    "workbench.usage.sourceModel": "모델",
+    "workbench.usage.model": "모델",
+    "workbench.usage.input": "입력",
+    "workbench.usage.output": "출력",
+    "workbench.usage.cacheRead": "캐시 읽기",
+    "workbench.usage.cacheCreate": "캐시 생성",
+    "workbench.usage.context": "컨텍스트",
+    "workbench.usage.maxOutput": "최대 출력",
+    "workbench.usage.cost": "비용",
+    "workbench.usage.serviceTier": "서비스 티어",
     "workbench.approvals.title": "승인",
     "workbench.approvals.requiredTitle": "승인이 필요합니다",
     "workbench.approvals.requiredDetail": "이 세션에서 {count}개의 승인이 대기 중입니다.",
@@ -323,6 +403,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.empty.diff": "활성 세션에 변경 이벤트가 없습니다.",
     "workbench.empty.terminal": "아직 표시할 명령 출력이 없습니다.",
     "workbench.empty.approvals": "활성 세션의 승인 대기열이 없습니다.",
+    "workbench.empty.usage": "아직 보고된 사용량 메타데이터가 없습니다.",
     "workbench.empty.selection": "활성 세션에 선택 스냅샷이 없습니다.",
     "workbench.status.created": "생성됨",
     "workbench.status.resumed": "재개됨",

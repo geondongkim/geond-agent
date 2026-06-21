@@ -174,6 +174,10 @@ body {
     @apply my-3 rounded-md border border-[rgba(108,166,255,0.28)] bg-[#0b1117] px-3 py-3 text-[color:var(--inverse)];
   }
 
+  .event-card-usage {
+    @apply my-2 rounded-md border border-[rgba(67,214,170,0.28)] bg-[rgba(67,214,170,0.07)] px-3 py-3;
+  }
+
   .event-card-warning {
     @apply my-2 rounded-md border border-[rgba(242,189,61,0.45)] bg-[rgba(242,189,61,0.1)] px-3 py-3 text-[color:var(--ink)];
   }
@@ -190,6 +194,10 @@ body {
     @apply bg-[color:var(--info)] ring-[rgba(108,166,255,0.18)];
   }
 
+  .event-dot-usage {
+    @apply bg-[color:var(--accent)] ring-[rgba(67,214,170,0.18)];
+  }
+
   .event-dot-warning {
     @apply bg-[color:var(--warning)] ring-[rgba(242,189,61,0.2)];
   }
@@ -204,6 +212,14 @@ body {
 
   .terminal-card {
     @apply rounded-md border border-white/10 bg-[#070908] p-3 text-[color:var(--inverse)];
+  }
+
+  .usage-grid {
+    @apply grid grid-cols-2 gap-2;
+  }
+
+  .usage-metric {
+    @apply rounded-md border border-[color:var(--border)] bg-[color:var(--panel-muted)] px-3 py-2;
   }
 
   .settings-field {
