@@ -301,3 +301,50 @@ export const CLAUDE_CODE_REAL_STREAM_JSON_FIXTURE = [
     }
   }
 ] as const;
+
+export const CLAUDE_CODE_PERMISSION_DENIAL_STREAM_JSON_FIXTURE = [
+  {
+    type: "system",
+    subtype: "init",
+    session_id: "permission-probe-session",
+    cwd: "/tmp/geond-agent-approval-probe",
+    tools: ["Bash", "Edit", "Read"],
+    model: "glm-4.7",
+    permissionMode: "default",
+    claude_code_version: "2.1.183"
+  },
+  {
+    type: "result",
+    subtype: "success",
+    session_id: "permission-probe-session",
+    is_error: false,
+    stop_reason: "end_turn",
+    duration_ms: 2480,
+    usage: {
+      input_tokens: 128,
+      output_tokens: 48,
+      service_tier: "standard"
+    },
+    result: "I need approval before creating approval-probe-output.txt.",
+    permission_denials: [
+      {
+        tool_name: "Bash",
+        tool_use_id: "call-bash-denied",
+        tool_input: {
+          command: "echo ok > approval-probe-output.txt",
+          description: "Create the probe output file"
+        }
+      },
+      {
+        tool_name: "Edit",
+        tool_use_id: "call-edit-denied",
+        tool_input: {
+          file_path: "/tmp/geond-agent-approval-probe/approval-probe-output.txt",
+          old_string: "",
+          new_string: "approval probe ok",
+          replace_all: false
+        }
+      }
+    ]
+  }
+] as const;

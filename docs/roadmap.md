@@ -20,6 +20,8 @@
 - Normalize Claude Code `--bare -p --verbose --output-format stream-json` into
   workbench events using real envelope-shaped sanitized fixtures, including text
   deltas, tool call/result records, run completion, and usage metadata.
+- Map observed Claude Code `result.permission_denials` into normalized local
+  approval requests before attempting interactive approval forwarding.
 - Persist local sessions/events/snapshots in SQLite after the event shape is
   stable enough to replay.
 - Verify Z.ai endpoint/model routing.
@@ -63,6 +65,10 @@
   approval metadata.
 - Permission and approval surfaces that show concrete command, diff, risk,
   policy, and available decisions before the user confirms.
+- Keyboard-accessible approval review cards with risk labels and direct jumps to
+  related diff or terminal context.
+- Permission-mode defaults that keep `bypassPermissions` out of normal persisted
+  UI settings.
 
 ## Milestone 4: Session Continuity
 

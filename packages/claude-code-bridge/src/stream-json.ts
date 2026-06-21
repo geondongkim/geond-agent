@@ -56,6 +56,7 @@ export interface ClaudeCodeSanitizedStreamRecord {
   readonly decision?: unknown;
   readonly source?: unknown;
   readonly usage?: unknown;
+  readonly permission_denials?: unknown;
   readonly model?: unknown;
   readonly cost_usd?: unknown;
   readonly id?: unknown;
@@ -608,6 +609,8 @@ function normalizeActualResultRecord(
     at
   });
 
+  events.push(...normalizePermissionDenials(record.permission_denials, sessionId, at));
+
   events.push({
     type: "session.lifecycle",
     sessionId,
@@ -616,6 +619,86 @@ function normalizeActualResultRecord(
   });
 
   return events;
+}
+
+function normalizePermissionDenials(
+  value: unknown,
+  sessionId: string,
+  at: string | undefined
+): readonly WorkbenchEvent[] {
+  const denials = asArray(value);
+  if (!denials) {
+    return [];
+  }
+
+  return denials.flatMap((denial, index) => {
+    const record = asRecord(denial);
+    if (!record) {
+      return [];
+    }
+
+    const toolName = asString(record.tool_name) ?? "tool";
+    const toolUseId = asString(record.tool_use_id);
+    const toolInput = asRecord(record.tool_input);
+    const kind = inferApprovalKind(toolName, toolInput);
+    const subject = inferApprovalSubject(kind, toolInput) ?? summarizeUnknownValue(toolInput);
+
+    return [
+      {
+        type: "approval.requested",
+        sessionId,
+        approval: {
+          id: toolUseId
+            ? `claude-code-permission:${toolUseId}`
+            : `claude-code-permission:${sessionId}:${index}`,
+          kind,
+          title: `Approve Claude Code ${toolName} action`,
+          reason: `Claude Code requested permission for a ${toolName} action.`,
+          subject,
+          status: "pending"
+        },
+        at
+      }
+    ];
+  });
+}
+
+function inferApprovalKind(
+  toolName: string,
+  toolInput: Record<string, unknown> | undefined
+): ApprovalKind {
+  if (toolName === "Bash") {
+    return "command";
+  }
+
+  if (["Edit", "MultiEdit", "NotebookEdit", "Write"].includes(toolName)) {
+    return "filesystem";
+  }
+
+  if (asString(toolInput?.file_path)) {
+    return "filesystem";
+  }
+
+  return "mcp";
+}
+
+function inferApprovalSubject(
+  kind: ApprovalKind,
+  toolInput: Record<string, unknown> | undefined
+): string | undefined {
+  if (!toolInput) {
+    return undefined;
+  }
+
+  if (kind === "command") {
+    return asString(toolInput.command) ?? asString(toolInput.description);
+  }
+
+  if (kind === "filesystem" || kind === "diff") {
+    return asString(toolInput.file_path) ?? asString(toolInput.path);
+  }
+
+  return asString(toolInput.description);
 }
 
 function normalizeActualStreamEventRecord(

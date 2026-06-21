@@ -27,6 +27,7 @@ export function InspectorPane({
   i18n,
   inspectorTab,
   modelAliasOptions,
+  permissionModeOptions,
   persistenceNotes,
   providerRouteOptions,
   providerSummary,
@@ -49,6 +50,7 @@ export function InspectorPane({
   readonly i18n: UiI18n;
   readonly inspectorTab: string;
   readonly modelAliasOptions: readonly WorkbenchCatalogOption[];
+  readonly permissionModeOptions: readonly { readonly value: string; readonly label: string }[];
   readonly persistenceNotes: readonly string[];
   readonly providerRouteOptions: readonly WorkbenchCatalogOption[];
   readonly providerSummary: string;
@@ -91,7 +93,9 @@ export function InspectorPane({
         <InspectorApprovalsTab
           activeSession={activeSession}
           i18n={i18n}
+          permissionMode={sessionDefaults.defaultPermissionMode}
           resolveApproval={resolveApproval}
+          setInspectorTab={setInspectorTab}
         />
         <InspectorUsageTab activeSession={activeSession} i18n={i18n} />
         <InspectorSettingsTab
@@ -99,6 +103,7 @@ export function InspectorPane({
           backendOptions={backendOptions}
           i18n={i18n}
           modelAliasOptions={modelAliasOptions}
+          permissionModeOptions={permissionModeOptions}
           persistenceNotes={persistenceNotes}
           providerRouteOptions={providerRouteOptions}
           routingModeOptions={routingModeOptions}

@@ -97,7 +97,9 @@ backend, Z.ai model profiles, and `auto` routing without storing provider
 secrets or account state.
 
 UI language, agent response language, backend selection, provider route, model
-profile, and routing mode are separate settings.
+profile, routing mode, and permission mode are separate settings. Normal UI
+defaults expose `plan`, `default`, and `acceptEdits`; bypass-style execution is
+reserved for isolated evaluation runs rather than persisted user defaults.
 
 Reference workbench patterns are tracked in
 `../../docs/research/oss-agent-workbench-reference.md`. The package should learn

@@ -10,6 +10,7 @@ import type { LocalSettingsStore } from "./local-settings-store.js";
 export const SESSION_DEFAULTS_SETTINGS_KEY = "geond-agent.workbench.session-defaults";
 
 export type WorkbenchApprovalPolicy = "ask-first";
+export type WorkbenchPermissionMode = "plan" | "default" | "acceptEdits";
 
 export interface WorkbenchPersistenceBoundary {
   readonly preferencesDriver: "tauri-app-data-json";
@@ -24,6 +25,7 @@ export interface WorkbenchSessionDefaults {
   readonly defaultProviderRouteId: string;
   readonly defaultModelAlias: string;
   readonly routingMode: RoutingMode;
+  readonly defaultPermissionMode: WorkbenchPermissionMode;
   readonly approvalPolicy: WorkbenchApprovalPolicy;
 }
 
@@ -37,6 +39,7 @@ interface WorkbenchSessionDefaultsInput {
   readonly defaultProviderRouteId?: unknown;
   readonly defaultModelAlias?: unknown;
   readonly routingMode?: unknown;
+  readonly defaultPermissionMode?: unknown;
   readonly approvalPolicy?: unknown;
 }
 
@@ -56,6 +59,7 @@ export const DEFAULT_WORKBENCH_SESSION_DEFAULTS: WorkbenchSessionDefaults = {
   defaultProviderRouteId: "zai.anthropic-compatible",
   defaultModelAlias: "sonnet",
   routingMode: "manual",
+  defaultPermissionMode: "plan",
   approvalPolicy: "ask-first"
 };
 
@@ -73,6 +77,7 @@ export function normalizeWorkbenchSessionDefaults(
       readNonEmptyString(value?.defaultModelAlias) ??
       DEFAULT_WORKBENCH_SESSION_DEFAULTS.defaultModelAlias,
     routingMode: normalizeRoutingMode(value?.routingMode),
+    defaultPermissionMode: normalizePermissionMode(value?.defaultPermissionMode),
     approvalPolicy: normalizeApprovalPolicy(value?.approvalPolicy)
   };
 }
@@ -160,6 +165,16 @@ function normalizeApprovalPolicy(value: unknown): WorkbenchApprovalPolicy {
   return value === "ask-first"
     ? value
     : DEFAULT_WORKBENCH_SESSION_DEFAULTS.approvalPolicy;
+}
+
+function normalizePermissionMode(value: unknown): WorkbenchPermissionMode {
+  switch (value) {
+    case "default":
+    case "acceptEdits":
+      return value;
+    default:
+      return DEFAULT_WORKBENCH_SESSION_DEFAULTS.defaultPermissionMode;
+  }
 }
 
 function readNonEmptyString(value: unknown): string | undefined {

@@ -23,6 +23,7 @@ describe("normalizeWorkbenchSessionDefaults", () => {
         defaultProviderRouteId: "   ",
         defaultModelAlias: null,
         routingMode: "unsupported",
+        defaultPermissionMode: "bypassPermissions",
         approvalPolicy: "nope"
       })
     ).toEqual(DEFAULT_WORKBENCH_SESSION_DEFAULTS);
@@ -35,6 +36,7 @@ describe("normalizeWorkbenchSessionDefaults", () => {
         defaultProviderRouteId: "zai.anthropic-compatible",
         defaultModelAlias: "opus",
         routingMode: "auto",
+        defaultPermissionMode: "acceptEdits",
         approvalPolicy: "ask-first"
       })
     ).toEqual({
@@ -42,6 +44,7 @@ describe("normalizeWorkbenchSessionDefaults", () => {
       defaultProviderRouteId: "zai.anthropic-compatible",
       defaultModelAlias: "opus",
       routingMode: "auto",
+      defaultPermissionMode: "acceptEdits",
       approvalPolicy: "ask-first"
     });
 
@@ -59,6 +62,7 @@ describe("Workbench session defaults persistence", () => {
       defaultProviderRouteId: "zai.anthropic-compatible",
       defaultModelAlias: "opus",
       routingMode: "manual",
+      defaultPermissionMode: "default",
       approvalPolicy: "ask-first"
     });
 
@@ -67,6 +71,7 @@ describe("Workbench session defaults persistence", () => {
       defaultProviderRouteId: "zai.anthropic-compatible",
       defaultModelAlias: "opus",
       routingMode: "manual",
+      defaultPermissionMode: "default",
       approvalPolicy: "ask-first"
     });
   });
@@ -80,6 +85,7 @@ describe("validateWorkbenchSessionDefaults", () => {
         defaultProviderRouteId: "missing.route",
         defaultModelAlias: "missing-model",
         routingMode: "manual",
+        defaultPermissionMode: "plan",
         approvalPolicy: "ask-first"
       },
       createWorkbenchSelectionCatalog({

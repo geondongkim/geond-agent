@@ -41,11 +41,20 @@ export function useWorkbenchOptions(
     ],
     [i18n]
   );
+  const permissionModeOptions = useMemo(
+    () => [
+      { value: "plan", label: i18n.t("settings.selection.permissionMode.plan") },
+      { value: "default", label: i18n.t("settings.selection.permissionMode.default") },
+      { value: "acceptEdits", label: i18n.t("settings.selection.permissionMode.acceptEdits") }
+    ],
+    [i18n]
+  );
 
   return {
     agentLanguageOptions,
     backendOptions,
     modelAliasOptions,
+    permissionModeOptions,
     providerRouteOptions,
     routingModeOptions,
     settingsLabels
