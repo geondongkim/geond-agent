@@ -86,5 +86,10 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await approvalsPanel.getByRole("button", { name: "Approve" }).click();
   await expect(page.getByText("Recorded approved for Run verification command.")).toBeVisible();
 
+  await page.getByRole("button", { name: "Delete session" }).click();
+  await expect(page.getByText("Deleted Local demo session 2.")).toBeVisible();
+  await expect(page.getByText("1 total")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Local demo session 2/ })).toHaveCount(0);
+
   expect(errors).toEqual([]);
 });

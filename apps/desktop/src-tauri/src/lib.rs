@@ -70,6 +70,7 @@ pub fn run() {
             remove_app_setting,
             append_workbench_events,
             list_workbench_events,
+            delete_workbench_session_events,
             list_workspaces,
             run_claude_code_stream_json
         ])
@@ -152,6 +153,12 @@ fn list_workbench_events(app: AppHandle, session_id: Option<String>) -> Result<V
     rows.into_iter()
         .map(|payload| serde_json::from_str(&payload).map_err(to_string))
         .collect()
+}
+
+#[tauri::command]
+fn delete_workbench_session_events(app: AppHandle, session_id: String) -> Result<usize, String> {
+    let connection = open_event_store(&app)?;
+    delete_events_for_session(&connection, &session_id)
 }
 
 #[tauri::command]
@@ -408,6 +415,19 @@ fn open_event_store(app: &AppHandle) -> Result<Connection, String> {
     Ok(connection)
 }
 
+fn delete_events_for_session(connection: &Connection, session_id: &str) -> Result<usize, String> {
+    if session_id.trim().is_empty() {
+        return Err("Session id is required.".to_string());
+    }
+
+    connection
+        .execute(
+            "delete from workbench_events where session_id = ?1",
+            params![session_id],
+        )
+        .map_err(to_string)
+}
+
 fn app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app.path().app_data_dir().map_err(to_string)?;
     fs::create_dir_all(&dir).map_err(to_string)?;
@@ -472,6 +492,52 @@ mod tests {
         assert!(ensure_allowed_setting_key(PINNED_SESSION_IDS_SETTINGS_KEY).is_ok());
         assert!(ensure_allowed_setting_key(WORKSPACE_SETTINGS_KEY).is_ok());
         assert!(ensure_allowed_setting_key("geond-agent.workbench.provider-credential").is_err());
+    }
+
+    #[test]
+    fn deletes_events_for_one_session_only() {
+        let connection = Connection::open_in_memory().expect("open in-memory sqlite");
+        connection
+            .execute_batch(
+                "create table workbench_events (
+                    id integer primary key autoincrement,
+                    session_id text not null,
+                    event_type text not null,
+                    event_at text,
+                    payload_json text not null,
+                    created_at text not null default current_timestamp
+                );",
+            )
+            .expect("create event table");
+        connection
+            .execute(
+                "insert into workbench_events (session_id, event_type, payload_json) values (?1, ?2, ?3)",
+                params!["session-a", "session.lifecycle", "{}"],
+            )
+            .expect("insert session-a");
+        connection
+            .execute(
+                "insert into workbench_events (session_id, event_type, payload_json) values (?1, ?2, ?3)",
+                params!["session-b", "session.lifecycle", "{}"],
+            )
+            .expect("insert session-b");
+
+        let deleted = delete_events_for_session(&connection, "session-a").expect("delete session-a");
+        let remaining: i64 = connection
+            .query_row("select count(*) from workbench_events", [], |row| row.get(0))
+            .expect("count remaining");
+        let session_b_remaining: i64 = connection
+            .query_row(
+                "select count(*) from workbench_events where session_id = ?1",
+                params!["session-b"],
+                |row| row.get(0),
+            )
+            .expect("count session-b");
+
+        assert_eq!(deleted, 1);
+        assert_eq!(remaining, 1);
+        assert_eq!(session_b_remaining, 1);
+        assert!(delete_events_for_session(&connection, " ").is_err());
     }
 
     #[test]
