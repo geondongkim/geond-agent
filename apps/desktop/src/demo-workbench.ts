@@ -17,6 +17,7 @@ import {
   type WorkbenchLanguageSettings,
   type WorkbenchPersistenceBoundary,
   type WorkbenchRuntime,
+  type WorkbenchEvent,
   type WorkbenchSessionController,
   type WorkbenchSessionControllerSnapshot,
   type WorkbenchSessionDefaults,
@@ -87,21 +88,26 @@ export async function createDesktopDemoDocument(
   const liveRunner = createClaudeCodeProcessRunner(createTauriClaudeCodeExecutor());
   const eventStore = createDesktopWorkbenchEventStore();
   const initialSessionId = "local-session-1";
-  const initialRun = await runner.run(
-    createRunnerRequest({
-      sessionId: initialSessionId,
-      title: "Local workbench session",
-      prompt: "Start a local demo session without making paid provider calls.",
-      languageSettings: runtimeSnapshot.languageSettings,
-      sessionDefaults: workbench.sessionDefaults,
-      workspacePath: activeWorkspace.path
-    })
-  );
-  await eventStore.append(initialRun.events);
+  const persistedEvents = await eventStore.list();
+  const initialDocument =
+    persistedEvents.length > 0
+      ? {
+          events: persistedEvents,
+          ignoredRecordCount: 0,
+          activeSessionId: lastSessionId(persistedEvents) ?? initialSessionId
+        }
+      : await createInitialFixtureDocument({
+          activeWorkspace,
+          eventStore,
+          initialSessionId,
+          languageSettings: runtimeSnapshot.languageSettings,
+          runner,
+          sessionDefaults: workbench.sessionDefaults
+        });
   const controller = createWorkbenchSessionController({
-    initialEvents: initialRun.events,
-    pinnedSessionIds: [initialSessionId],
-    activeSessionId: initialSessionId
+    initialEvents: initialDocument.events,
+    pinnedSessionIds: initialDocument.activeSessionId === initialSessionId ? [initialSessionId] : [],
+    activeSessionId: initialDocument.activeSessionId
   });
 
   return {
@@ -121,7 +127,7 @@ export async function createDesktopDemoDocument(
     bridgeCommand: [workbench.bridge.process.executable, ...workbench.bridge.process.args]
       .filter((value) => value.length > 0)
       .join(" "),
-    ignoredRecordCount: initialRun.ignoredRecords.length,
+    ignoredRecordCount: initialDocument.ignoredRecordCount,
     initialControllerSnapshot: controller.getSnapshot(),
     createRunnerRequest,
     runSession: (mode, request) =>
@@ -130,6 +136,37 @@ export async function createDesktopDemoDocument(
       await saveWorkbenchSessionDefaults(settingsStore, settings);
       return settings;
     }
+  };
+}
+
+async function createInitialFixtureDocument(options: {
+  readonly activeWorkspace: DesktopWorkspaceDescriptor;
+  readonly eventStore: DesktopWorkbenchEventStore;
+  readonly initialSessionId: string;
+  readonly languageSettings: WorkbenchLanguageSettings;
+  readonly runner: ClaudeCodeFixtureReplayRunner;
+  readonly sessionDefaults: WorkbenchSessionDefaults;
+}): Promise<{
+  readonly events: readonly WorkbenchEvent[];
+  readonly ignoredRecordCount: number;
+  readonly activeSessionId: string;
+}> {
+  const initialRun = await options.runner.run(
+    createRunnerRequest({
+      sessionId: options.initialSessionId,
+      title: "Local workbench session",
+      prompt: "Start a local demo session without making paid provider calls.",
+      languageSettings: options.languageSettings,
+      sessionDefaults: options.sessionDefaults,
+      workspacePath: options.activeWorkspace.path
+    })
+  );
+  await options.eventStore.append(initialRun.events);
+
+  return {
+    events: initialRun.events,
+    ignoredRecordCount: initialRun.ignoredRecords.length,
+    activeSessionId: options.initialSessionId
   };
 }
 
@@ -155,4 +192,8 @@ function normalizeAgentLanguageForRunner(
   language: AgentResponseLanguage
 ): AgentResponseLanguage {
   return language;
+}
+
+function lastSessionId(events: readonly WorkbenchEvent[]): string | undefined {
+  return events[events.length - 1]?.sessionId;
 }
