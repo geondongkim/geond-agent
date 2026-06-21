@@ -4,15 +4,18 @@ use serde_json::{Map, Value};
 use std::{
     collections::BTreeMap,
     env, fs,
+    io::{BufRead, BufReader, Read},
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
+    thread,
 };
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 const LANGUAGE_SETTINGS_KEY: &str = "geond-agent.workbench.language";
 const SESSION_DEFAULTS_SETTINGS_KEY: &str = "geond-agent.workbench.session-defaults";
 const WORKSPACE_SETTINGS_KEY: &str = "geond-agent.workbench.workspace";
 const LOCAL_ENV_FILE_NAME: &str = ".env.local";
+const CLAUDE_STREAM_EVENT_NAME: &str = "geond-agent://claude-code-stream-json";
 const CLAUDE_ENV_KEYS: &[&str] = &[
     "ANTHROPIC_API_KEY",
     "ANTHROPIC_BASE_URL",
@@ -28,6 +31,7 @@ pub struct ClaudeCodeCommandRequest {
     executable: String,
     cwd: Option<String>,
     args: Vec<String>,
+    stream_channel_id: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -36,6 +40,15 @@ pub struct ClaudeCodeCommandResponse {
     stdout: String,
     stderr: String,
     exit_code: Option<i32>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClaudeCodeStreamPayload {
+    channel_id: String,
+    stream: String,
+    text: String,
+    sequence: usize,
 }
 
 #[derive(Debug, Serialize)]
@@ -147,8 +160,25 @@ fn list_workspaces() -> Result<Vec<WorkspaceDescriptor>, String> {
 
 #[tauri::command]
 fn run_claude_code_stream_json(
+    app: AppHandle,
     request: ClaudeCodeCommandRequest,
 ) -> Result<ClaudeCodeCommandResponse, String> {
+    let stream_channel_id = request.stream_channel_id.clone();
+    let mut command = build_claude_command(&request)?;
+
+    if let Some(channel_id) = stream_channel_id {
+        return run_streaming_claude_command(app, command, channel_id);
+    }
+
+    let output = command.output().map_err(to_string)?;
+    Ok(ClaudeCodeCommandResponse {
+        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+        exit_code: output.status.code(),
+    })
+}
+
+fn build_claude_command(request: &ClaudeCodeCommandRequest) -> Result<Command, String> {
     if request.executable != "claude" {
         return Err("Only the user-installed `claude` executable is allowed.".to_string());
     }
@@ -165,12 +195,85 @@ fn run_claude_code_stream_json(
         command.env(key, value);
     }
 
-    let output = command.output().map_err(to_string)?;
+    Ok(command)
+}
+
+fn run_streaming_claude_command(
+    app: AppHandle,
+    mut command: Command,
+    channel_id: String,
+) -> Result<ClaudeCodeCommandResponse, String> {
+    command.stdout(Stdio::piped()).stderr(Stdio::piped());
+
+    let mut child = command.spawn().map_err(to_string)?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| "Unable to capture Claude Code stdout.".to_string())?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| "Unable to capture Claude Code stderr.".to_string())?;
+
+    let stdout_app = app.clone();
+    let stdout_channel_id = channel_id.clone();
+    let stdout_reader =
+        thread::spawn(move || read_process_stream(stdout, stdout_app, stdout_channel_id, "stdout"));
+    let stderr_app = app.clone();
+    let stderr_channel_id = channel_id;
+    let stderr_reader =
+        thread::spawn(move || read_process_stream(stderr, stderr_app, stderr_channel_id, "stderr"));
+
+    let status = child.wait().map_err(to_string)?;
+    let stdout = stdout_reader
+        .join()
+        .map_err(|_| "Claude Code stdout reader panicked.".to_string())?;
+    let stderr = stderr_reader
+        .join()
+        .map_err(|_| "Claude Code stderr reader panicked.".to_string())?;
+
     Ok(ClaudeCodeCommandResponse {
-        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
-        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
-        exit_code: output.status.code(),
+        stdout,
+        stderr,
+        exit_code: status.code(),
     })
+}
+
+fn read_process_stream<R: Read>(
+    reader: R,
+    app: AppHandle,
+    channel_id: String,
+    stream: &str,
+) -> String {
+    let mut reader = BufReader::new(reader);
+    let mut output = String::new();
+    let mut line = String::new();
+    let mut sequence = 0;
+
+    loop {
+        line.clear();
+        let bytes = reader.read_line(&mut line).unwrap_or_default();
+        if bytes == 0 {
+            break;
+        }
+
+        output.push_str(&line);
+        let text = trim_line_ending(&line);
+        if !text.trim().is_empty() {
+            let _ = app.emit(
+                CLAUDE_STREAM_EVENT_NAME,
+                ClaudeCodeStreamPayload {
+                    channel_id: channel_id.clone(),
+                    stream: stream.to_string(),
+                    text,
+                    sequence,
+                },
+            );
+        }
+        sequence += 1;
+    }
+
+    output
 }
 
 fn ensure_allowed_setting_key(key: &str) -> Result<(), String> {
@@ -254,6 +357,10 @@ fn unquote_env_value(value: &str) -> String {
     }
 
     value.to_string()
+}
+
+fn trim_line_ending(value: &str) -> String {
+    value.trim_end_matches(&['\r', '\n'][..]).to_string()
 }
 
 fn read_settings(app: &AppHandle) -> Result<BTreeMap<String, String>, String> {
@@ -389,5 +496,21 @@ mod tests {
         );
         assert!(!values.contains_key("IGNORED_ENV"));
         assert!(!values.contains_key("ANTHROPIC_DEFAULT_OPUS_MODEL"));
+    }
+
+    #[test]
+    fn trims_stream_line_endings_without_stripping_json_content() {
+        assert_eq!(
+            trim_line_ending("{\"type\":\"assistant\"}\n"),
+            "{\"type\":\"assistant\"}"
+        );
+        assert_eq!(
+            trim_line_ending("{\"type\":\"assistant\"}\r\n"),
+            "{\"type\":\"assistant\"}"
+        );
+        assert_eq!(
+            trim_line_ending("  {\"type\":\"assistant\"}  \n"),
+            "  {\"type\":\"assistant\"}  "
+        );
     }
 }

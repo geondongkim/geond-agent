@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
 
 import {
   createWorkbenchSettingsLabels,
@@ -8,8 +9,13 @@ import {
   type WorkbenchSessionDefaults,
   type WorkbenchEvent
 } from "@geond-agent/ui-workbench";
+import { normalizeClaudeCodeStreamJsonRecords } from "@geond-agent/claude-code-bridge";
 
 import type { DesktopDemoDocument, DesktopRunnerMode } from "./demo-workbench.js";
+import {
+  CLAUDE_CODE_STREAM_EVENT,
+  type TauriClaudeCodeStreamPayload
+} from "./claude-runner.js";
 import { Button } from "./components/ui/button.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs.js";
 import { cn } from "./lib/cn.js";
@@ -126,32 +132,58 @@ export function App({ document }: AppProps) {
       sessionDefaults,
       workspacePath: selectedWorkspacePath
     });
+    const streamedEventKeys = new Set<string>();
+    const appendEvents = async (
+      events: readonly WorkbenchEvent[],
+      options: { readonly markAsStreamed?: boolean } = {}
+    ) => {
+      const nextEvents = options.markAsStreamed
+        ? events.filter((event) => {
+            const key = eventIdentity(event);
+            if (streamedEventKeys.has(key)) {
+              return false;
+            }
+            streamedEventKeys.add(key);
+            return true;
+          })
+        : events;
+
+      if (nextEvents.length === 0) {
+        return;
+      }
+
+      await document.eventStore.append(nextEvents);
+      setControllerSnapshot(
+        document.controller.appendEvents(nextEvents, { activateSessionId: sessionId })
+      );
+    };
     setRunnerStatus(
       mode === "claude-live"
         ? i18n.t("workbench.runner.startingClaude")
         : i18n.t("workbench.runner.startingFixture")
     );
 
+    let unlistenStream: (() => void) | undefined;
     try {
       if (mode === "claude-live") {
-        const preludeEvents = createLiveRunPreludeEvents(request, title);
-        await document.eventStore.append(preludeEvents);
-        setControllerSnapshot(
-          document.controller.appendEvents(preludeEvents, { activateSessionId: sessionId })
+        unlistenStream = await listenToClaudeCodeStream(request, (events) =>
+          appendEvents(events, { markAsStreamed: true })
         );
+        const preludeEvents = createLiveRunPreludeEvents(request, title);
+        await appendEvents(preludeEvents);
       }
 
       const result = await document.runSession(mode, request);
       const resultEvents =
         mode === "claude-live"
-          ? [...result.events, ...createLiveRunCompletionEvents(sessionId, result)]
+          ? [
+              ...result.events.filter((event) => !streamedEventKeys.has(eventIdentity(event))),
+              ...createLiveRunCompletionEvents(sessionId, result)
+            ]
           : result.events;
 
-      await document.eventStore.append(resultEvents);
+      await appendEvents(resultEvents);
       setIgnoredRecordCount(result.ignoredRecords.length);
-      setControllerSnapshot(
-        document.controller.appendEvents(resultEvents, { activateSessionId: sessionId })
-      );
       setRunnerStatus(
         formatMessage(i18n.t("workbench.runner.appendedEvents"), {
           count: resultEvents.length,
@@ -165,13 +197,12 @@ export function App({ document }: AppProps) {
 
       if (mode === "claude-live") {
         const failureEvents = createLiveRunFailureEvents(sessionId, message);
-        await document.eventStore.append(failureEvents);
-        setControllerSnapshot(
-          document.controller.appendEvents(failureEvents, { activateSessionId: sessionId })
-        );
+        await appendEvents(failureEvents);
       }
 
       setRunnerStatus(message);
+    } finally {
+      unlistenStream?.();
     }
   };
 
@@ -676,6 +707,66 @@ function createLiveRunPreludeEvents(
   ];
 }
 
+async function listenToClaudeCodeStream(
+  request: RunnerRequest,
+  onEvents: (events: readonly WorkbenchEvent[]) => Promise<void>
+): Promise<(() => void) | undefined> {
+  try {
+    return await listen<TauriClaudeCodeStreamPayload>(
+      CLAUDE_CODE_STREAM_EVENT,
+      (event) => {
+        const events = createEventsFromStreamPayload(event.payload, request);
+        if (events.length > 0) {
+          void onEvents(events);
+        }
+      }
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+function createEventsFromStreamPayload(
+  payload: TauriClaudeCodeStreamPayload,
+  request: RunnerRequest
+): readonly WorkbenchEvent[] {
+  if (!isClaudeStreamPayload(payload) || payload.channelId !== request.sessionId) {
+    return [];
+  }
+
+  const at = new Date().toISOString();
+  if (payload.stream === "stderr") {
+    return [
+      {
+        type: "command.output",
+        sessionId: request.sessionId,
+        commandId: "claude-code-stream-stderr",
+        stream: "stderr",
+        text: previewStreamText(payload.text),
+        status: "running",
+        at
+      }
+    ];
+  }
+
+  try {
+    const record = JSON.parse(payload.text) as unknown;
+    return normalizeClaudeCodeStreamJsonRecords([record], {
+      fallbackSessionId: request.sessionId
+    }).events;
+  } catch (error) {
+    return [
+      {
+        type: "warning",
+        sessionId: request.sessionId,
+        id: `claude-code-stream-json-live-parse-${payload.sequence}`,
+        message: error instanceof Error ? error.message : "Unable to parse Claude Code stream-json line.",
+        at
+      }
+    ];
+  }
+}
+
 function createLiveRunCompletionEvents(
   sessionId: string,
   result: RunnerResult
@@ -780,6 +871,29 @@ function normalizeSelectionAgentLanguage(
   value: string | undefined
 ): WorkbenchSelectionSnapshot["agentResponseLanguage"] | undefined {
   return value === "system" || value === "en" || value === "ko" ? value : undefined;
+}
+
+function isClaudeStreamPayload(value: unknown): value is TauriClaudeCodeStreamPayload {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.channelId === "string" &&
+    (record.stream === "stdout" || record.stream === "stderr") &&
+    typeof record.text === "string" &&
+    typeof record.sequence === "number"
+  );
+}
+
+function previewStreamText(value: string): string {
+  const trimmed = value.trim();
+  return trimmed.length > 1200 ? `${trimmed.slice(0, 1200)}...` : trimmed;
+}
+
+function eventIdentity(event: WorkbenchEvent): string {
+  return JSON.stringify(event);
 }
 
 function formatAgentLanguageLabel(
