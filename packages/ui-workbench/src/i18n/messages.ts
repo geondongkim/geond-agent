@@ -55,6 +55,9 @@ export type UiMessageKey =
   | "workbench.actions.newDemoSession"
   | "workbench.actions.runClaudeSession"
   | "workbench.actions.settings"
+  | "workbench.composer.label"
+  | "workbench.composer.placeholder"
+  | "workbench.composer.dispatch"
   | "workbench.runner.fixtureReady"
   | "workbench.runner.startingFixture"
   | "workbench.runner.startingClaude"
@@ -142,6 +145,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.newDemoSession": "New demo session",
     "workbench.actions.runClaudeSession": "Run Claude session",
     "workbench.actions.settings": "Settings",
+    "workbench.composer.label": "Agent command",
+    "workbench.composer.placeholder": "Review the current workspace and continue the implementation.",
+    "workbench.composer.dispatch": "Dispatch",
     "workbench.runner.fixtureReady": "Fixture runner ready.",
     "workbench.runner.startingFixture": "Starting local fixture runner...",
     "workbench.runner.startingClaude": "Starting Claude Code stream-json runner...",
@@ -226,6 +232,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.newDemoSession": "새 데모 세션",
     "workbench.actions.runClaudeSession": "Claude 세션 실행",
     "workbench.actions.settings": "설정",
+    "workbench.composer.label": "에이전트 명령",
+    "workbench.composer.placeholder": "현재 워크스페이스를 검토하고 구현을 이어갑니다.",
+    "workbench.composer.dispatch": "실행",
     "workbench.runner.fixtureReady": "Fixture runner 준비됨.",
     "workbench.runner.startingFixture": "로컬 fixture runner 시작 중...",
     "workbench.runner.startingClaude": "Claude Code stream-json runner 시작 중...",
