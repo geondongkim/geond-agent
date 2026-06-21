@@ -38,7 +38,9 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(page.getByLabel("Model profile")).toHaveValue("opus");
   await expect(page.getByLabel("Routing mode")).toHaveValue("auto");
 
-  await page.getByRole("button", { name: "New demo session" }).click();
+  await page.getByLabel("Agent command").fill("Inspect workbench event replay and keep the run local.");
+  await expect(page.getByLabel("Agent command")).toHaveValue("Inspect workbench event replay and keep the run local.");
+  await page.getByRole("button", { name: "Dispatch" }).click();
   await expect(page.getByText("2 total")).toBeVisible();
   await expect(page.getByRole("button", { name: /Local demo session 2/ })).toBeVisible();
   await expect(page.getByText(/Appended 13 events/)).toBeVisible();
