@@ -43,6 +43,14 @@ export interface CreateWorkbenchSessionEventsOptions {
   readonly at?: string;
 }
 
+export interface CreateWorkbenchSessionResumeEventsOptions {
+  readonly sessionId: string;
+  readonly adapterId: string;
+  readonly externalSessionId: string;
+  readonly resumedFromExternalSessionId?: string;
+  readonly at?: string;
+}
+
 export function createWorkbenchSessionController(
   options: WorkbenchSessionControllerOptions = {}
 ): WorkbenchSessionController {
@@ -101,6 +109,28 @@ export function createWorkbenchSessionStartEvents(
       title: options.title,
       workspacePath: options.workspacePath,
       selection: options.selection,
+      at: options.at
+    }
+  ];
+}
+
+export function createWorkbenchSessionResumeEvents(
+  options: CreateWorkbenchSessionResumeEventsOptions
+): readonly WorkbenchEvent[] {
+  return [
+    {
+      type: "session.lifecycle",
+      sessionId: options.sessionId,
+      lifecycle: "resumed",
+      at: options.at
+    },
+    {
+      type: "session.adapter.linked",
+      sessionId: options.sessionId,
+      adapterId: options.adapterId,
+      externalSessionId: options.externalSessionId,
+      resumedFromExternalSessionId:
+        options.resumedFromExternalSessionId ?? options.externalSessionId,
       at: options.at
     }
   ];

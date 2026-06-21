@@ -12,6 +12,10 @@ describe("projectWorkbenchEvents", () => {
 
     expect(projection.activeSessionId).toBe("eval-task-1");
     expect(projection.pinnedSessions.map((session) => session.id)).toEqual(["eval-task-1"]);
+    expect(projection.pinnedSessions[0]).toMatchObject({
+      id: "eval-task-1",
+      resumable: false
+    });
     expect(projection.recentSessions).toEqual([]);
     expect(projection.workspaces).toEqual([
       {
@@ -36,9 +40,28 @@ describe("projectWorkbenchEvents", () => {
     const projection = projectWorkbenchEvents(ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS);
 
     expect(projection.activeSession?.timeline.map((entry) => entry.kind)).toContain("plan");
+    expect(projection.activeSession?.timeline.map((entry) => entry.kind)).toContain("adapter");
     expect(projection.activeSession?.timeline.map((entry) => entry.kind)).toContain("approval");
     expect(projection.activeSession?.timeline.map((entry) => entry.kind)).toContain("usage");
     expect(projection.activeSession?.usageReports[0]?.model).toBe("glm-4.7");
+  });
+
+  it("marks completed adapter-linked sessions as resumable", () => {
+    const projection = projectWorkbenchEvents([
+      ...ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS,
+      {
+        type: "session.lifecycle",
+        sessionId: "eval-task-1",
+        lifecycle: "completed",
+        at: "2026-06-21T00:00:11.000Z"
+      }
+    ]);
+
+    expect(projection.sessions[0]).toMatchObject({
+      id: "eval-task-1",
+      lifecycle: "completed",
+      resumable: true
+    });
   });
 
   it("can project a selected session without changing event replay order", () => {

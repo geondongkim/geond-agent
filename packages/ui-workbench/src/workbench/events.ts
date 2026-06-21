@@ -58,6 +58,13 @@ export interface WorkbenchUsageSnapshot {
   readonly note?: string;
 }
 
+export interface WorkbenchAdapterSessionLinkSnapshot {
+  readonly adapterId: string;
+  readonly externalSessionId: string;
+  readonly resumedFromExternalSessionId?: string;
+  readonly linkedAt?: string;
+}
+
 export type ApprovalKind = "command" | "diff" | "filesystem" | "network" | "mcp";
 export type ApprovalDecision = "approved" | "rejected" | "cancelled";
 
@@ -87,6 +94,14 @@ export type WorkbenchEvent =
       readonly type: "selection.snapshot.updated";
       readonly sessionId: string;
       readonly selection: WorkbenchSelectionSnapshot;
+      readonly at?: string;
+    }
+  | {
+      readonly type: "session.adapter.linked";
+      readonly sessionId: string;
+      readonly adapterId: string;
+      readonly externalSessionId: string;
+      readonly resumedFromExternalSessionId?: string;
       readonly at?: string;
     }
   | {

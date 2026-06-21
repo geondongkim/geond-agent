@@ -461,13 +461,50 @@ fn ensure_stream_json_args(args: &[String]) -> Result<(), String> {
         .any(|window| window[0] == "--output-format" && window[1] == "stream-json");
 
     if has_bare && has_print && has_verbose && has_stream_json {
-        Ok(())
+        ensure_resume_args(args)
     } else {
         Err(
             "Claude Code runner requires --bare -p --verbose --output-format stream-json."
                 .to_string(),
         )
     }
+}
+
+fn ensure_resume_args(args: &[String]) -> Result<(), String> {
+    let resume_positions: Vec<usize> = args
+        .iter()
+        .enumerate()
+        .filter_map(|(index, arg)| (arg == "--resume").then_some(index))
+        .collect();
+
+    if resume_positions.is_empty() {
+        return Ok(());
+    }
+
+    if resume_positions.len() > 1 {
+        return Err("Claude Code runner accepts at most one --resume value.".to_string());
+    }
+
+    if args.iter().any(|arg| arg == "--session-id") {
+        return Err("Claude Code runner cannot combine --resume with --session-id.".to_string());
+    }
+
+    let value = args.get(resume_positions[0] + 1).map(String::as_str);
+    match value {
+        Some(value) if is_safe_session_handle(value) => Ok(()),
+        _ => Err(
+            "Claude Code runner requires --resume to be followed by a safe session id."
+                .to_string(),
+        ),
+    }
+}
+
+fn is_safe_session_handle(value: &str) -> bool {
+    !value.trim().is_empty()
+        && !value.starts_with('-')
+        && value
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || character == '_' || character == '-')
 }
 
 fn allowed_local_env(cwd: Option<&Path>) -> Result<BTreeMap<String, String>, String> {
@@ -657,6 +694,60 @@ mod tests {
 
         assert!(ensure_stream_json_args(&args).is_ok());
         assert!(ensure_stream_json_args(&["--bare".to_string()]).is_err());
+    }
+
+    #[test]
+    fn validates_claude_resume_arg_shape() {
+        let args = vec![
+            "--bare".to_string(),
+            "-p".to_string(),
+            "--verbose".to_string(),
+            "--output-format".to_string(),
+            "stream-json".to_string(),
+            "--resume".to_string(),
+            "claude-session_123".to_string(),
+            "Prompt".to_string(),
+        ];
+
+        assert!(ensure_stream_json_args(&args).is_ok());
+
+        let empty_resume = vec![
+            "--bare".to_string(),
+            "-p".to_string(),
+            "--verbose".to_string(),
+            "--output-format".to_string(),
+            "stream-json".to_string(),
+            "--resume".to_string(),
+            " ".to_string(),
+            "Prompt".to_string(),
+        ];
+        assert!(ensure_stream_json_args(&empty_resume).is_err());
+
+        let flag_like_resume = vec![
+            "--bare".to_string(),
+            "-p".to_string(),
+            "--verbose".to_string(),
+            "--output-format".to_string(),
+            "stream-json".to_string(),
+            "--resume".to_string(),
+            "--model".to_string(),
+            "Prompt".to_string(),
+        ];
+        assert!(ensure_stream_json_args(&flag_like_resume).is_err());
+
+        let mixed_session_modes = vec![
+            "--bare".to_string(),
+            "-p".to_string(),
+            "--verbose".to_string(),
+            "--output-format".to_string(),
+            "stream-json".to_string(),
+            "--session-id".to_string(),
+            "local-session-1".to_string(),
+            "--resume".to_string(),
+            "claude-session-1".to_string(),
+            "Prompt".to_string(),
+        ];
+        assert!(ensure_stream_json_args(&mixed_session_modes).is_err());
     }
 
     #[test]

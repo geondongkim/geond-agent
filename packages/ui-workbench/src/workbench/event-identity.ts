@@ -13,6 +13,15 @@ export function workbenchEventIdentity(event: WorkbenchEvent): string {
       ].join(":");
     case "selection.snapshot.updated":
       return [event.type, event.sessionId, event.at ?? "", event.selection.backendAdapterId].join(":");
+    case "session.adapter.linked":
+      return [
+        event.type,
+        event.sessionId,
+        event.adapterId,
+        event.externalSessionId,
+        event.resumedFromExternalSessionId ?? "",
+        event.at ?? ""
+      ].join(":");
     case "assistant.text.delta":
       return [event.type, event.sessionId, event.messageId, event.at ?? "", event.text].join(":");
     case "assistant.text.completed":

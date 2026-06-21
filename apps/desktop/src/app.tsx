@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 
 import {
   createWorkbenchSettingsLabels,
+  createWorkbenchSessionResumeEvents,
   createWorkbenchSessionStartEvents,
   workbenchEventIdentity,
   type ApprovalDecision,
@@ -29,6 +30,14 @@ import { cn } from "./lib/cn.js";
 
 type RunnerRequest = ReturnType<DesktopDemoDocument["createRunnerRequest"]>;
 type RunnerResult = Awaited<ReturnType<DesktopDemoDocument["runSession"]>>;
+type ProjectedActiveSession = NonNullable<
+  DesktopDemoDocument["initialControllerSnapshot"]["projection"]["activeSession"]
+>;
+
+interface StartSessionOptions {
+  readonly resumeSessionId?: string;
+  readonly externalSessionId?: string;
+}
 
 const lifecycleTone = {
   started: "status-ok",
@@ -119,6 +128,13 @@ export function App({ document }: AppProps) {
   const activeSessionPinned = activeSession
     ? pinnedSessionIds.includes(activeSession.id)
     : false;
+  const activeSessionListItem = activeSession
+    ? projection.sessions.find((session) => session.id === activeSession.id)
+    : undefined;
+  const activeExternalSession = activeSession
+    ? getExternalSessionLink(activeSession, sessionDefaults.defaultBackendAdapterId)
+    : undefined;
+  const canResumeActiveSession = Boolean(activeSessionListItem?.resumable && activeExternalSession && !runnerBusy);
   const workspaceOptions = useMemo(() => {
     const options = new Map<string, { readonly label: string; readonly path: string }>();
     selectedWorkspaces.forEach((workspace) => options.set(workspace.path, workspace));
@@ -151,21 +167,25 @@ export function App({ document }: AppProps) {
     setControllerSnapshot(document.controller.selectSession(sessionId));
   };
 
-  const startSession = async (mode: DesktopRunnerMode) => {
+  const startSession = async (mode: DesktopRunnerMode, options: StartSessionOptions = {}) => {
     if (runnerBusy) {
       return;
     }
 
+    const isResumeRun = Boolean(options.resumeSessionId && options.externalSessionId);
     const nextIndex = controllerSnapshot.events.length + 1;
-    const sessionId = `local-session-${Date.now()}`;
-    const title = `Local demo session ${projection.sessions.length + 1}`;
+    const sessionId = options.resumeSessionId ?? `local-session-${Date.now()}`;
+    const existingSession = projection.sessions.find((session) => session.id === sessionId);
+    const title = existingSession?.title ?? `Local demo session ${projection.sessions.length + 1}`;
     const selectedWorkspacePath =
-      workspacePath === "__all__" ? document.activeWorkspace.path : workspacePath;
+      existingSession?.workspacePath ??
+      (workspacePath === "__all__" ? document.activeWorkspace.path : workspacePath);
     const prompt = createRunnerPrompt(mode, composerPrompt, i18n);
     const request = document.createRunnerRequest({
       sessionId,
       title,
       prompt,
+      externalSessionId: options.externalSessionId,
       languageSettings: runtimeSnapshot.languageSettings,
       sessionDefaults,
       workspacePath: selectedWorkspacePath
@@ -199,7 +219,9 @@ export function App({ document }: AppProps) {
     setActiveRunSessionId(sessionId);
     setActiveRunMode(mode);
     setRunnerStatus(
-      mode === "claude-live"
+      mode === "claude-live" && isResumeRun
+        ? i18n.t("workbench.runner.resumingClaude")
+        : mode === "claude-live"
         ? i18n.t("workbench.runner.startingClaude")
         : i18n.t("workbench.runner.startingFixture")
     );
@@ -210,7 +232,7 @@ export function App({ document }: AppProps) {
         unlistenStream = await listenToClaudeCodeStream(request, i18n, (events) =>
           appendEvents(events, { markAsStreamed: true })
         );
-        const preludeEvents = createLiveRunPreludeEvents(request, title, i18n);
+        const preludeEvents = createLiveRunPreludeEvents(request, title, i18n, isResumeRun);
         await appendEvents(preludeEvents);
       }
 
@@ -252,6 +274,17 @@ export function App({ document }: AppProps) {
 
   const startSelectedRunner = () => {
     void startSession(runnerMode);
+  };
+
+  const resumeActiveSession = () => {
+    if (!activeSession || !activeExternalSession) {
+      return;
+    }
+
+    void startSession("claude-live", {
+      resumeSessionId: activeSession.id,
+      externalSessionId: activeExternalSession.externalSessionId
+    });
   };
 
   const cancelActiveRun = async () => {
@@ -417,6 +450,13 @@ export function App({ document }: AppProps) {
                 : runnerMode === "claude-live"
                 ? i18n.t("workbench.actions.runClaudeSession")
                 : i18n.t("workbench.actions.newDemoSession")}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={resumeActiveSession}
+              disabled={!canResumeActiveSession}
+            >
+              {i18n.t("workbench.actions.resumeSession")}
             </Button>
             {runnerBusy ? (
               <Button
@@ -644,7 +684,14 @@ export function App({ document }: AppProps) {
                   }
                 }}
               />
-              <div className="mt-2 flex justify-end">
+              <div className="mt-2 flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={resumeActiveSession}
+                  disabled={!canResumeActiveSession}
+                >
+                  {i18n.t("workbench.actions.resumeSession")}
+                </Button>
                 <Button onClick={startSelectedRunner} disabled={runnerBusy}>
                   {runnerBusy
                     ? i18n.t("workbench.runner.running")
@@ -910,6 +957,14 @@ export function App({ document }: AppProps) {
                       }
                     />
                     <SettingsRow
+                      label={i18n.t("workbench.selection.externalSession")}
+                      value={
+                        activeExternalSession
+                          ? formatExternalSessionId(activeExternalSession.externalSessionId)
+                          : i18n.t("workbench.status.unknown")
+                      }
+                    />
+                    <SettingsRow
                       label={i18n.t("workbench.selection.warnings")}
                       value={
                         activeSession.selection.capabilityWarnings?.length
@@ -961,18 +1016,36 @@ function createRunnerPrompt(
 function createLiveRunPreludeEvents(
   request: RunnerRequest,
   title: string,
-  i18n: WorkbenchRuntimeSnapshot["i18n"]
+  i18n: WorkbenchRuntimeSnapshot["i18n"],
+  isResumeRun: boolean
 ): readonly WorkbenchEvent[] {
   const at = new Date().toISOString();
+  const sessionPrelude =
+    isResumeRun && request.externalSessionId
+      ? [
+          ...createWorkbenchSessionResumeEvents({
+            sessionId: request.sessionId,
+            adapterId: request.backendAdapterId ?? "claude-code.external-cli-acp",
+            externalSessionId: request.externalSessionId,
+            at
+          }),
+          {
+            type: "selection.snapshot.updated" as const,
+            sessionId: request.sessionId,
+            selection: createSelectionSnapshotFromRequest(request, i18n),
+            at
+          }
+        ]
+      : createWorkbenchSessionStartEvents({
+          sessionId: request.sessionId,
+          title,
+          workspacePath: request.workspacePath,
+          selection: createSelectionSnapshotFromRequest(request, i18n),
+          at
+        });
 
   return [
-    ...createWorkbenchSessionStartEvents({
-      sessionId: request.sessionId,
-      title,
-      workspacePath: request.workspacePath,
-      selection: createSelectionSnapshotFromRequest(request, i18n),
-      at
-    }),
+    ...sessionPrelude,
     {
       type: "plan.updated",
       sessionId: request.sessionId,
@@ -1021,7 +1094,9 @@ async function listenToClaudeCodeStream(
 ): Promise<(() => void) | undefined> {
   try {
     const normalizer = createClaudeCodeStreamJsonNormalizer({
-      fallbackSessionId: request.sessionId
+      fallbackSessionId: request.sessionId,
+      workbenchSessionId: request.sessionId,
+      resumedFromExternalSessionId: request.externalSessionId
     });
 
     return await listen<TauriClaudeCodeStreamPayload>(
@@ -1196,6 +1271,7 @@ function describeLiveCommandPreview(request: RunnerRequest): string {
     `permission: ${request.permissionMode ?? "plan"}`,
     `workspace: ${request.workspacePath ?? request.cwd ?? "(default)"}`,
     `provider route: ${request.providerRouteId ?? "unknown"}`,
+    `resume: ${request.externalSessionId ? "stored external session" : "new session"}`,
     `routing mode: ${request.routingMode ?? "manual"}`
   ].join("\n");
 }
@@ -1231,6 +1307,21 @@ function isClaudeStreamPayload(value: unknown): value is TauriClaudeCodeStreamPa
 function previewStreamText(value: string): string {
   const trimmed = value.trim();
   return trimmed.length > 1200 ? `${trimmed.slice(0, 1200)}...` : trimmed;
+}
+
+function getExternalSessionLink(
+  session: ProjectedActiveSession,
+  adapterId: string
+): ProjectedActiveSession["externalSessions"][string] | undefined {
+  return session.externalSessions[adapterId] ?? Object.values(session.externalSessions)[0];
+}
+
+function formatExternalSessionId(value: string): string {
+  if (value.length <= 16) {
+    return value;
+  }
+
+  return `${value.slice(0, 8)}...${value.slice(-4)}`;
 }
 
 function matchesWorkspaceFilter(
@@ -1348,6 +1439,8 @@ function formatTimelineKindLabel(
   switch (kind) {
     case "session":
       return i18n.t("workbench.timeline.kind.session");
+    case "adapter":
+      return i18n.t("workbench.timeline.kind.adapter");
     case "selection":
       return i18n.t("workbench.timeline.kind.selection");
     case "assistant":
@@ -1544,6 +1637,13 @@ function SessionCard({
           {formatStatusLabel(i18n, session.lifecycle)}
         </span>
       </div>
+      {session.resumable ? (
+        <div className="mt-2 flex justify-end">
+          <span className="status-pill status-neutral">
+            {i18n.t("workbench.actions.resumeSession")}
+          </span>
+        </div>
+      ) : null}
       <div className="mt-3 grid grid-cols-[minmax(0,1fr)_48px] gap-2 text-[11px] text-[color:var(--ink-soft)]">
         <div className="min-w-0">
           <p className="muted-meta">{i18n.t("workbench.status.backend")}</p>

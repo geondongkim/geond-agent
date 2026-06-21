@@ -66,6 +66,12 @@
 
 ## Milestone 4: Session Continuity
 
+- Started:
+  - adapter-neutral `session.adapter.linked` event for local workbench session
+    id to external adapter conversation id mapping,
+  - Claude Code fresh-run `--session-id` and resume-run `--resume` command
+    boundary,
+  - completed adapter-linked sessions project as resumable in the desktop UI.
 - Session search.
 - Pinned sessions.
 - Claude Code session list experiment.

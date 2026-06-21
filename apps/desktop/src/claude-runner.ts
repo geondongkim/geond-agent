@@ -23,7 +23,7 @@ export interface TauriClaudeCodeStreamPayload {
 
 export function createTauriClaudeCodeExecutor(): ClaudeCodeProcessExecutor {
   return async (command): Promise<ClaudeCodeProcessExecutionResult> => {
-    const streamChannelId = readCommandSessionId(command.args);
+    const streamChannelId = command.streamChannelId ?? readCommandSessionId(command.args);
     const result = await invoke<TauriClaudeCodeResponse>("run_claude_code_stream_json", {
       request: streamChannelId
         ? {

@@ -71,6 +71,9 @@ export interface ClaudeCodeIgnoredStreamRecord {
 
 export interface ClaudeCodeStreamJsonNormalizationOptions {
   readonly fallbackSessionId?: string;
+  readonly workbenchSessionId?: string;
+  readonly adapterId?: string;
+  readonly resumedFromExternalSessionId?: string;
 }
 
 export interface ClaudeCodeStreamJsonNormalizationResult {
@@ -166,7 +169,8 @@ function normalizeClaudeCodeStreamJsonRecordWithState(
   }
 
   const type = asString(record.type);
-  const sessionId = asString(record.session_id) ?? options.fallbackSessionId;
+  const externalSessionId = asString(record.session_id);
+  const sessionId = options.workbenchSessionId ?? externalSessionId ?? options.fallbackSessionId;
   const at = asString(record.timestamp);
 
   if (!type || !sessionId) {
@@ -175,7 +179,7 @@ function normalizeClaudeCodeStreamJsonRecordWithState(
 
   switch (type) {
     case "system":
-      return normalizeActualSystemRecord(record, sessionId, at);
+      return normalizeActualSystemRecord(record, sessionId, externalSessionId, at, options);
     case "assistant":
       return normalizeActualAssistantRecord(record, sessionId, at);
     case "user":
@@ -417,7 +421,9 @@ function normalizeClaudeCodeStreamJsonRecordWithState(
 function normalizeActualSystemRecord(
   record: Record<string, unknown>,
   sessionId: string,
-  at: string | undefined
+  externalSessionId: string | undefined,
+  at: string | undefined,
+  options: ClaudeCodeStreamJsonNormalizationOptions
 ): readonly WorkbenchEvent[] {
   const subtype = asString(record.subtype);
   if (subtype !== "init") {
@@ -427,18 +433,19 @@ function normalizeActualSystemRecord(
   const model = asString(record.model);
   const cwd = asString(record.cwd);
 
-  return [
+  const adapterId = options.adapterId ?? "claude-code.external-cli-acp";
+  const events: WorkbenchEvent[] = [
     {
       type: "session.lifecycle",
       sessionId,
-      lifecycle: "started",
+      lifecycle: options.resumedFromExternalSessionId ? "resumed" : "started",
       title: "Claude Code stream-json session",
       workspacePath: cwd,
       selection: createSelectionSnapshot({
         type: "selection.snapshot",
         session_id: sessionId,
         cwd,
-        backend_id: "claude-code.external-cli-acp",
+        backend_id: adapterId,
         provider_route_id: "zai.anthropic-compatible",
         model_profile_id: model,
         routing_mode: "manual"
@@ -446,6 +453,19 @@ function normalizeActualSystemRecord(
       at
     }
   ];
+
+  if (externalSessionId) {
+    events.push({
+      type: "session.adapter.linked",
+      sessionId,
+      adapterId,
+      externalSessionId,
+      resumedFromExternalSessionId: options.resumedFromExternalSessionId,
+      at
+    });
+  }
+
+  return events;
 }
 
 function normalizeActualAssistantRecord(

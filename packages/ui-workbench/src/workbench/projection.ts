@@ -15,6 +15,7 @@ import type { WorkbenchSelectionSnapshot } from "./selection.js";
 
 export type WorkbenchTimelineEntryKind =
   | "session"
+  | "adapter"
   | "selection"
   | "assistant"
   | "plan"
@@ -42,6 +43,7 @@ export interface ProjectedSessionListItem {
   readonly workspacePath?: string;
   readonly backendLabel?: string;
   readonly updatedAt?: string;
+  readonly resumable: boolean;
   readonly pendingApprovalCount: number;
   readonly warningCount: number;
   readonly errorCount: number;
@@ -78,6 +80,7 @@ export interface ProjectedWorkbenchSession {
   readonly lifecycle: WorkbenchSessionLifecycle;
   readonly workspacePath?: string;
   readonly selection?: WorkbenchSelectionSnapshot;
+  readonly externalSessions: WorkbenchSessionSnapshot["externalSessions"];
   readonly assistantMessages: readonly WorkbenchSessionSnapshot["assistantMessages"][string][];
   readonly plan: WorkbenchSessionSnapshot["plan"];
   readonly toolCalls: readonly WorkbenchSessionSnapshot["toolCalls"][string][];
@@ -149,6 +152,7 @@ function projectSessionListItem(session: WorkbenchSessionSnapshot): ProjectedSes
     workspacePath: session.workspacePath,
     backendLabel: session.selection?.backendAdapter?.label,
     updatedAt: session.updatedAt,
+    resumable: isSessionResumable(session),
     pendingApprovalCount: session.pendingApprovalIds.length,
     warningCount: session.notices.filter((notice) => notice.level === "warning").length,
     errorCount: session.notices.filter((notice) => notice.level === "error").length
@@ -164,6 +168,15 @@ function compareSessionsByRecency(
   return rightStamp.localeCompare(leftStamp) || left.title.localeCompare(right.title) || left.id.localeCompare(right.id);
 }
 
+function isSessionResumable(session: WorkbenchSessionSnapshot): boolean {
+  return (
+    Object.keys(session.externalSessions).length > 0 &&
+    (session.lifecycle === "completed" ||
+      session.lifecycle === "failed" ||
+      session.lifecycle === "paused")
+  );
+}
+
 function projectActiveSession(
   session: WorkbenchSessionSnapshot,
   events: readonly WorkbenchEvent[]
@@ -174,6 +187,7 @@ function projectActiveSession(
     lifecycle: session.lifecycle,
     workspacePath: session.workspacePath,
     selection: session.selection,
+    externalSessions: session.externalSessions,
     assistantMessages: Object.values(session.assistantMessages),
     plan: session.plan,
     toolCalls: Object.values(session.toolCalls),
@@ -223,6 +237,21 @@ function projectTimelineEntry(event: WorkbenchEvent): WorkbenchTimelineEntry | u
           .filter(Boolean)
           .join(" / "),
         status: event.selection.routingMode
+      };
+    case "session.adapter.linked":
+      return {
+        id: [
+          event.type,
+          event.sessionId,
+          event.adapterId,
+          event.externalSessionId,
+          event.at ?? "unknown"
+        ].join(":"),
+        kind: "adapter",
+        at: event.at,
+        title: "Adapter session linked",
+        body: `${event.adapterId} / ${event.externalSessionId}`,
+        status: event.resumedFromExternalSessionId ? "resumed" : "linked"
       };
     case "assistant.text.delta":
       return {

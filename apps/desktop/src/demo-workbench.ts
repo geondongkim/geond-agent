@@ -73,6 +73,7 @@ export interface CreateRunnerRequestOptions {
   readonly sessionId: string;
   readonly title: string;
   readonly prompt: string;
+  readonly externalSessionId?: string;
   readonly languageSettings: WorkbenchLanguageSettings;
   readonly sessionDefaults: WorkbenchSessionDefaults;
   readonly workspacePath: string;
@@ -197,6 +198,7 @@ function createRunnerRequest(options: CreateRunnerRequestOptions): ClaudeCodeRun
     title: options.title,
     workspacePath: options.workspacePath,
     prompt: options.prompt,
+    externalSessionId: options.externalSessionId,
     modelAlias: options.sessionDefaults.defaultModelAlias,
     providerRouteId: options.sessionDefaults.defaultProviderRouteId,
     modelProfileId: options.sessionDefaults.defaultModelAlias,

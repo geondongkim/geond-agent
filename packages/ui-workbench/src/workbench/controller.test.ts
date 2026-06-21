@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   createWorkbenchSessionController,
+  createWorkbenchSessionResumeEvents,
   createWorkbenchSessionStartEvents
 } from "./controller.js";
 import type { WorkbenchEvent } from "./events.js";
@@ -152,5 +153,38 @@ describe("createWorkbenchSessionController", () => {
     });
     expect(resolved.projection.sessions[0]?.pendingApprovalCount).toBe(0);
     expect(resolved.events).toHaveLength(3);
+  });
+
+  it("creates a resumable adapter-linked session prelude", () => {
+    const controller = createWorkbenchSessionController({
+      initialEvents: createWorkbenchSessionStartEvents({
+        sessionId: "session-resume",
+        title: "Resume session",
+        at: "2026-06-21T02:00:00.000Z"
+      })
+    });
+
+    const resumed = controller.appendEvents(
+      createWorkbenchSessionResumeEvents({
+        sessionId: "session-resume",
+        adapterId: "claude-code.external-cli-acp",
+        externalSessionId: "claude-session-resume",
+        at: "2026-06-21T02:10:00.000Z"
+      }),
+      { activateSessionId: "session-resume" }
+    );
+
+    expect(resumed.projection.activeSession?.lifecycle).toBe("resumed");
+    expect(resumed.projection.activeSession?.externalSessions).toEqual({
+      "claude-code.external-cli-acp": {
+        adapterId: "claude-code.external-cli-acp",
+        externalSessionId: "claude-session-resume",
+        resumedFromExternalSessionId: "claude-session-resume",
+        linkedAt: "2026-06-21T02:10:00.000Z"
+      }
+    });
+    expect(resumed.projection.activeSession?.timeline.map((entry) => entry.kind)).toContain(
+      "adapter"
+    );
   });
 });

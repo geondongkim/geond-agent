@@ -65,6 +65,13 @@ export const ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS: readonly WorkbenchEvent[] = [
     at: "2026-06-21T00:00:00.000Z"
   },
   {
+    type: "session.adapter.linked",
+    sessionId: "eval-task-1",
+    adapterId: "claude-code.external-cli-acp",
+    externalSessionId: "claude-eval-task-1",
+    at: "2026-06-21T00:00:00.500Z"
+  },
+  {
     type: "assistant.text.delta",
     sessionId: "eval-task-1",
     messageId: "assistant-1",

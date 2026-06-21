@@ -21,6 +21,7 @@ describe("Claude Code runner boundary", () => {
     expect(command.executable).toBe("claude");
     expect(command.cwd).toBe("/workspace/geond-agent");
     expect(command.timeoutMs).toBe(120000);
+    expect(command.streamChannelId).toBe("session-1");
     expect(command.args).toEqual([
       "--bare",
       "-p",
@@ -35,6 +36,20 @@ describe("Claude Code runner boundary", () => {
       "session-1",
       "Summarize the current workbench session."
     ]);
+  });
+
+  it("uses Claude Code --resume when an external session id is known", () => {
+    const command = buildClaudeCodeStreamJsonCommand({
+      prompt: "Continue the prior turn.",
+      sessionId: "workbench-session-1",
+      externalSessionId: "claude-session-1"
+    });
+
+    expect(command.args).toContain("--resume");
+    expect(command.streamChannelId).toBe("workbench-session-1");
+    expect(command.args).toContain("claude-session-1");
+    expect(command.args).not.toContain("--session-id");
+    expect(command.args).not.toContain("workbench-session-1");
   });
 
   it("parses newline-delimited stream-json records into normalized events", () => {
@@ -152,5 +167,37 @@ describe("Claude Code runner boundary", () => {
       })
     );
     expect(result.parseErrors).toHaveLength(1);
+  });
+
+  it("keeps live process output under the requested workbench session id", async () => {
+    const runner = createClaudeCodeProcessRunner(async () => ({
+      stdout: JSON.stringify({
+        type: "system",
+        subtype: "init",
+        session_id: "claude-session-live",
+        model: "glm-5.2"
+      }),
+      exitCode: 0
+    }));
+
+    const result = await runner.run({
+      sessionId: "workbench-session-live",
+      externalSessionId: "claude-session-live",
+      title: "Live resume",
+      prompt: "Continue",
+      modelAlias: "opus"
+    });
+
+    expect(result.command.args).toContain("--resume");
+    expect(result.events[0]).toMatchObject({
+      type: "session.lifecycle",
+      sessionId: "workbench-session-live",
+      lifecycle: "resumed"
+    });
+    expect(result.events[1]).toMatchObject({
+      type: "session.adapter.linked",
+      sessionId: "workbench-session-live",
+      externalSessionId: "claude-session-live"
+    });
   });
 });

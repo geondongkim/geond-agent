@@ -74,4 +74,19 @@ describe("workbenchEventIdentity", () => {
 
     expect(workbenchEventIdentity(first)).toBe(workbenchEventIdentity(second));
   });
+
+  it("distinguishes adapter links by external session id", () => {
+    const first: WorkbenchEvent = {
+      type: "session.adapter.linked",
+      sessionId: "session-1",
+      adapterId: "claude-code.external-cli-acp",
+      externalSessionId: "claude-session-a"
+    };
+    const second: WorkbenchEvent = {
+      ...first,
+      externalSessionId: "claude-session-b"
+    };
+
+    expect(workbenchEventIdentity(first)).not.toBe(workbenchEventIdentity(second));
+  });
 });
