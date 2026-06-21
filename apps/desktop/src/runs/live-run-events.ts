@@ -2,7 +2,8 @@ import {
   createWorkbenchSessionResumeEvents,
   createWorkbenchSessionStartEvents,
   type UiI18n,
-  type WorkbenchEvent
+  type WorkbenchEvent,
+  type WorkbenchSelectionCatalog
 } from "@geond-agent/ui-workbench";
 
 import { createSelectionSnapshotFromRequest, describeLiveCommandPreview } from "../lib/selection-snapshot.js";
@@ -12,7 +13,8 @@ export function createLiveRunPreludeEvents(
   request: RunnerRequest,
   title: string,
   i18n: UiI18n,
-  isResumeRun: boolean
+  isResumeRun: boolean,
+  selectionCatalog: WorkbenchSelectionCatalog
 ): readonly WorkbenchEvent[] {
   const at = new Date().toISOString();
   const sessionPrelude =
@@ -27,7 +29,7 @@ export function createLiveRunPreludeEvents(
           {
             type: "selection.snapshot.updated" as const,
             sessionId: request.sessionId,
-            selection: createSelectionSnapshotFromRequest(request, i18n),
+            selection: createSelectionSnapshotFromRequest(request, i18n, selectionCatalog),
             at
           }
         ]
@@ -35,7 +37,7 @@ export function createLiveRunPreludeEvents(
           sessionId: request.sessionId,
           title,
           workspacePath: request.workspacePath,
-          selection: createSelectionSnapshotFromRequest(request, i18n),
+          selection: createSelectionSnapshotFromRequest(request, i18n, selectionCatalog),
           at
         });
 

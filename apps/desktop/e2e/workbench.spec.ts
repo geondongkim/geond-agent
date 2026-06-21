@@ -48,6 +48,9 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(page.getByRole("button", { name: "Unpin session" })).toBeVisible();
 
   await page.getByRole("tab", { name: "Settings" }).click();
+  await expect(page.getByLabel("Backend")).toContainText("Claude Code external CLI/ACP candidate");
+  await expect(page.getByLabel("Provider route")).toContainText("Z.ai Anthropic-compatible route");
+  await expect(page.getByLabel("Model profile")).toContainText("opus alias -> GLM 5.2");
   await page.getByLabel("UI language").selectOption("ko");
   await expect(page.getByRole("heading", { name: "세션", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "워크스페이스 선택" })).toBeVisible();

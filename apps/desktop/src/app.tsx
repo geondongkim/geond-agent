@@ -39,7 +39,14 @@ export function App({ document }: AppProps) {
   const [composerPrompt, setComposerPrompt] = useState("");
 
   const i18n = runtimeSnapshot.i18n;
-  const { agentLanguageOptions, routingModeOptions, settingsLabels } = useWorkbenchOptions(i18n);
+  const {
+    agentLanguageOptions,
+    backendOptions,
+    modelAliasOptions,
+    providerRouteOptions,
+    routingModeOptions,
+    settingsLabels
+  } = useWorkbenchOptions(i18n, document.selectionCatalog);
   const projection = controllerSnapshot.projection;
   const {
     activeExternalSession,
@@ -73,6 +80,7 @@ export function App({ document }: AppProps) {
     projectionSessions: projection.sessions,
     runtimeSnapshot,
     sessionDefaults,
+    selectionCatalog: document.selectionCatalog,
     setControllerSnapshot,
     setIgnoredRecordCount,
     workspacePath
@@ -169,11 +177,14 @@ export function App({ document }: AppProps) {
             activeExternalSession={activeExternalSession}
             activeSession={activeSession}
             agentLanguageOptions={agentLanguageOptions}
+            backendOptions={backendOptions}
             bridgeCommand={document.bridgeCommand}
             ignoredRecordCount={ignoredRecordCount}
             i18n={i18n}
             inspectorTab={inspectorTab}
+            modelAliasOptions={modelAliasOptions}
             persistenceNotes={document.persistence.notes}
+            providerRouteOptions={providerRouteOptions}
             providerSummary={document.providerSummary}
             resolveApproval={resolveApproval}
             routingModeOptions={routingModeOptions}

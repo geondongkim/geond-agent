@@ -8,11 +8,18 @@ import {
   createLiveRunFailureEvents,
   createLiveRunPreludeEvents
 } from "./live-run-events.js";
+import { createDesktopWorkbenchCatalog } from "../lib/workbench-catalog.js";
 import type { RunnerRequest, RunnerResult } from "./types.js";
 
 describe("desktop live run event factories", () => {
   it("creates a fresh Claude Code prelude with selection and command preview events", () => {
-    const events = createLiveRunPreludeEvents(createRunnerRequest(), "Fresh run", createUiI18n("en"), false);
+    const events = createLiveRunPreludeEvents(
+      createRunnerRequest(),
+      "Fresh run",
+      createUiI18n("en"),
+      false,
+      createDesktopWorkbenchCatalog()
+    );
 
     expect(events.map((event) => event.type)).toEqual([
       "session.lifecycle",
@@ -36,7 +43,8 @@ describe("desktop live run event factories", () => {
       createRunnerRequest({ externalSessionId: "claude-session-1" }),
       "Resume run",
       createUiI18n("en"),
-      true
+      true,
+      createDesktopWorkbenchCatalog()
     );
 
     expect(events.map((event) => event.type).slice(0, 3)).toEqual([

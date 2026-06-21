@@ -1,4 +1,10 @@
 import type { RoutingMode } from "../workbench/selection.js";
+import {
+  findBackendAdapter,
+  findProviderRoute,
+  resolveModelProfile,
+  type WorkbenchSelectionCatalog
+} from "../workbench/registry.js";
 import type { LocalSettingsStore } from "./local-settings-store.js";
 
 export const SESSION_DEFAULTS_SETTINGS_KEY = "geond-agent.workbench.session-defaults";
@@ -19,6 +25,11 @@ export interface WorkbenchSessionDefaults {
   readonly defaultModelAlias: string;
   readonly routingMode: RoutingMode;
   readonly approvalPolicy: WorkbenchApprovalPolicy;
+}
+
+export interface WorkbenchSessionDefaultsValidationResult {
+  readonly defaults: WorkbenchSessionDefaults;
+  readonly warnings: readonly string[];
 }
 
 interface WorkbenchSessionDefaultsInput {
@@ -65,6 +76,53 @@ export function normalizeWorkbenchSessionDefaults(
     approvalPolicy: normalizeApprovalPolicy(value?.approvalPolicy)
   };
 }
+
+export function validateWorkbenchSessionDefaults(
+  defaults: WorkbenchSessionDefaults,
+  catalog: WorkbenchSelectionCatalog
+): WorkbenchSessionDefaultsValidationResult {
+  const warnings: string[] = [];
+  const nextDefaults: MutableWorkbenchSessionDefaults = { ...defaults };
+
+  if (!findBackendAdapter(catalog, defaults.defaultBackendAdapterId)) {
+    warnings.push(
+      `Unknown backend adapter "${defaults.defaultBackendAdapterId}" fell back to ${DEFAULT_WORKBENCH_SESSION_DEFAULTS.defaultBackendAdapterId}.`
+    );
+    nextDefaults.defaultBackendAdapterId =
+      DEFAULT_WORKBENCH_SESSION_DEFAULTS.defaultBackendAdapterId;
+  }
+
+  if (!findProviderRoute(catalog, defaults.defaultProviderRouteId)) {
+    warnings.push(
+      `Unknown provider route "${defaults.defaultProviderRouteId}" fell back to ${DEFAULT_WORKBENCH_SESSION_DEFAULTS.defaultProviderRouteId}.`
+    );
+    nextDefaults.defaultProviderRouteId =
+      DEFAULT_WORKBENCH_SESSION_DEFAULTS.defaultProviderRouteId;
+  }
+
+  if (
+    !resolveModelProfile(
+      catalog,
+      defaults.defaultModelAlias,
+      nextDefaults.defaultProviderRouteId
+    )
+  ) {
+    warnings.push(
+      `Unknown model alias "${defaults.defaultModelAlias}" fell back to ${DEFAULT_WORKBENCH_SESSION_DEFAULTS.defaultModelAlias}.`
+    );
+    nextDefaults.defaultModelAlias =
+      DEFAULT_WORKBENCH_SESSION_DEFAULTS.defaultModelAlias;
+  }
+
+  return {
+    defaults: nextDefaults,
+    warnings
+  };
+}
+
+type MutableWorkbenchSessionDefaults = {
+  -readonly [Key in keyof WorkbenchSessionDefaults]: WorkbenchSessionDefaults[Key];
+};
 
 export async function loadWorkbenchSessionDefaults(
   store: LocalSettingsStore

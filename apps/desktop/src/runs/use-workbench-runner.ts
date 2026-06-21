@@ -5,7 +5,8 @@ import {
   type WorkbenchEvent,
   type WorkbenchRuntimeSnapshot,
   type WorkbenchSessionControllerSnapshot,
-  type WorkbenchSessionDefaults
+  type WorkbenchSessionDefaults,
+  type WorkbenchSelectionCatalog
 } from "@geond-agent/ui-workbench";
 
 import { cancelTauriClaudeCodeStream } from "../claude-runner.js";
@@ -39,6 +40,7 @@ export interface UseWorkbenchRunnerOptions {
   readonly projectionSessions: readonly ProjectedSessionListItem[];
   readonly runtimeSnapshot: WorkbenchRuntimeSnapshot;
   readonly sessionDefaults: WorkbenchSessionDefaults;
+  readonly selectionCatalog: WorkbenchSelectionCatalog;
   readonly setControllerSnapshot: (snapshot: WorkbenchSessionControllerSnapshot) => void;
   readonly setIgnoredRecordCount: (count: number) => void;
   readonly workspacePath: string;
@@ -52,6 +54,7 @@ export function useWorkbenchRunner({
   projectionSessions,
   runtimeSnapshot,
   sessionDefaults,
+  selectionCatalog,
   setControllerSnapshot,
   setIgnoredRecordCount,
   workspacePath
@@ -129,7 +132,13 @@ export function useWorkbenchRunner({
         unlistenStream = await listenToClaudeCodeStream(request, i18n, (events) =>
           appendEvents(events, { markAsStreamed: true })
         );
-        const preludeEvents = createLiveRunPreludeEvents(request, title, i18n, isResumeRun);
+        const preludeEvents = createLiveRunPreludeEvents(
+          request,
+          title,
+          i18n,
+          isResumeRun,
+          selectionCatalog
+        );
         await appendEvents(preludeEvents);
       }
 

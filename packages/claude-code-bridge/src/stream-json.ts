@@ -3,24 +3,23 @@ import type {
   ApprovalKind,
   CommandOutputStream,
   CommandStatus,
-  ModelProfileCapability,
   PlanItemStatus,
   WorkbenchPlanItemSnapshot,
   WorkbenchDiffFileSnapshot,
   WorkbenchEvent,
   WorkbenchSelectionSnapshot,
-  WorkbenchToolCallStatus
+  WorkbenchToolCallStatus,
+  WorkbenchSelectionCatalog
 } from "@geond-agent/ui-workbench";
 import {
-  supportedCapability,
-  unavailableCapability,
-  unknownCapability
+  createMissingProviderKeyWarning,
+  createUnknownModelWarning,
+  describeBackendAdapter,
+  describeProviderRoute,
+  resolveModelProfile
 } from "@geond-agent/ui-workbench";
-import {
-  createZaiAnthropicRouteMetadata,
-  createZaiOpenAiRouteMetadata,
-  listZaiModelProfiles
-} from "@geond-agent/zai-provider";
+
+import { createClaudeCodeSelectionCatalog } from "./catalog.js";
 
 export interface ClaudeCodeSanitizedStreamRecord {
   readonly type?: unknown;
@@ -74,6 +73,7 @@ export interface ClaudeCodeStreamJsonNormalizationOptions {
   readonly workbenchSessionId?: string;
   readonly adapterId?: string;
   readonly resumedFromExternalSessionId?: string;
+  readonly selectionCatalog?: WorkbenchSelectionCatalog;
 }
 
 export interface ClaudeCodeStreamJsonNormalizationResult {
@@ -196,7 +196,7 @@ function normalizeClaudeCodeStreamJsonRecordWithState(
           lifecycle: normalizeLifecycle(record.lifecycle) ?? "started",
           title: asString(record.title),
           workspacePath: asString(record.cwd),
-          selection: createSelectionSnapshot(record),
+          selection: createSelectionSnapshot(record, options),
           at
         }
       ];
@@ -214,7 +214,7 @@ function normalizeClaudeCodeStreamJsonRecordWithState(
         : [];
     }
     case "selection.snapshot": {
-      const selection = createSelectionSnapshot(record);
+      const selection = createSelectionSnapshot(record, options);
       return selection
         ? [
             {
@@ -441,15 +441,15 @@ function normalizeActualSystemRecord(
       lifecycle: options.resumedFromExternalSessionId ? "resumed" : "started",
       title: "Claude Code stream-json session",
       workspacePath: cwd,
-      selection: createSelectionSnapshot({
-        type: "selection.snapshot",
-        session_id: sessionId,
-        cwd,
-        backend_id: adapterId,
-        provider_route_id: "zai.anthropic-compatible",
-        model_profile_id: model,
-        routing_mode: "manual"
-      }),
+        selection: createSelectionSnapshot({
+          type: "selection.snapshot",
+          session_id: sessionId,
+          cwd,
+          backend_id: adapterId,
+          provider_route_id: "zai.anthropic-compatible",
+          model_profile_id: model,
+          routing_mode: "manual"
+      }, options),
       at
     }
   ];
@@ -676,7 +676,8 @@ function normalizeActualStreamEventRecord(
 }
 
 function createSelectionSnapshot(
-  record: ClaudeCodeSanitizedStreamRecord
+  record: ClaudeCodeSanitizedStreamRecord,
+  options: ClaudeCodeStreamJsonNormalizationOptions
 ): WorkbenchSelectionSnapshot | undefined {
   const backendAdapterId = asString(record.backend_id) ?? "claude-code.external-cli-acp";
   const providerRouteId = asString(record.provider_route_id);
@@ -687,18 +688,17 @@ function createSelectionSnapshot(
     return undefined;
   }
 
-  const providerRoute = createKnownProviderRoute(providerRouteId);
-  const modelProfile = createKnownModelProfile(modelProfileId, providerRouteId);
+  const catalog = options.selectionCatalog ?? DEFAULT_CLAUDE_CODE_SELECTION_CATALOG;
+  const providerRoute = describeProviderRoute(catalog, providerRouteId);
+  const modelProfile = resolveModelProfile(catalog, modelProfileId, providerRouteId);
   const capabilityWarnings: string[] = [];
 
   if (providerRoute?.apiKeyState === "missing") {
-    capabilityWarnings.push(
-      `${providerRoute.label} key presence is not stored in workbench events.`
-    );
+    capabilityWarnings.push(createMissingProviderKeyWarning(providerRoute));
   }
 
   if (modelProfileId && !modelProfile) {
-    capabilityWarnings.push(`Unknown model alias or profile id: ${modelProfileId}`);
+    capabilityWarnings.push(createUnknownModelWarning(modelProfileId));
   }
 
   return {
@@ -706,7 +706,7 @@ function createSelectionSnapshot(
     providerRouteId,
     modelProfileId,
     routingMode,
-    backendAdapter: createKnownBackendAdapter(backendAdapterId),
+    backendAdapter: describeBackendAdapter(catalog, backendAdapterId),
     providerRoute,
     modelProfile,
     uiLanguage: normalizeLanguage(record.ui_language),
@@ -714,6 +714,8 @@ function createSelectionSnapshot(
     capabilityWarnings: capabilityWarnings.length > 0 ? capabilityWarnings : undefined
   };
 }
+
+const DEFAULT_CLAUDE_CODE_SELECTION_CATALOG = createClaudeCodeSelectionCatalog();
 
 function normalizePlanItems(value: unknown): readonly WorkbenchPlanItemSnapshot[] {
   if (!Array.isArray(value)) {
@@ -1019,141 +1021,6 @@ function createUnsupportedRecordEvent(
     id: `sanitized-stream-json-${index}`,
     message: `Claude stream-json record of type "${type}" is not mapped yet.`,
     at: asString(record.timestamp)
-  };
-}
-
-function createKnownBackendAdapter(
-  backendAdapterId: string
-): WorkbenchSelectionSnapshot["backendAdapter"] {
-  if (backendAdapterId !== "claude-code.external-cli-acp") {
-    return {
-      id: backendAdapterId,
-      label: backendAdapterId,
-      kind: "external-cli",
-      capabilities: {
-        sessions: unknownCapability(),
-        resume: unknownCapability(),
-        fork: unknownCapability(),
-        toolCalls: unknownCapability(),
-        terminalOutput: unknownCapability(),
-        diffEvents: unknownCapability(),
-        approvals: unknownCapability(),
-        modelRouting: unknownCapability(),
-        modelPicker: unknownCapability(),
-        autoRouting: unknownCapability(),
-        usageQuotaReporting: unknownCapability()
-      }
-    };
-  }
-
-  return {
-    id: "claude-code.external-cli-acp",
-    label: "Claude Code external CLI/ACP candidate",
-    kind: "claude-code",
-    capabilities: {
-      sessions: supportedCapability(),
-      resume: unknownCapability("Resume needs installed-tool validation."),
-      fork: unknownCapability("Fork behavior is still deferred."),
-      toolCalls: supportedCapability(),
-      terminalOutput: supportedCapability(),
-      diffEvents: supportedCapability(),
-      approvals: supportedCapability(),
-      modelRouting: supportedCapability(),
-      modelPicker: unavailableCapability("The first slice shows metadata only."),
-      autoRouting: unavailableCapability("Auto routing is deferred until provider validation."),
-      usageQuotaReporting: unknownCapability("Depends on Claude Code and provider metadata.")
-    },
-    notes: ["External tool only; no Claude Code binary is bundled."]
-  };
-}
-
-function createKnownProviderRoute(
-  providerRouteId: string | undefined
-): WorkbenchSelectionSnapshot["providerRoute"] {
-  switch (providerRouteId) {
-    case "zai.anthropic-compatible": {
-      const route = createZaiAnthropicRouteMetadata();
-      return {
-        id: route.id,
-        providerId: route.providerId,
-        label: route.label,
-        kind: "anthropic-compatible",
-        endpoint: route.endpoint,
-        hasApiKey: route.hasApiKey,
-        apiKeyState: route.apiKeyState
-      };
-    }
-    case "zai.openai-compatible-coding": {
-      const route = createZaiOpenAiRouteMetadata();
-      return {
-        id: route.id,
-        providerId: route.providerId,
-        label: route.label,
-        kind: "openai-compatible",
-        endpoint: route.endpoint,
-        hasApiKey: route.hasApiKey,
-        apiKeyState: route.apiKeyState
-      };
-    }
-    case undefined:
-      return undefined;
-    default:
-      return {
-        id: providerRouteId,
-        providerId: "unknown",
-        label: providerRouteId,
-        kind: "native-provider",
-        hasApiKey: false,
-        apiKeyState: "missing"
-      };
-  }
-}
-
-function createKnownModelProfile(
-  modelProfileId: string | undefined,
-  providerRouteId: string | undefined
-): WorkbenchSelectionSnapshot["modelProfile"] {
-  if (!modelProfileId) {
-    return undefined;
-  }
-
-  const routeId = providerRouteId ?? "zai.anthropic-compatible";
-  const profile = listZaiModelProfiles().find(
-    (candidate) => candidate.id === modelProfileId || candidate.routeAliases.includes(modelProfileId)
-  );
-
-  if (!profile) {
-    return undefined;
-  }
-
-  const capabilities: ModelProfileCapability[] = ["coding", "streaming"];
-
-  if (profile.capabilities.toolCalling) {
-    capabilities.push("tool-calling");
-  }
-
-  if (profile.capabilities.thinking) {
-    capabilities.push("thinking");
-  }
-
-  if (profile.capabilities.reasoning === "reasoning") {
-    capabilities.push("reasoning");
-  }
-
-  return {
-    id: modelProfileId,
-    label:
-      profile.id === modelProfileId
-        ? profile.label
-        : `${modelProfileId} alias -> ${profile.label}`,
-    providerRouteId: routeId,
-    aliases: profile.routeAliases,
-    capabilities,
-    availability: unknownCapability("Availability depends on the installed tool and local provider key."),
-    notes:
-      profile.id === modelProfileId
-        ? profile.notes
-        : [`Fixture used alias "${modelProfileId}" which maps to ${profile.id}.`, ...(profile.notes ?? [])]
   };
 }
 

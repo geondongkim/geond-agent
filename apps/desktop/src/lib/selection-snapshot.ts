@@ -1,5 +1,13 @@
+import {
+  createMissingProviderKeyWarning,
+  createUnknownModelWarning,
+  describeBackendAdapter,
+  describeProviderRoute,
+  resolveModelProfile
+} from "@geond-agent/ui-workbench";
 import type {
   UiI18n,
+  WorkbenchSelectionCatalog,
   WorkbenchSelectionSnapshot
 } from "@geond-agent/ui-workbench";
 
@@ -7,16 +15,36 @@ import type { RunnerRequest } from "../runs/types.js";
 
 export function createSelectionSnapshotFromRequest(
   request: RunnerRequest,
-  i18n: UiI18n
+  i18n: UiI18n,
+  selectionCatalog: WorkbenchSelectionCatalog
 ): WorkbenchSelectionSnapshot {
+  const backendAdapterId = request.backendAdapterId ?? "claude-code.external-cli-acp";
+  const providerRoute = describeProviderRoute(selectionCatalog, request.providerRouteId);
+  const modelProfileId = request.modelProfileId ?? request.modelAlias;
+  const modelProfile = resolveModelProfile(
+    selectionCatalog,
+    modelProfileId,
+    request.providerRouteId
+  );
+  const capabilityWarnings = [
+    i18n.t("workbench.liveWarning.selectionLocalOnly"),
+    ...(providerRoute?.apiKeyState === "missing"
+      ? [createMissingProviderKeyWarning(providerRoute)]
+      : []),
+    ...(modelProfileId && !modelProfile ? [createUnknownModelWarning(modelProfileId)] : [])
+  ];
+
   return {
-    backendAdapterId: request.backendAdapterId ?? "claude-code.external-cli-acp",
+    backendAdapterId,
     providerRouteId: request.providerRouteId,
-    modelProfileId: request.modelProfileId ?? request.modelAlias,
+    modelProfileId,
     routingMode: request.routingMode ?? "manual",
+    backendAdapter: describeBackendAdapter(selectionCatalog, backendAdapterId),
+    providerRoute,
+    modelProfile,
     uiLanguage: request.uiLanguage,
     agentResponseLanguage: normalizeSelectionAgentLanguage(request.agentResponseLanguage),
-    capabilityWarnings: [i18n.t("workbench.liveWarning.selectionLocalOnly")]
+    capabilityWarnings
   };
 }
 
