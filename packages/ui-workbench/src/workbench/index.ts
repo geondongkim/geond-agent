@@ -1,5 +1,6 @@
 export * from "./events.js";
 export * from "./controller.js";
+export * from "./event-identity.js";
 export * from "./fixtures.js";
 export * from "./projection.js";
 export * from "./replay.js";

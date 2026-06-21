@@ -5,6 +5,7 @@ export interface ExternalCliBoundary {
   readonly args: readonly string[];
   readonly cwd?: string;
   readonly env?: Readonly<Record<string, string | undefined>>;
+  readonly timeoutMs?: number;
 }
 
 export interface ClaudeCodeAcpBoundary {
