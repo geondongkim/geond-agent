@@ -253,6 +253,12 @@ SQLite stores local sessions, workbench events, session snapshots, approvals,
 tool calls, command output summaries, diff summaries, and usage metadata when
 available.
 
+During the early renderer-only slice, `apps/desktop` may use a browser
+`localStorage` settings adapter as a development fallback so the settings UI can
+prove save/reload behavior before Tauri commands are wired. That fallback must
+store only the same non-secret preference keys and should converge to Tauri app
+data JSON as the desktop command boundary is implemented.
+
 Do not persist API key values, tokens, provider account state, raw Claude Code
 logs by default, raw private transcripts, or local user session files in tracked
 source or portable app exports.

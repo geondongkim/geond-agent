@@ -99,6 +99,7 @@ export interface WorkbenchProjection {
 
 export interface WorkbenchProjectionOptions {
   readonly pinnedSessionIds?: readonly string[];
+  readonly activeSessionId?: string;
 }
 
 export function projectWorkbenchEvents(
@@ -119,7 +120,10 @@ export function projectWorkbenchState(
     .map(projectSessionListItem)
     .sort(compareSessionsByRecency);
   const pinnedSessionIds = new Set(options.pinnedSessionIds ?? []);
-  const activeSessionId = state.activeSessionId ?? sessions[0]?.id;
+  const activeSessionId =
+    options.activeSessionId && state.sessions[options.activeSessionId]
+      ? options.activeSessionId
+      : state.activeSessionId ?? sessions[0]?.id;
   const activeSessionState = activeSessionId ? state.sessions[activeSessionId] : undefined;
 
   return {

@@ -1,27 +1,31 @@
 import {
-  CLAUDE_CODE_SANITIZED_STREAM_JSON_FIXTURE,
-  normalizeClaudeCodeStreamJsonRecords
+  createClaudeCodeFixtureReplayRunner,
+  type ClaudeCodeFixtureReplayRunner,
+  type ClaudeCodeRunnerRequest
 } from "@geond-agent/claude-code-bridge";
 import {
-  createMemoryLocalSettingsStore,
   createWorkbenchSettingsLabels,
-  LANGUAGE_SETTINGS_KEY,
-  projectWorkbenchEvents,
-  SESSION_DEFAULTS_SETTINGS_KEY,
-  ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS,
+  createWorkbenchSessionController,
+  saveWorkbenchSessionDefaults,
+  type AgentResponseLanguage,
+  type LocalSettingsStore,
   type UiI18n,
-  type WorkbenchProjection,
-  type WorkbenchSettingsLabels,
-  type WorkbenchSessionDefaults,
   type WorkbenchLanguageSettings,
-  type WorkbenchPersistenceBoundary
+  type WorkbenchPersistenceBoundary,
+  type WorkbenchRuntime,
+  type WorkbenchSessionController,
+  type WorkbenchSessionControllerSnapshot,
+  type WorkbenchSessionDefaults,
+  type WorkbenchSettingsLabels
 } from "@geond-agent/ui-workbench";
 
 import { createDesktopWorkbench } from "./index.js";
 
 export interface DesktopDemoDocument {
+  readonly runtime: WorkbenchRuntime;
+  readonly controller: WorkbenchSessionController;
+  readonly runner: ClaudeCodeFixtureReplayRunner;
   readonly i18n: UiI18n;
-  readonly projection: WorkbenchProjection;
   readonly settingsLabels: WorkbenchSettingsLabels;
   readonly languageSettings: WorkbenchLanguageSettings;
   readonly sessionDefaults: WorkbenchSessionDefaults;
@@ -29,44 +33,54 @@ export interface DesktopDemoDocument {
   readonly providerSummary: string;
   readonly bridgeCommand: string;
   readonly ignoredRecordCount: number;
+  readonly initialControllerSnapshot: WorkbenchSessionControllerSnapshot;
+  readonly createRunnerRequest: (options: CreateRunnerRequestOptions) => ClaudeCodeRunnerRequest;
+  readonly saveSessionDefaults: (
+    settings: WorkbenchSessionDefaults
+  ) => Promise<WorkbenchSessionDefaults>;
 }
 
-const DEMO_SETTINGS_SEED = {
-  [LANGUAGE_SETTINGS_KEY]: JSON.stringify({
-    uiLanguage: "ko",
-    agentResponseLanguage: "en"
-  }),
-  [SESSION_DEFAULTS_SETTINGS_KEY]: JSON.stringify({
-    defaultBackendAdapterId: "claude-code.external-cli-acp",
-    defaultProviderRouteId: "zai.anthropic-compatible",
-    defaultModelAlias: "sonnet",
-    routingMode: "manual",
-    approvalPolicy: "ask-first"
-  })
-} as const;
+export interface CreateRunnerRequestOptions {
+  readonly sessionId: string;
+  readonly title: string;
+  readonly prompt: string;
+  readonly languageSettings: WorkbenchLanguageSettings;
+  readonly sessionDefaults: WorkbenchSessionDefaults;
+}
 
-export async function createDesktopDemoDocument(): Promise<DesktopDemoDocument> {
-  const settingsStore = createMemoryLocalSettingsStore(DEMO_SETTINGS_SEED);
+const WORKSPACE_PATH = "/Users/geondongkim/geond-agent";
+
+export async function createDesktopDemoDocument(
+  settingsStore: LocalSettingsStore
+): Promise<DesktopDemoDocument> {
   const workbench = await createDesktopWorkbench({
     settingsStore,
-    systemLocales: ["ko-KR", "en-US"],
-    workspacePath: "/Users/geondongkim/geond-agent"
+    systemLocales: navigator.languages,
+    workspacePath: WORKSPACE_PATH
   });
   const runtimeSnapshot = workbench.ui.getSnapshot();
-  const normalizedClaude = normalizeClaudeCodeStreamJsonRecords(
-    CLAUDE_CODE_SANITIZED_STREAM_JSON_FIXTURE
+  const runner = createClaudeCodeFixtureReplayRunner();
+  const initialSessionId = "local-session-1";
+  const initialRun = await runner.run(
+    createRunnerRequest({
+      sessionId: initialSessionId,
+      title: "Local workbench session",
+      prompt: "Start a local demo session without making paid provider calls.",
+      languageSettings: runtimeSnapshot.languageSettings,
+      sessionDefaults: workbench.sessionDefaults
+    })
   );
-  const projection = projectWorkbenchEvents(
-    [...ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS, ...normalizedClaude.events],
-    undefined,
-    {
-      pinnedSessionIds: ["claude-workbench-1"]
-    }
-  );
+  const controller = createWorkbenchSessionController({
+    initialEvents: initialRun.events,
+    pinnedSessionIds: [initialSessionId],
+    activeSessionId: initialSessionId
+  });
 
   return {
+    runtime: workbench.ui,
+    controller,
+    runner,
     i18n: runtimeSnapshot.i18n,
-    projection,
     settingsLabels: createWorkbenchSettingsLabels(runtimeSnapshot.i18n),
     languageSettings: runtimeSnapshot.languageSettings,
     sessionDefaults: workbench.sessionDefaults,
@@ -75,6 +89,36 @@ export async function createDesktopDemoDocument(): Promise<DesktopDemoDocument> 
     bridgeCommand: [workbench.bridge.process.executable, ...workbench.bridge.process.args]
       .filter((value) => value.length > 0)
       .join(" "),
-    ignoredRecordCount: normalizedClaude.ignoredRecords.length
+    ignoredRecordCount: initialRun.ignoredRecords.length,
+    initialControllerSnapshot: controller.getSnapshot(),
+    createRunnerRequest,
+    saveSessionDefaults: async (settings) => {
+      await saveWorkbenchSessionDefaults(settingsStore, settings);
+      return settings;
+    }
   };
+}
+
+function createRunnerRequest(options: CreateRunnerRequestOptions): ClaudeCodeRunnerRequest {
+  return {
+    sessionId: options.sessionId,
+    title: options.title,
+    workspacePath: WORKSPACE_PATH,
+    prompt: options.prompt,
+    modelAlias: options.sessionDefaults.defaultModelAlias,
+    providerRouteId: options.sessionDefaults.defaultProviderRouteId,
+    modelProfileId: options.sessionDefaults.defaultModelAlias,
+    backendAdapterId: options.sessionDefaults.defaultBackendAdapterId,
+    routingMode: options.sessionDefaults.routingMode,
+    uiLanguage: options.languageSettings.uiLanguage,
+    agentResponseLanguage: normalizeAgentLanguageForRunner(
+      options.languageSettings.agentResponseLanguage
+    )
+  };
+}
+
+function normalizeAgentLanguageForRunner(
+  language: AgentResponseLanguage
+): AgentResponseLanguage {
+  return language;
 }
