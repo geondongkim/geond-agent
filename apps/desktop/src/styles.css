@@ -78,6 +78,10 @@ body {
     @apply border-t border-white/5 bg-black/20 px-4 py-2 font-mono text-[11px] text-[color:var(--shell-soft)];
   }
 
+  .approval-banner {
+    @apply mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-[rgba(242,189,61,0.45)] bg-[rgba(242,189,61,0.1)] px-4 py-3 text-[color:var(--ink)];
+  }
+
   .workbench-grid {
     @apply grid min-h-0 grid-cols-1 bg-[color:var(--shell-raised)] lg:grid-cols-[278px_minmax(0,1fr)] xl:grid-cols-[282px_minmax(0,1fr)_390px];
   }

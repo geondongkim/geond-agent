@@ -4,6 +4,7 @@ import {
   createWorkbenchSessionController,
   createWorkbenchSessionStartEvents
 } from "./controller.js";
+import type { WorkbenchEvent } from "./events.js";
 import { ZAI_PRE_SUBSCRIPTION_SELECTION } from "./fixtures.js";
 
 describe("createWorkbenchSessionController", () => {
@@ -47,5 +48,60 @@ describe("createWorkbenchSessionController", () => {
     expect(selected.activeSessionId).toBe("session-a");
     expect(selected.projection.activeSession?.title).toBe("Session A");
     expect(selected.events).toHaveLength(2);
+  });
+
+  it("tracks approval requests and resolutions through replayed projection state", () => {
+    const controller = createWorkbenchSessionController();
+    const sessionEvents = createWorkbenchSessionStartEvents({
+      sessionId: "session-approval",
+      title: "Approval session",
+      at: "2026-06-21T02:00:00.000Z"
+    });
+    const approvalRequested: WorkbenchEvent = {
+      type: "approval.requested",
+      sessionId: "session-approval",
+      approval: {
+        id: "approval-run-verify",
+        kind: "command",
+        title: "Run pnpm verify",
+        status: "pending",
+        subject: "pnpm verify"
+      },
+      at: "2026-06-21T02:01:00.000Z"
+    };
+
+    const pending = controller.appendEvents([...sessionEvents, approvalRequested], {
+      activateSessionId: "session-approval"
+    });
+
+    expect(pending.projection.activeSession?.approvals[0]).toMatchObject({
+      id: "approval-run-verify",
+      status: "pending"
+    });
+    expect(pending.projection.activeSession?.timeline.map((entry) => entry.kind)).toContain(
+      "approval"
+    );
+    expect(pending.projection.sessions[0]?.pendingApprovalCount).toBe(1);
+
+    const resolved = controller.appendEvents(
+      [
+        {
+          type: "approval.resolved",
+          sessionId: "session-approval",
+          approvalId: "approval-run-verify",
+          decision: "approved",
+          at: "2026-06-21T02:02:00.000Z"
+        }
+      ],
+      { activateSessionId: "session-approval" }
+    );
+
+    expect(resolved.projection.activeSession?.approvals[0]).toMatchObject({
+      id: "approval-run-verify",
+      status: "resolved",
+      decision: "approved"
+    });
+    expect(resolved.projection.sessions[0]?.pendingApprovalCount).toBe(0);
+    expect(resolved.events).toHaveLength(3);
   });
 });
