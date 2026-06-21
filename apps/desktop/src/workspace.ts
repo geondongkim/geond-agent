@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
 
 export interface DesktopWorkspaceDescriptor {
   readonly id: string;
@@ -8,6 +9,13 @@ export interface DesktopWorkspaceDescriptor {
 
 export interface DesktopWorkspaceResolver {
   readonly listWorkspaces: () => Promise<readonly DesktopWorkspaceDescriptor[]>;
+  readonly chooseWorkspace: (
+    options?: ChooseWorkspaceOptions
+  ) => Promise<DesktopWorkspaceDescriptor | undefined>;
+}
+
+export interface ChooseWorkspaceOptions {
+  readonly defaultPath?: string;
 }
 
 const FALLBACK_WORKSPACE: DesktopWorkspaceDescriptor = {
@@ -25,6 +33,35 @@ export function createDesktopWorkspaceResolver(): DesktopWorkspaceResolver {
       } catch {
         return [FALLBACK_WORKSPACE];
       }
+    },
+    chooseWorkspace: async (options = {}) => {
+      try {
+        const selected = await open({
+          directory: true,
+          multiple: false,
+          defaultPath: options.defaultPath,
+          title: "Choose geond-agent workspace"
+        });
+
+        return typeof selected === "string"
+          ? createWorkspaceDescriptor(selected)
+          : undefined;
+      } catch {
+        return undefined;
+      }
     }
   };
+}
+
+function createWorkspaceDescriptor(path: string): DesktopWorkspaceDescriptor {
+  return {
+    id: path,
+    label: basename(path),
+    path
+  };
+}
+
+function basename(path: string): string {
+  const pieces = path.split(/[\\/]/).filter((piece) => piece.length > 0);
+  return pieces[pieces.length - 1] ?? path;
 }

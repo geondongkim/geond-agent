@@ -102,9 +102,10 @@ Before copying, vendoring, or forking third-party code:
 The first desktop workbench UI slice adds package-managed third-party
 dependencies for the local shell, renderer, styling, testing, and small UI
 primitives. Current examples include React, React DOM, Vite, Tailwind CSS,
-PostCSS, Autoprefixer, Radix Tabs, Tauri API/CLI, `clsx`, `tailwind-merge`,
-Vitest, TypeScript, and `@types/*` packages, plus the Tauri Rust/crates.io
-dependencies used by `apps/desktop/src-tauri`.
+PostCSS, Autoprefixer, Radix Tabs, Tauri API/CLI, Tauri dialog plugin
+bindings/crates, `clsx`, `tailwind-merge`, Vitest, TypeScript, and `@types/*`
+packages, plus the Tauri Rust/crates.io dependencies used by
+`apps/desktop/src-tauri`.
 
 These dependencies are consumed as npm/pnpm packages or Rust crates. Their
 source is not copied into this repository as vendored app code, and upstream
