@@ -46,6 +46,13 @@ const safeForLogs = redactClaudeCodeAcpBoundary(boundary);
 The package models an external CLI/ACP boundary only. Execution, process
 management, and ACP message handling will be added in later slices.
 
+The current stream-json boundary accepts both older sanitized workbench-shaped
+fixtures and real Claude Code `--bare -p --verbose --output-format stream-json`
+envelopes such as `system/init`, `stream_event`, `assistant`, `user`, and
+`result`. Committed fixtures are reduced and sanitized: they preserve event
+shape, tool calls, text deltas, and usage metadata, but omit provider key
+sources, raw logs, private transcripts, and machine-local paths.
+
 It also exposes adapter capability metadata for readiness checks:
 
 ```ts

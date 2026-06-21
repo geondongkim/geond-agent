@@ -82,6 +82,12 @@ the deepest useful surface for session/resume behavior, `stream-json` events,
 permission policy, model alias routing, and usage metadata. OpenCode horizontal
 expansion is intentionally deferred until this first path is stable.
 
+The bridge normalizes Claude Code `--bare -p --verbose --output-format
+stream-json` output through sanitized envelope fixtures, not raw local logs. The
+normalizer maps `system/init`, `stream_event`, `assistant`, `user`, and `result`
+records into adapter-neutral `WorkbenchEvent` streams, including assistant text
+deltas, tool calls/results, run completion, and usage metadata.
+
 ### `packages/zai-provider`
 
 Provider package for Z.ai GLM Coding Plan routing:

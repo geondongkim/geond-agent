@@ -61,8 +61,8 @@ const state = replayWorkbenchEvents(ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS);
 ```
 
 The replay state includes session lifecycle, assistant text, plan updates, tool
-calls, command output, diffs, approvals, warning/error notices, and the
-per-session backend/model selection snapshot.
+calls, command output, diffs, usage/cost/context metadata, approvals,
+warning/error notices, and the per-session backend/model selection snapshot.
 
 ## Evaluation Run Boundary
 

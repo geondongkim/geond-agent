@@ -134,6 +134,20 @@ export const ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS: readonly WorkbenchEvent[] = [
     at: "2026-06-21T00:00:07.000Z"
   },
   {
+    type: "usage.reported",
+    sessionId: "eval-task-1",
+    usage: {
+      id: "usage-eval-task-1",
+      source: "provider",
+      model: "glm-4.7",
+      inputTokens: 1200,
+      outputTokens: 220,
+      cacheReadInputTokens: 180,
+      note: "Synthetic usage metadata for replay and projection checks."
+    },
+    at: "2026-06-21T00:00:07.500Z"
+  },
+  {
     type: "approval.requested",
     sessionId: "eval-task-1",
     approval: {
@@ -164,4 +178,3 @@ export const ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS: readonly WorkbenchEvent[] = [
 export function replayZaiPreSubscriptionSample(): WorkbenchStateSnapshot {
   return replayWorkbenchEvents(ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS);
 }
-

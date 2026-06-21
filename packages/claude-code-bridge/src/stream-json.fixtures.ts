@@ -123,3 +123,167 @@ export const CLAUDE_CODE_SANITIZED_STREAM_JSON_FIXTURE = [
     timestamp: "2026-06-21T01:00:12.000Z"
   }
 ] as const;
+
+export const CLAUDE_CODE_REAL_STREAM_JSON_FIXTURE = [
+  {
+    type: "system",
+    subtype: "init",
+    session_id: "real-claude-session-1",
+    cwd: "/workspace/geond-agent",
+    tools: ["Read"],
+    model: "glm-5.2",
+    permissionMode: "plan",
+    claude_code_version: "2.1.183"
+  },
+  {
+    type: "system",
+    subtype: "status",
+    session_id: "real-claude-session-1",
+    status: "requesting"
+  },
+  {
+    type: "stream_event",
+    session_id: "real-claude-session-1",
+    event: {
+      type: "message_start",
+      message: {
+        id: "msg-real-text-1",
+        type: "message",
+        role: "assistant",
+        model: "glm-5.2"
+      }
+    }
+  },
+  {
+    type: "stream_event",
+    session_id: "real-claude-session-1",
+    event: {
+      type: "content_block_start",
+      index: 0,
+      content_block: {
+        type: "text",
+        text: ""
+      }
+    }
+  },
+  {
+    type: "stream_event",
+    session_id: "real-claude-session-1",
+    event: {
+      type: "content_block_delta",
+      index: 0,
+      delta: {
+        type: "text_delta",
+        text: "I read the "
+      }
+    }
+  },
+  {
+    type: "stream_event",
+    session_id: "real-claude-session-1",
+    event: {
+      type: "content_block_delta",
+      index: 0,
+      delta: {
+        type: "text_delta",
+        text: "workspace docs."
+      }
+    }
+  },
+  {
+    type: "stream_event",
+    session_id: "real-claude-session-1",
+    event: {
+      type: "content_block_stop",
+      index: 0
+    }
+  },
+  {
+    type: "assistant",
+    session_id: "real-claude-session-1",
+    message: {
+      id: "msg-tool-readme",
+      role: "assistant",
+      model: "glm-5.2",
+      content: [
+        {
+          type: "tool_use",
+          id: "call-read-readme",
+          name: "Read",
+          input: {
+            file_path: "/workspace/geond-agent/README.md"
+          }
+        }
+      ]
+    }
+  },
+  {
+    type: "user",
+    session_id: "real-claude-session-1",
+    message: {
+      content: [
+        {
+          tool_use_id: "call-read-readme",
+          type: "tool_result",
+          content: "1\\t# geond-agent\\n2\\tLocal-first agent workbench."
+        }
+      ]
+    },
+    tool_use_result: {
+      type: "text",
+      file: {
+        filePath: "/workspace/geond-agent/README.md"
+      }
+    }
+  },
+  {
+    type: "assistant",
+    session_id: "real-claude-session-1",
+    message: {
+      id: "msg-real-text-1",
+      role: "assistant",
+      model: "glm-5.2",
+      content: [
+        {
+          type: "text",
+          text: "I read the workspace docs."
+        }
+      ]
+    }
+  },
+  {
+    type: "stream_event",
+    session_id: "real-claude-session-1",
+    uuid: "usage-delta-1",
+    event: {
+      type: "message_delta",
+      usage: {
+        input_tokens: 240,
+        output_tokens: 32,
+        cache_read_input_tokens: 16,
+        service_tier: "standard"
+      }
+    }
+  },
+  {
+    type: "result",
+    subtype: "success",
+    session_id: "real-claude-session-1",
+    is_error: false,
+    stop_reason: "end_turn",
+    duration_ms: 1620,
+    total_cost_usd: 0.001,
+    usage: {
+      input_tokens: 260,
+      output_tokens: 38,
+      cache_read_input_tokens: 16,
+      service_tier: "standard"
+    },
+    modelUsage: {
+      "glm-5.2": {
+        input_tokens: 260,
+        output_tokens: 38
+      }
+    }
+  }
+] as const;

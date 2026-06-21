@@ -10,7 +10,11 @@ import {
   type WorkbenchSessionDefaults,
   type WorkbenchEvent
 } from "@geond-agent/ui-workbench";
-import { normalizeClaudeCodeStreamJsonRecords } from "@geond-agent/claude-code-bridge";
+import {
+  createClaudeCodeStreamJsonNormalizer,
+  normalizeClaudeCodeStreamJsonRecords,
+  type ClaudeCodeStreamJsonNormalizer
+} from "@geond-agent/claude-code-bridge";
 
 import type { DesktopDemoDocument, DesktopRunnerMode } from "./demo-workbench.js";
 import {
@@ -924,10 +928,14 @@ async function listenToClaudeCodeStream(
   onEvents: (events: readonly WorkbenchEvent[]) => Promise<void>
 ): Promise<(() => void) | undefined> {
   try {
+    const normalizer = createClaudeCodeStreamJsonNormalizer({
+      fallbackSessionId: request.sessionId
+    });
+
     return await listen<TauriClaudeCodeStreamPayload>(
       CLAUDE_CODE_STREAM_EVENT,
       (event) => {
-        const events = createEventsFromStreamPayload(event.payload, request, i18n);
+        const events = createEventsFromStreamPayload(event.payload, request, i18n, normalizer);
         if (events.length > 0) {
           void onEvents(events);
         }
@@ -941,7 +949,8 @@ async function listenToClaudeCodeStream(
 function createEventsFromStreamPayload(
   payload: TauriClaudeCodeStreamPayload,
   request: RunnerRequest,
-  i18n: WorkbenchRuntimeSnapshot["i18n"]
+  i18n: WorkbenchRuntimeSnapshot["i18n"],
+  normalizer: ClaudeCodeStreamJsonNormalizer
 ): readonly WorkbenchEvent[] {
   if (!isClaudeStreamPayload(payload) || payload.channelId !== request.sessionId) {
     return [];
@@ -964,9 +973,7 @@ function createEventsFromStreamPayload(
 
   try {
     const record = JSON.parse(payload.text) as unknown;
-    return normalizeClaudeCodeStreamJsonRecords([record], {
-      fallbackSessionId: request.sessionId
-    }).events;
+    return normalizer.accept(record).events;
   } catch (error) {
     return [
       {

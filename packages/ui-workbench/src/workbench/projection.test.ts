@@ -37,6 +37,8 @@ describe("projectWorkbenchEvents", () => {
 
     expect(projection.activeSession?.timeline.map((entry) => entry.kind)).toContain("plan");
     expect(projection.activeSession?.timeline.map((entry) => entry.kind)).toContain("approval");
+    expect(projection.activeSession?.timeline.map((entry) => entry.kind)).toContain("usage");
+    expect(projection.activeSession?.usageReports[0]?.model).toBe("glm-4.7");
   });
 
   it("can project a selected session without changing event replay order", () => {

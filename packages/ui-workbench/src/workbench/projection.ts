@@ -21,6 +21,7 @@ export type WorkbenchTimelineEntryKind =
   | "tool"
   | "command"
   | "diff"
+  | "usage"
   | "approval"
   | "warning"
   | "error";
@@ -82,6 +83,7 @@ export interface ProjectedWorkbenchSession {
   readonly toolCalls: readonly WorkbenchSessionSnapshot["toolCalls"][string][];
   readonly commandOutputs: readonly ProjectedCommandOutput[];
   readonly diffs: readonly WorkbenchSessionSnapshot["diffs"][string][];
+  readonly usageReports: readonly WorkbenchSessionSnapshot["usageReports"][string][];
   readonly approvals: readonly WorkbenchSessionSnapshot["approvals"][string][];
   readonly notices: WorkbenchSessionSnapshot["notices"];
   readonly timeline: readonly WorkbenchTimelineEntry[];
@@ -177,6 +179,7 @@ function projectActiveSession(
     toolCalls: Object.values(session.toolCalls),
     commandOutputs: Object.values(session.commandOutputs).map(projectCommandOutput),
     diffs: Object.values(session.diffs),
+    usageReports: Object.values(session.usageReports),
     approvals: Object.values(session.approvals),
     notices: session.notices,
     timeline: events.map(projectTimelineEntry).filter((entry): entry is WorkbenchTimelineEntry => entry !== undefined)
@@ -285,6 +288,15 @@ function projectTimelineEntry(event: WorkbenchEvent): WorkbenchTimelineEntry | u
         title: event.diff.title ?? event.diff.id,
         body: `${event.diff.files.length} file(s)`,
         status: summarizeDiff(event.diff.files.length)
+      };
+    case "usage.reported":
+      return {
+        id: `${event.type}:${event.usage.id}:${event.at ?? "unknown"}`,
+        kind: "usage",
+        at: event.at,
+        title: event.usage.model ? `Usage ${event.usage.model}` : "Usage reported",
+        body: describeUsage(event.usage),
+        status: event.usage.source
       };
     case "approval.requested":
       return {
@@ -424,6 +436,19 @@ function describeApprovalDecision(decision: ApprovalDecision): string {
 
 function summarizeDiff(fileCount: number): string {
   return fileCount === 1 ? "1 file" : `${fileCount} files`;
+}
+
+function describeUsage(
+  usage: WorkbenchSessionSnapshot["usageReports"][string]
+): string | undefined {
+  const parts = [
+    usage.inputTokens === undefined ? undefined : `input ${usage.inputTokens}`,
+    usage.outputTokens === undefined ? undefined : `output ${usage.outputTokens}`,
+    usage.cacheReadInputTokens === undefined ? undefined : `cache read ${usage.cacheReadInputTokens}`,
+    usage.costUsd === undefined ? undefined : `$${usage.costUsd.toFixed(4)}`
+  ].filter((part): part is string => part !== undefined);
+
+  return parts.length > 0 ? parts.join(" / ") : usage.note;
 }
 
 function basename(path: string): string {

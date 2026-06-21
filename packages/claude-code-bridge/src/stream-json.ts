@@ -74,16 +74,40 @@ export interface ClaudeCodeStreamJsonNormalizationResult {
   readonly ignoredRecords: readonly ClaudeCodeIgnoredStreamRecord[];
 }
 
+export interface ClaudeCodeStreamJsonNormalizer {
+  readonly accept: (record: unknown) => ClaudeCodeStreamJsonNormalizationResult;
+  readonly acceptMany: (records: readonly unknown[]) => ClaudeCodeStreamJsonNormalizationResult;
+}
+
+interface ClaudeCodeStreamJsonNormalizerState {
+  currentAssistantMessageId?: string;
+  activeTextMessageId?: string;
+}
+
 export function normalizeClaudeCodeStreamJsonRecords(
   records: readonly unknown[],
   options: ClaudeCodeStreamJsonNormalizationOptions = {}
 ): ClaudeCodeStreamJsonNormalizationResult {
+  return createClaudeCodeStreamJsonNormalizer(options).acceptMany(records);
+}
+
+export function createClaudeCodeStreamJsonNormalizer(
+  options: ClaudeCodeStreamJsonNormalizationOptions = {}
+): ClaudeCodeStreamJsonNormalizer {
   const events: WorkbenchEvent[] = [];
   const ignoredRecords: ClaudeCodeIgnoredStreamRecord[] = [];
+  const state: ClaudeCodeStreamJsonNormalizerState = {};
+  let nextIndex = 0;
 
-  records.forEach((record, index) => {
-    const normalized = normalizeClaudeCodeStreamJsonRecord(record, options);
+  const acceptRecord = (record: unknown): void => {
+    const index = nextIndex;
+    nextIndex += 1;
+    const normalized = normalizeClaudeCodeStreamJsonRecordWithState(record, options, state);
     if (normalized.length === 0) {
+      if (isRecognizedIgnorableClaudeCodeRecord(record)) {
+        return;
+      }
+
       const unsupportedRecordEvent = createUnsupportedRecordEvent(record, index, options);
       if (unsupportedRecordEvent) {
         events.push(unsupportedRecordEvent);
@@ -97,14 +121,41 @@ export function normalizeClaudeCodeStreamJsonRecords(
     }
 
     events.push(...normalized);
-  });
+  };
 
-  return { events, ignoredRecords };
+  return {
+    accept: (record) => {
+      const beforeEvents = events.length;
+      const beforeIgnoredRecords = ignoredRecords.length;
+      acceptRecord(record);
+      return {
+        events: events.slice(beforeEvents),
+        ignoredRecords: ignoredRecords.slice(beforeIgnoredRecords)
+      };
+    },
+    acceptMany: (records) => {
+      const beforeEvents = events.length;
+      const beforeIgnoredRecords = ignoredRecords.length;
+      records.forEach(acceptRecord);
+      return {
+        events: events.slice(beforeEvents),
+        ignoredRecords: ignoredRecords.slice(beforeIgnoredRecords)
+      };
+    }
+  };
 }
 
 export function normalizeClaudeCodeStreamJsonRecord(
   record: unknown,
   options: ClaudeCodeStreamJsonNormalizationOptions = {}
+): readonly WorkbenchEvent[] {
+  return normalizeClaudeCodeStreamJsonRecordWithState(record, options, {});
+}
+
+function normalizeClaudeCodeStreamJsonRecordWithState(
+  record: unknown,
+  options: ClaudeCodeStreamJsonNormalizationOptions,
+  state: ClaudeCodeStreamJsonNormalizerState
 ): readonly WorkbenchEvent[] {
   if (!isRecord(record)) {
     return [];
@@ -119,6 +170,16 @@ export function normalizeClaudeCodeStreamJsonRecord(
   }
 
   switch (type) {
+    case "system":
+      return normalizeActualSystemRecord(record, sessionId, at);
+    case "assistant":
+      return normalizeActualAssistantRecord(record, sessionId, at);
+    case "user":
+      return normalizeActualUserRecord(record, sessionId, at);
+    case "result":
+      return normalizeActualResultRecord(record, sessionId, at);
+    case "stream_event":
+      return normalizeActualStreamEventRecord(record, sessionId, at, state);
     case "session.started":
       return [
         {
@@ -337,6 +398,247 @@ export function normalizeClaudeCodeStreamJsonRecord(
   }
 }
 
+function normalizeActualSystemRecord(
+  record: Record<string, unknown>,
+  sessionId: string,
+  at: string | undefined
+): readonly WorkbenchEvent[] {
+  const subtype = asString(record.subtype);
+  if (subtype !== "init") {
+    return [];
+  }
+
+  const model = asString(record.model);
+  const cwd = asString(record.cwd);
+
+  return [
+    {
+      type: "session.lifecycle",
+      sessionId,
+      lifecycle: "started",
+      title: "Claude Code stream-json session",
+      workspacePath: cwd,
+      selection: createSelectionSnapshot({
+        type: "selection.snapshot",
+        session_id: sessionId,
+        cwd,
+        backend_id: "claude-code.external-cli-acp",
+        provider_route_id: "zai.anthropic-compatible",
+        model_profile_id: model,
+        routing_mode: "manual"
+      }),
+      at
+    }
+  ];
+}
+
+function normalizeActualAssistantRecord(
+  record: Record<string, unknown>,
+  sessionId: string,
+  at: string | undefined
+): readonly WorkbenchEvent[] {
+  const message = asRecord(record.message);
+  const messageId = asString(message?.id) ?? asString(record.message_id);
+  const content = asArray(message?.content);
+
+  if (!messageId || !content) {
+    return [];
+  }
+
+  const events: WorkbenchEvent[] = [];
+
+  content.forEach((block) => {
+    const contentBlock = asRecord(block);
+    if (!contentBlock) {
+      return;
+    }
+
+    const blockType = asString(contentBlock.type);
+    switch (blockType) {
+      case "text": {
+        const text = asString(contentBlock.text);
+        if (text) {
+          events.push({
+            type: "assistant.text.completed",
+            sessionId,
+            messageId,
+            text,
+            at
+          });
+        }
+        return;
+      }
+      case "tool_use": {
+        const toolCallId = asString(contentBlock.id);
+        const toolName = asString(contentBlock.name);
+        if (toolCallId && toolName) {
+          events.push({
+            type: "tool.call.started",
+            sessionId,
+            toolCall: {
+              id: toolCallId,
+              name: toolName,
+              status: "running",
+              inputSummary: summarizeUnknownValue(contentBlock.input)
+            },
+            at
+          });
+        }
+        return;
+      }
+      default:
+        return;
+    }
+  });
+
+  return events;
+}
+
+function normalizeActualUserRecord(
+  record: Record<string, unknown>,
+  sessionId: string,
+  at: string | undefined
+): readonly WorkbenchEvent[] {
+  const message = asRecord(record.message);
+  const content = asArray(message?.content);
+
+  if (!content) {
+    return [];
+  }
+
+  return content.flatMap((block) => {
+    const contentBlock = asRecord(block);
+    if (!contentBlock || asString(contentBlock.type) !== "tool_result") {
+      return [];
+    }
+
+    const toolCallId = asString(contentBlock.tool_use_id);
+    if (!toolCallId) {
+      return [];
+    }
+
+    return [
+      {
+        type: "tool.call.updated",
+        sessionId,
+        toolCallId,
+        status: asBoolean(contentBlock.is_error) ? "failed" : "succeeded",
+        outputSummary:
+          summarizeUnknownValue(contentBlock.content) ??
+          summarizeUnknownValue(record.tool_use_result),
+        at
+      }
+    ];
+  });
+}
+
+function normalizeActualResultRecord(
+  record: Record<string, unknown>,
+  sessionId: string,
+  at: string | undefined
+): readonly WorkbenchEvent[] {
+  const events: WorkbenchEvent[] = [];
+  const failed = asBoolean(record.is_error) === true || asString(record.subtype) === "error";
+  const stopReason = asString(record.stop_reason);
+  const durationMs = asNumber(record.duration_ms);
+  const model = inferModelFromResult(record);
+  const usageEvent = createUsageEvent({
+    sessionId,
+    id: `claude-code-result:${sessionId}`,
+    source: "provider",
+    usage: record.usage,
+    model,
+    costUsd: asNumber(record.total_cost_usd),
+    at
+  });
+
+  if (usageEvent) {
+    events.push(usageEvent);
+  }
+
+  events.push({
+    type: "command.output",
+    sessionId,
+    commandId: "claude-code-result",
+    stream: failed ? "stderr" : "status",
+    text: [
+      failed ? "Claude Code run failed." : "Claude Code run completed.",
+      stopReason ? `stop reason: ${stopReason}` : undefined,
+      durationMs === undefined ? undefined : `duration: ${durationMs}ms`
+    ]
+      .filter((line): line is string => line !== undefined)
+      .join("\n"),
+    status: failed ? "failed" : "succeeded",
+    at
+  });
+
+  events.push({
+    type: "session.lifecycle",
+    sessionId,
+    lifecycle: failed ? "failed" : "completed",
+    at
+  });
+
+  return events;
+}
+
+function normalizeActualStreamEventRecord(
+  record: Record<string, unknown>,
+  sessionId: string,
+  at: string | undefined,
+  state: ClaudeCodeStreamJsonNormalizerState
+): readonly WorkbenchEvent[] {
+  const event = asRecord(record.event);
+  const eventType = asString(event?.type);
+
+  switch (eventType) {
+    case "message_start": {
+      const message = asRecord(event?.message);
+      state.currentAssistantMessageId = asString(message?.id) ?? state.currentAssistantMessageId;
+      return [];
+    }
+    case "content_block_start": {
+      const contentBlock = asRecord(event?.content_block);
+      if (asString(contentBlock?.type) === "text") {
+        state.activeTextMessageId = state.currentAssistantMessageId;
+      }
+      return [];
+    }
+    case "content_block_delta": {
+      const delta = asRecord(event?.delta);
+      const text = asString(delta?.text) ?? asString(delta?.text_delta);
+      const messageId = state.activeTextMessageId ?? state.currentAssistantMessageId;
+
+      return text && messageId
+        ? [
+            {
+              type: "assistant.text.delta",
+              sessionId,
+              messageId,
+              text,
+              at
+            }
+          ]
+        : [];
+    }
+    case "content_block_stop":
+      state.activeTextMessageId = undefined;
+      return [];
+    case "message_delta": {
+      const usageEvent = createUsageEvent({
+        sessionId,
+        id: `claude-code-stream:${sessionId}:${asString(record.uuid) ?? "message-delta"}`,
+        source: "backend",
+        usage: event?.usage,
+        at
+      });
+      return usageEvent ? [usageEvent] : [];
+    }
+    default:
+      return [];
+  }
+}
+
 function createSelectionSnapshot(
   record: ClaudeCodeSanitizedStreamRecord
 ): WorkbenchSelectionSnapshot | undefined {
@@ -355,7 +657,7 @@ function createSelectionSnapshot(
 
   if (providerRoute?.apiKeyState === "missing") {
     capabilityWarnings.push(
-      `${providerRoute.label} key presence is missing in this sanitized fixture.`
+      `${providerRoute.label} key presence is not stored in workbench events.`
     );
   }
 
@@ -554,6 +856,100 @@ function normalizeDiffChangeKind(value: unknown): WorkbenchDiffFileSnapshot["cha
   }
 }
 
+function createUsageEvent(input: {
+  readonly sessionId: string;
+  readonly id: string;
+  readonly source: "backend" | "provider" | "model";
+  readonly usage: unknown;
+  readonly model?: string;
+  readonly costUsd?: number;
+  readonly at?: string;
+}): WorkbenchEvent | undefined {
+  const usage = asRecord(input.usage);
+  if (!usage) {
+    return undefined;
+  }
+
+  const event: WorkbenchEvent = {
+    type: "usage.reported",
+    sessionId: input.sessionId,
+    usage: {
+      id: input.id,
+      source: input.source,
+      model: input.model,
+      inputTokens: asNumber(usage.input_tokens),
+      outputTokens: asNumber(usage.output_tokens),
+      cacheCreationInputTokens: asNumber(usage.cache_creation_input_tokens),
+      cacheReadInputTokens: asNumber(usage.cache_read_input_tokens),
+      contextWindow: asNumber(usage.context_window),
+      maxOutputTokens: asNumber(usage.max_output_tokens),
+      costUsd: input.costUsd,
+      serviceTier: asString(usage.service_tier)
+    },
+    at: input.at
+  };
+
+  const hasUsefulValue =
+    event.usage.inputTokens !== undefined ||
+    event.usage.outputTokens !== undefined ||
+    event.usage.cacheCreationInputTokens !== undefined ||
+    event.usage.cacheReadInputTokens !== undefined ||
+    event.usage.contextWindow !== undefined ||
+    event.usage.maxOutputTokens !== undefined ||
+    event.usage.costUsd !== undefined ||
+    event.usage.serviceTier !== undefined;
+
+  return hasUsefulValue ? event : undefined;
+}
+
+function inferModelFromResult(record: Record<string, unknown>): string | undefined {
+  const model = asString(record.model);
+  if (model) {
+    return model;
+  }
+
+  const modelUsage = asRecord(record.modelUsage);
+  if (!modelUsage) {
+    return undefined;
+  }
+
+  const models = Object.keys(modelUsage);
+  return models.length === 1 ? models[0] : models.length > 1 ? models.join(", ") : undefined;
+}
+
+function isRecognizedIgnorableClaudeCodeRecord(record: unknown): boolean {
+  if (!isRecord(record)) {
+    return false;
+  }
+
+  const type = asString(record.type);
+  switch (type) {
+    case "system":
+      return ["status", "thinking_tokens"].includes(asString(record.subtype) ?? "");
+    case "stream_event": {
+      const event = asRecord(record.event);
+      const eventType = asString(event?.type);
+      if (eventType === "message_delta") {
+        return !asRecord(event?.usage);
+      }
+      return [
+        "message_start",
+        "content_block_start",
+        "content_block_delta",
+        "content_block_stop",
+        "message_stop"
+      ].includes(eventType ?? "");
+    }
+    case "assistant": {
+      const message = asRecord(record.message);
+      const content = asArray(message?.content);
+      return content?.every((block) => asString(asRecord(block)?.type) === "thinking") ?? false;
+    }
+    default:
+      return false;
+  }
+}
+
 function createUnsupportedRecordEvent(
   record: unknown,
   index: number,
@@ -574,7 +970,7 @@ function createUnsupportedRecordEvent(
     type: "warning",
     sessionId,
     id: `sanitized-stream-json-${index}`,
-    message: `Sanitized Claude stream-json record of type "${type}" is not mapped yet.`,
+    message: `Claude stream-json record of type "${type}" is not mapped yet.`,
     at: asString(record.timestamp)
   };
 }
@@ -720,6 +1116,39 @@ function asString(value: unknown): string | undefined {
 
 function asNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function asBoolean(value: unknown): boolean | undefined {
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return isRecord(value) ? value : undefined;
+}
+
+function asArray(value: unknown): readonly unknown[] | undefined {
+  return Array.isArray(value) ? value : undefined;
+}
+
+function summarizeUnknownValue(value: unknown): string | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (typeof value === "string") {
+    return previewText(value);
+  }
+
+  try {
+    return previewText(JSON.stringify(value));
+  } catch {
+    return undefined;
+  }
+}
+
+function previewText(value: string): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  return normalized.length > 240 ? `${normalized.slice(0, 240)}...` : normalized;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

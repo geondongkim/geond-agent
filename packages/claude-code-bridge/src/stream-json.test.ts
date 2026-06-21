@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { CLAUDE_CODE_SANITIZED_STREAM_JSON_FIXTURE } from "./stream-json.fixtures.js";
+import {
+  CLAUDE_CODE_REAL_STREAM_JSON_FIXTURE,
+  CLAUDE_CODE_SANITIZED_STREAM_JSON_FIXTURE
+} from "./stream-json.fixtures.js";
 import { normalizeClaudeCodeStreamJsonRecords } from "./stream-json.js";
 
 describe("normalizeClaudeCodeStreamJsonRecords", () => {
@@ -35,9 +38,63 @@ describe("normalizeClaudeCodeStreamJsonRecords", () => {
       );
       expect(sessionStarted.selection?.modelProfile?.label).toBe("sonnet alias -> GLM 4.7");
       expect(sessionStarted.selection?.capabilityWarnings).toContain(
-        "Z.ai Anthropic-compatible route key presence is missing in this sanitized fixture."
+        "Z.ai Anthropic-compatible route key presence is not stored in workbench events."
       );
     }
+  });
+
+  it("maps real Claude Code stream-json envelopes into normalized workbench events", () => {
+    const result = normalizeClaudeCodeStreamJsonRecords(CLAUDE_CODE_REAL_STREAM_JSON_FIXTURE);
+
+    expect(result.ignoredRecords).toHaveLength(0);
+    expect(result.events.map((event) => event.type)).toEqual([
+      "session.lifecycle",
+      "assistant.text.delta",
+      "assistant.text.delta",
+      "tool.call.started",
+      "tool.call.updated",
+      "assistant.text.completed",
+      "usage.reported",
+      "usage.reported",
+      "command.output",
+      "session.lifecycle"
+    ]);
+
+    const sessionStarted = result.events[0];
+    expect(sessionStarted?.type).toBe("session.lifecycle");
+    if (sessionStarted?.type === "session.lifecycle") {
+      expect(sessionStarted.workspacePath).toBe("/workspace/geond-agent");
+      expect(sessionStarted.selection?.modelProfile?.label).toBe("GLM 5.2");
+    }
+
+    const streamedText = result.events
+      .filter((event) => event.type === "assistant.text.delta")
+      .map((event) => event.text)
+      .join("");
+    expect(streamedText).toBe("I read the workspace docs.");
+
+    const toolStarted = result.events.find((event) => event.type === "tool.call.started");
+    expect(toolStarted).toMatchObject({
+      type: "tool.call.started",
+      toolCall: {
+        id: "call-read-readme",
+        name: "Read",
+        inputSummary: "{\"file_path\":\"/workspace/geond-agent/README.md\"}"
+      }
+    });
+
+    const resultUsage = result.events.find(
+      (event) => event.type === "usage.reported" && event.usage.source === "provider"
+    );
+    expect(resultUsage).toMatchObject({
+      type: "usage.reported",
+      usage: {
+        model: "glm-5.2",
+        inputTokens: 260,
+        outputTokens: 38,
+        costUsd: 0.001
+      }
+    });
   });
 
   it("keeps track of ignored records and emits a warning for unknown sanitized record types", () => {
@@ -51,7 +108,7 @@ describe("normalizeClaudeCodeStreamJsonRecords", () => {
       type: "warning",
       sessionId: "claude-workbench-1",
       id: "sanitized-stream-json-13",
-      message: 'Sanitized Claude stream-json record of type "unknown.record" is not mapped yet.',
+      message: 'Claude stream-json record of type "unknown.record" is not mapped yet.',
       at: "2026-06-21T01:00:12.000Z"
     });
   });

@@ -6,7 +6,8 @@ import type {
   WorkbenchEvent,
   WorkbenchPlanItemSnapshot,
   WorkbenchSessionLifecycle,
-  WorkbenchToolCallSnapshot
+  WorkbenchToolCallSnapshot,
+  WorkbenchUsageSnapshot
 } from "./events.js";
 import type { WorkbenchSelectionSnapshot } from "./selection.js";
 
@@ -48,6 +49,7 @@ export interface WorkbenchSessionSnapshot {
   readonly toolCalls: Readonly<Record<string, WorkbenchToolCallSnapshot>>;
   readonly commandOutputs: Readonly<Record<string, CommandOutputSnapshot>>;
   readonly diffs: Readonly<Record<string, WorkbenchDiffSnapshot>>;
+  readonly usageReports: Readonly<Record<string, WorkbenchUsageSnapshot>>;
   readonly approvals: Readonly<Record<string, WorkbenchApprovalSnapshot>>;
   readonly pendingApprovalIds: readonly string[];
   readonly notices: readonly WorkbenchNoticeSnapshot[];
@@ -204,6 +206,15 @@ export function applyWorkbenchEvent(
         },
         updatedAt: event.at ?? session.updatedAt
       });
+    case "usage.reported":
+      return putSession(state, {
+        ...session,
+        usageReports: {
+          ...session.usageReports,
+          [event.usage.id]: event.usage
+        },
+        updatedAt: event.at ?? session.updatedAt
+      });
     case "approval.requested":
       return putSession(state, {
         ...session,
@@ -274,6 +285,7 @@ function ensureSession(
       toolCalls: {},
       commandOutputs: {},
       diffs: {},
+      usageReports: {},
       approvals: {},
       pendingApprovalIds: [],
       notices: []
@@ -298,4 +310,3 @@ function putSession(
 function appendUnique(values: readonly string[], value: string): readonly string[] {
   return values.includes(value) ? values : [...values, value];
 }
-
