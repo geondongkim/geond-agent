@@ -3,8 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::{
     collections::BTreeMap,
-    env,
-    fs,
+    env, fs,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -13,6 +12,15 @@ use tauri::{AppHandle, Manager};
 const LANGUAGE_SETTINGS_KEY: &str = "geond-agent.workbench.language";
 const SESSION_DEFAULTS_SETTINGS_KEY: &str = "geond-agent.workbench.session-defaults";
 const WORKSPACE_SETTINGS_KEY: &str = "geond-agent.workbench.workspace";
+const LOCAL_ENV_FILE_NAME: &str = ".env.local";
+const CLAUDE_ENV_KEYS: &[&str] = &[
+    "ANTHROPIC_API_KEY",
+    "ANTHROPIC_BASE_URL",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL",
+    "ZAI_API_KEY",
+];
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -144,12 +152,17 @@ fn run_claude_code_stream_json(
     if request.executable != "claude" {
         return Err("Only the user-installed `claude` executable is allowed.".to_string());
     }
+    ensure_stream_json_args(&request.args)?;
 
     let mut command = Command::new(&request.executable);
     command.args(&request.args);
 
-    if let Some(cwd) = request.cwd {
+    let cwd = request.cwd.as_deref().map(PathBuf::from);
+    if let Some(cwd) = &cwd {
         command.current_dir(cwd);
+    }
+    for (key, value) in allowed_local_env(cwd.as_deref())? {
+        command.env(key, value);
     }
 
     let output = command.output().map_err(to_string)?;
@@ -165,6 +178,82 @@ fn ensure_allowed_setting_key(key: &str) -> Result<(), String> {
         LANGUAGE_SETTINGS_KEY | SESSION_DEFAULTS_SETTINGS_KEY | WORKSPACE_SETTINGS_KEY => Ok(()),
         _ => Err("Unsupported settings key.".to_string()),
     }
+}
+
+fn ensure_stream_json_args(args: &[String]) -> Result<(), String> {
+    let has_bare = args.iter().any(|arg| arg == "--bare");
+    let has_print = args.iter().any(|arg| arg == "-p" || arg == "--print");
+    let has_verbose = args.iter().any(|arg| arg == "--verbose");
+    let has_stream_json = args
+        .windows(2)
+        .any(|window| window[0] == "--output-format" && window[1] == "stream-json");
+
+    if has_bare && has_print && has_verbose && has_stream_json {
+        Ok(())
+    } else {
+        Err(
+            "Claude Code runner requires --bare -p --verbose --output-format stream-json."
+                .to_string(),
+        )
+    }
+}
+
+fn allowed_local_env(cwd: Option<&Path>) -> Result<BTreeMap<String, String>, String> {
+    let mut values = BTreeMap::new();
+
+    if let Some(cwd) = cwd {
+        let path = cwd.join(LOCAL_ENV_FILE_NAME);
+        if path.exists() {
+            for (key, value) in parse_local_env_file(&path)? {
+                if CLAUDE_ENV_KEYS.contains(&key.as_str()) {
+                    values.insert(key, value);
+                }
+            }
+        }
+    }
+
+    if let Some(zai_key) = values.get("ZAI_API_KEY").cloned() {
+        values
+            .entry("ANTHROPIC_API_KEY".to_string())
+            .or_insert(zai_key);
+    }
+
+    Ok(values)
+}
+
+fn parse_local_env_file(path: &Path) -> Result<BTreeMap<String, String>, String> {
+    let text = fs::read_to_string(path).map_err(to_string)?;
+    let mut values = BTreeMap::new();
+
+    for line in text.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+
+        if let Some((key, value)) = line.split_once('=') {
+            let key = key.trim().trim_start_matches("export ").to_string();
+            let value = unquote_env_value(value.trim());
+            if !key.is_empty() && !value.trim().is_empty() {
+                values.insert(key, value);
+            }
+        }
+    }
+
+    Ok(values)
+}
+
+fn unquote_env_value(value: &str) -> String {
+    if value.len() >= 2 {
+        let bytes = value.as_bytes();
+        let first = bytes[0];
+        let last = bytes[value.len() - 1];
+        if (first == b'"' && last == b'"') || (first == b'\'' && last == b'\'') {
+            return value[1..value.len() - 1].to_string();
+        }
+    }
+
+    value.to_string()
 }
 
 fn read_settings(app: &AppHandle) -> Result<BTreeMap<String, String>, String> {
@@ -243,4 +332,62 @@ fn path_to_string(path: &Path) -> String {
 
 fn to_string(error: impl ToString) -> String {
     error.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn validates_claude_stream_json_args() {
+        let args = vec![
+            "--bare".to_string(),
+            "-p".to_string(),
+            "--verbose".to_string(),
+            "--output-format".to_string(),
+            "stream-json".to_string(),
+            "Prompt".to_string(),
+        ];
+
+        assert!(ensure_stream_json_args(&args).is_ok());
+        assert!(ensure_stream_json_args(&["--bare".to_string()]).is_err());
+    }
+
+    #[test]
+    fn maps_allowed_local_env_without_empty_values() {
+        let root = env::temp_dir().join(format!("geond-agent-env-test-{}", std::process::id()));
+        fs::create_dir_all(&root).expect("create temp env dir");
+        fs::write(
+            root.join(LOCAL_ENV_FILE_NAME),
+            [
+                format!("{}='local-zai-key'", "ZAI_API_KEY"),
+                format!("{}=https://api.z.ai/api/anthropic", "ANTHROPIC_BASE_URL"),
+                format!("{}=glm-4.7", "ANTHROPIC_DEFAULT_SONNET_MODEL"),
+                "IGNORED_ENV=must-not-pass".to_string(),
+                format!("{}=   ", "ANTHROPIC_DEFAULT_OPUS_MODEL"),
+            ]
+            .join("\n"),
+        )
+        .expect("write temp env");
+
+        let values = allowed_local_env(Some(&root)).expect("parse local env");
+        fs::remove_dir_all(root).expect("remove temp env dir");
+
+        assert_eq!(
+            values.get("ZAI_API_KEY").map(String::as_str),
+            Some("local-zai-key")
+        );
+        assert_eq!(
+            values.get("ANTHROPIC_API_KEY").map(String::as_str),
+            Some("local-zai-key")
+        );
+        assert_eq!(
+            values
+                .get("ANTHROPIC_DEFAULT_SONNET_MODEL")
+                .map(String::as_str),
+            Some("glm-4.7")
+        );
+        assert!(!values.contains_key("IGNORED_ENV"));
+        assert!(!values.contains_key("ANTHROPIC_DEFAULT_OPUS_MODEL"));
+    }
 }

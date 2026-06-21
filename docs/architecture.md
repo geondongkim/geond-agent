@@ -261,6 +261,12 @@ to non-secret preference keys and normalized workbench events; provider secrets,
 raw Claude logs, account state, and private local session files stay out of this
 persistence contract.
 
+Claude Code execution is also a Tauri command boundary. The shell may read a
+workspace-local `.env.local` file and pass only allowlisted Claude/Z.ai routing
+variables to the child process. This makes the native runner usable after a
+local provider setup while keeping API key values, raw provider account state,
+and raw Claude output out of renderer settings and SQLite persistence.
+
 Do not persist API key values, tokens, provider account state, raw Claude Code
 logs by default, raw private transcripts, or local user session files in tracked
 source or portable app exports.

@@ -8,6 +8,8 @@ build/
 coverage/
 test-results/
 playwright-report/
+apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/target/
 *.log
 *.tsbuildinfo
 .playwright-cli/
