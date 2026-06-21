@@ -285,7 +285,7 @@ export function App({ document }: AppProps) {
           </aside>
 
           <section className="timeline-surface">
-            <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+            <div className="transcript-heading">
               <div className="min-w-0">
                 <h2 className="panel-title">{i18n.t("workbench.timeline.title")}</h2>
                 <p className="mt-1 truncate text-xl font-semibold">
@@ -340,7 +340,7 @@ export function App({ document }: AppProps) {
                         </div>
                       </div>
                       {entry.body ? (
-                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[color:var(--ink-soft)]">
+                        <p className={cn("mt-2 whitespace-pre-wrap text-sm leading-6", eventBodyTone(entry.kind))}>
                           {entry.body}
                         </p>
                       ) : null}
@@ -350,6 +350,31 @@ export function App({ document }: AppProps) {
               ) : (
                 <EmptyState text={i18n.t("workbench.timeline.empty")} />
               )}
+            </div>
+
+            <div className="composer-dock">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <label className="muted-meta" htmlFor="agent-command">
+                  {i18n.t("workbench.composer.label")}
+                </label>
+                <span className="font-mono text-[11px] text-[color:var(--ink-muted)]">
+                  {sessionDefaults.defaultBackendAdapterId} / {sessionDefaults.defaultModelAlias}
+                </span>
+              </div>
+              <textarea
+                id="agent-command"
+                aria-label={i18n.t("workbench.composer.label")}
+                className="composer-input"
+                readOnly
+                value={
+                  runnerMode === "claude-live"
+                    ? "Run a concise geond-agent workbench smoke session. Do not modify files."
+                    : i18n.t("workbench.composer.placeholder")
+                }
+              />
+              <div className="mt-2 flex justify-end">
+                <Button onClick={startSelectedRunner}>{i18n.t("workbench.composer.dispatch")}</Button>
+              </div>
             </div>
           </section>
 
@@ -660,6 +685,15 @@ function eventDotTone(kind: string, status?: string): string {
   }
 
   return "";
+}
+
+function eventBodyTone(kind: string): string {
+  switch (kind) {
+    case "command":
+      return "text-[color:var(--inverse-soft)] font-mono text-xs";
+    default:
+      return "text-[color:var(--ink-soft)]";
+  }
 }
 
 function formatEventTime(value: string): string {
