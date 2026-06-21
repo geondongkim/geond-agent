@@ -16,6 +16,10 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(page.getByRole("heading", { name: "Sessions", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Event timeline", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Inspector", exact: true })).toBeVisible();
+  await expect(page.locator(".workbench-shell")).toHaveCSS("background-color", "rgb(8, 10, 9)");
+  await expect(page.locator(".workbench-frame")).toHaveCSS("background-color", "rgb(13, 17, 16)");
+  await expect(page.locator(".session-rail, .timeline-surface, .inspector-surface")).toHaveCount(3);
+  await page.screenshot({ path: "test-results/workbench-dark-smoke.png" });
   await expect(page.getByLabel("Runner mode")).toContainText("Local fixture");
   await expect(page.getByLabel("Runner mode")).toContainText("Claude Code live");
   await expect(page.getByRole("button", { name: "Choose workspace" })).toBeVisible();
