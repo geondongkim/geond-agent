@@ -69,6 +69,27 @@ pub struct WorkspaceDescriptor {
     path: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionIndexRecord {
+    id: String,
+    lifecycle: String,
+    title: Option<String>,
+    workspace_path: Option<String>,
+    backend_adapter_id: Option<String>,
+    backend_label: Option<String>,
+    provider_route_label: Option<String>,
+    provider_key_missing: bool,
+    capability_warning: Option<String>,
+    external_sessions: Value,
+    pending_approval_ids: Vec<String>,
+    pending_approval_count: usize,
+    warning_count: usize,
+    error_count: usize,
+    updated_at: Option<String>,
+    resumable: bool,
+}
+
 type ProcessHandle = Arc<Mutex<Child>>;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -81,6 +102,7 @@ pub fn run() {
             remove_app_setting,
             append_workbench_events,
             list_workbench_events,
+            list_workbench_sessions,
             delete_workbench_session_events,
             list_workspaces,
             run_claude_code_stream_json,
@@ -133,6 +155,7 @@ fn append_workbench_events(app: AppHandle, events: Vec<Value>) -> Result<usize, 
         statement
             .execute(params![session_id, event_type, event_at, payload])
             .map_err(to_string)?;
+        upsert_session_index_for_event(&connection, &event)?;
         inserted += 1;
     }
 
@@ -165,6 +188,56 @@ fn list_workbench_events(app: AppHandle, session_id: Option<String>) -> Result<V
     rows.into_iter()
         .map(|payload| serde_json::from_str(&payload).map_err(to_string))
         .collect()
+}
+
+#[tauri::command]
+fn list_workbench_sessions(app: AppHandle) -> Result<Vec<SessionIndexRecord>, String> {
+    let connection = open_event_store(&app)?;
+    let mut statement = connection
+        .prepare(
+            "select session_id, lifecycle, title, workspace_path, backend_adapter_id,
+                    backend_label, provider_route_label, provider_key_missing,
+                    capability_warning, external_sessions_json, pending_approval_ids_json,
+                    pending_approval_count, warning_count, error_count, updated_at
+             from workbench_sessions
+             order by coalesce(updated_at, '') desc, coalesce(title, session_id) asc, session_id asc",
+        )
+        .map_err(to_string)?;
+
+    let sessions = statement
+        .query_map([], |row| {
+            let external_sessions_json: String = row.get(9)?;
+            let pending_approval_ids_json: String = row.get(10)?;
+            let external_sessions = serde_json::from_str(&external_sessions_json)
+                .unwrap_or_else(|_| Value::Object(Map::new()));
+            let pending_approval_ids =
+                serde_json::from_str(&pending_approval_ids_json).unwrap_or_else(|_| Vec::new());
+            let lifecycle: String = row.get(1)?;
+            let resumable = is_session_index_record_resumable(&lifecycle, &external_sessions);
+
+            Ok(SessionIndexRecord {
+                id: row.get(0)?,
+                lifecycle,
+                title: row.get(2)?,
+                workspace_path: row.get(3)?,
+                backend_adapter_id: row.get(4)?,
+                backend_label: row.get(5)?,
+                provider_route_label: row.get(6)?,
+                provider_key_missing: row.get::<_, i64>(7)? != 0,
+                capability_warning: row.get(8)?,
+                external_sessions,
+                pending_approval_count: pending_approval_ids.len(),
+                pending_approval_ids,
+                warning_count: row.get::<_, i64>(12)? as usize,
+                error_count: row.get::<_, i64>(13)? as usize,
+                updated_at: row.get(14)?,
+                resumable,
+            })
+        })
+        .map_err(to_string)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(to_string)?;
+    Ok(sessions)
 }
 
 #[tauri::command]
@@ -493,8 +566,7 @@ fn ensure_resume_args(args: &[String]) -> Result<(), String> {
     match value {
         Some(value) if is_safe_session_handle(value) => Ok(()),
         _ => Err(
-            "Claude Code runner requires --resume to be followed by a safe session id."
-                .to_string(),
+            "Claude Code runner requires --resume to be followed by a safe session id.".to_string(),
         ),
     }
 }
@@ -502,9 +574,9 @@ fn ensure_resume_args(args: &[String]) -> Result<(), String> {
 fn is_safe_session_handle(value: &str) -> bool {
     !value.trim().is_empty()
         && !value.starts_with('-')
-        && value
-            .chars()
-            .all(|character| character.is_ascii_alphanumeric() || character == '_' || character == '-')
+        && value.chars().all(|character| {
+            character.is_ascii_alphanumeric() || character == '_' || character == '-'
+        })
 }
 
 fn allowed_local_env(cwd: Option<&Path>) -> Result<BTreeMap<String, String>, String> {
@@ -620,9 +692,29 @@ fn open_event_store(app: &AppHandle) -> Result<Connection, String> {
                 created_at text not null default current_timestamp
             );
             create index if not exists idx_workbench_events_session
-                on workbench_events(session_id, id);",
+                on workbench_events(session_id, id);
+            create table if not exists workbench_sessions (
+                session_id text primary key,
+                lifecycle text not null,
+                title text,
+                workspace_path text,
+                backend_adapter_id text,
+                backend_label text,
+                provider_route_label text,
+                provider_key_missing integer not null default 0,
+                capability_warning text,
+                external_sessions_json text not null default '{}',
+                pending_approval_ids_json text not null default '[]',
+                pending_approval_count integer not null default 0,
+                warning_count integer not null default 0,
+                error_count integer not null default 0,
+                updated_at text
+            );
+            create index if not exists idx_workbench_sessions_updated
+                on workbench_sessions(updated_at);",
         )
         .map_err(to_string)?;
+    backfill_session_index_if_empty(&connection)?;
     Ok(connection)
 }
 
@@ -637,6 +729,301 @@ fn delete_events_for_session(connection: &Connection, session_id: &str) -> Resul
             params![session_id],
         )
         .map_err(to_string)
+        .and_then(|deleted| {
+            if table_exists(connection, "workbench_sessions")? {
+                connection
+                    .execute(
+                        "delete from workbench_sessions where session_id = ?1",
+                        params![session_id],
+                    )
+                    .map_err(to_string)?;
+            }
+            Ok(deleted)
+        })
+}
+
+fn backfill_session_index_if_empty(connection: &Connection) -> Result<(), String> {
+    let session_count: i64 = connection
+        .query_row("select count(*) from workbench_sessions", [], |row| {
+            row.get(0)
+        })
+        .map_err(to_string)?;
+    if session_count > 0 {
+        return Ok(());
+    }
+
+    let mut statement = connection
+        .prepare("select payload_json from workbench_events order by id asc")
+        .map_err(to_string)?;
+    let payloads = statement
+        .query_map([], |row| row.get::<_, String>(0))
+        .map_err(to_string)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(to_string)?;
+
+    for payload in payloads {
+        let event = serde_json::from_str::<Value>(&payload).map_err(to_string)?;
+        upsert_session_index_for_event(connection, &event)?;
+    }
+
+    Ok(())
+}
+
+fn upsert_session_index_for_event(connection: &Connection, event: &Value) -> Result<(), String> {
+    let Some(session_id) = read_string(event, "sessionId") else {
+        return Ok(());
+    };
+    let mut record = read_session_index_record(connection, &session_id)?
+        .unwrap_or_else(|| empty_session_index_record(session_id));
+    apply_event_to_session_index_record(&mut record, event);
+    write_session_index_record(connection, &record)
+}
+
+fn read_session_index_record(
+    connection: &Connection,
+    session_id: &str,
+) -> Result<Option<SessionIndexRecord>, String> {
+    let mut statement = connection
+        .prepare(
+            "select session_id, lifecycle, title, workspace_path, backend_adapter_id,
+                    backend_label, provider_route_label, provider_key_missing,
+                    capability_warning, external_sessions_json, pending_approval_ids_json,
+                    pending_approval_count, warning_count, error_count, updated_at
+             from workbench_sessions where session_id = ?1",
+        )
+        .map_err(to_string)?;
+    let mut rows = statement.query(params![session_id]).map_err(to_string)?;
+    let Some(row) = rows.next().map_err(to_string)? else {
+        return Ok(None);
+    };
+
+    let external_sessions_json: String = row.get(9).map_err(to_string)?;
+    let pending_approval_ids_json: String = row.get(10).map_err(to_string)?;
+    let external_sessions =
+        serde_json::from_str(&external_sessions_json).unwrap_or_else(|_| Value::Object(Map::new()));
+    let pending_approval_ids =
+        serde_json::from_str(&pending_approval_ids_json).unwrap_or_else(|_| Vec::new());
+    let lifecycle: String = row.get(1).map_err(to_string)?;
+    let resumable = is_session_index_record_resumable(&lifecycle, &external_sessions);
+
+    Ok(Some(SessionIndexRecord {
+        id: row.get(0).map_err(to_string)?,
+        lifecycle: lifecycle.clone(),
+        title: row.get(2).map_err(to_string)?,
+        workspace_path: row.get(3).map_err(to_string)?,
+        backend_adapter_id: row.get(4).map_err(to_string)?,
+        backend_label: row.get(5).map_err(to_string)?,
+        provider_route_label: row.get(6).map_err(to_string)?,
+        provider_key_missing: row.get::<_, i64>(7).map_err(to_string)? != 0,
+        capability_warning: row.get(8).map_err(to_string)?,
+        external_sessions,
+        pending_approval_count: pending_approval_ids.len(),
+        pending_approval_ids,
+        warning_count: row.get::<_, i64>(12).map_err(to_string)? as usize,
+        error_count: row.get::<_, i64>(13).map_err(to_string)? as usize,
+        updated_at: row.get(14).map_err(to_string)?,
+        resumable,
+    }))
+}
+
+fn write_session_index_record(
+    connection: &Connection,
+    record: &SessionIndexRecord,
+) -> Result<(), String> {
+    let external_sessions_json =
+        serde_json::to_string(&record.external_sessions).map_err(to_string)?;
+    let pending_approval_ids_json =
+        serde_json::to_string(&record.pending_approval_ids).map_err(to_string)?;
+
+    connection
+        .execute(
+            "insert into workbench_sessions (
+                session_id, lifecycle, title, workspace_path, backend_adapter_id,
+                backend_label, provider_route_label, provider_key_missing,
+                capability_warning, external_sessions_json, pending_approval_ids_json,
+                pending_approval_count, warning_count, error_count, updated_at
+             ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
+             on conflict(session_id) do update set
+                lifecycle = excluded.lifecycle,
+                title = excluded.title,
+                workspace_path = excluded.workspace_path,
+                backend_adapter_id = excluded.backend_adapter_id,
+                backend_label = excluded.backend_label,
+                provider_route_label = excluded.provider_route_label,
+                provider_key_missing = excluded.provider_key_missing,
+                capability_warning = excluded.capability_warning,
+                external_sessions_json = excluded.external_sessions_json,
+                pending_approval_ids_json = excluded.pending_approval_ids_json,
+                pending_approval_count = excluded.pending_approval_count,
+                warning_count = excluded.warning_count,
+                error_count = excluded.error_count,
+                updated_at = excluded.updated_at",
+            params![
+                record.id.as_str(),
+                record.lifecycle.as_str(),
+                record.title.as_deref(),
+                record.workspace_path.as_deref(),
+                record.backend_adapter_id.as_deref(),
+                record.backend_label.as_deref(),
+                record.provider_route_label.as_deref(),
+                if record.provider_key_missing { 1 } else { 0 },
+                record.capability_warning.as_deref(),
+                external_sessions_json,
+                pending_approval_ids_json,
+                record.pending_approval_ids.len() as i64,
+                record.warning_count as i64,
+                record.error_count as i64,
+                record.updated_at.as_deref(),
+            ],
+        )
+        .map_err(to_string)?;
+    Ok(())
+}
+
+fn empty_session_index_record(session_id: String) -> SessionIndexRecord {
+    SessionIndexRecord {
+        id: session_id,
+        lifecycle: "created".to_string(),
+        title: None,
+        workspace_path: None,
+        backend_adapter_id: None,
+        backend_label: None,
+        provider_route_label: None,
+        provider_key_missing: false,
+        capability_warning: None,
+        external_sessions: Value::Object(Map::new()),
+        pending_approval_ids: Vec::new(),
+        pending_approval_count: 0,
+        warning_count: 0,
+        error_count: 0,
+        updated_at: None,
+        resumable: false,
+    }
+}
+
+fn apply_event_to_session_index_record(record: &mut SessionIndexRecord, event: &Value) {
+    let event_type = read_string(event, "type").unwrap_or_default();
+    let at = read_string(event, "at");
+
+    match event_type.as_str() {
+        "session.lifecycle" => {
+            if let Some(lifecycle) = read_string(event, "lifecycle") {
+                record.lifecycle = lifecycle;
+            }
+            record.title = read_string(event, "title").or_else(|| record.title.clone());
+            record.workspace_path =
+                read_string(event, "workspacePath").or_else(|| record.workspace_path.clone());
+            apply_selection_to_session_index_record(record, event.get("selection"));
+        }
+        "selection.snapshot.updated" => {
+            apply_selection_to_session_index_record(record, event.get("selection"));
+        }
+        "session.adapter.linked" => {
+            if let (Some(adapter_id), Some(external_session_id)) = (
+                read_string(event, "adapterId"),
+                read_string(event, "externalSessionId"),
+            ) {
+                let mut external_sessions = record
+                    .external_sessions
+                    .as_object()
+                    .cloned()
+                    .unwrap_or_default();
+                let mut value = Map::new();
+                value.insert("adapterId".to_string(), Value::String(adapter_id.clone()));
+                value.insert(
+                    "externalSessionId".to_string(),
+                    Value::String(external_session_id),
+                );
+                if let Some(resumed) = read_string(event, "resumedFromExternalSessionId") {
+                    value.insert(
+                        "resumedFromExternalSessionId".to_string(),
+                        Value::String(resumed),
+                    );
+                }
+                if let Some(linked_at) = read_string(event, "at") {
+                    value.insert("linkedAt".to_string(), Value::String(linked_at));
+                }
+                external_sessions.insert(adapter_id, Value::Object(value));
+                record.external_sessions = Value::Object(external_sessions);
+            }
+        }
+        "approval.requested" => {
+            if let Some(approval_id) = event
+                .get("approval")
+                .and_then(|approval| read_string(approval, "id"))
+            {
+                if !record.pending_approval_ids.contains(&approval_id) {
+                    record.pending_approval_ids.push(approval_id);
+                }
+            }
+        }
+        "approval.resolved" => {
+            if let Some(approval_id) = read_string(event, "approvalId") {
+                record.pending_approval_ids.retain(|id| id != &approval_id);
+            }
+        }
+        "warning" => {
+            record.warning_count += 1;
+        }
+        "error" => {
+            record.error_count += 1;
+        }
+        _ => {}
+    }
+
+    record.pending_approval_count = record.pending_approval_ids.len();
+    record.updated_at = at.or_else(|| record.updated_at.clone());
+}
+
+fn apply_selection_to_session_index_record(
+    record: &mut SessionIndexRecord,
+    selection: Option<&Value>,
+) {
+    let Some(selection) = selection else {
+        return;
+    };
+
+    record.backend_adapter_id =
+        read_string(selection, "backendAdapterId").or_else(|| record.backend_adapter_id.clone());
+    record.backend_label = selection
+        .get("backendAdapter")
+        .and_then(|backend| read_string(backend, "label"))
+        .or_else(|| record.backend_label.clone());
+    record.provider_route_label = selection
+        .get("providerRoute")
+        .and_then(|provider| read_string(provider, "label"))
+        .or_else(|| record.provider_route_label.clone());
+    record.provider_key_missing = selection
+        .get("providerRoute")
+        .and_then(|provider| read_string(provider, "apiKeyState"))
+        .map(|state| state == "missing")
+        .unwrap_or(record.provider_key_missing);
+    record.capability_warning = selection
+        .get("capabilityWarnings")
+        .and_then(Value::as_array)
+        .and_then(|warnings| warnings.first())
+        .and_then(Value::as_str)
+        .map(ToString::to_string)
+        .or_else(|| record.capability_warning.clone());
+}
+
+fn table_exists(connection: &Connection, table_name: &str) -> Result<bool, String> {
+    connection
+        .query_row(
+            "select exists(select 1 from sqlite_master where type = 'table' and name = ?1)",
+            params![table_name],
+            |row| row.get::<_, i64>(0),
+        )
+        .map(|value| value != 0)
+        .map_err(to_string)
+}
+
+fn is_session_index_record_resumable(lifecycle: &str, external_sessions: &Value) -> bool {
+    external_sessions
+        .as_object()
+        .map(|object| !object.is_empty())
+        .unwrap_or(false)
+        && matches!(lifecycle, "completed" | "failed" | "paused")
 }
 
 fn app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
@@ -809,6 +1196,122 @@ mod tests {
     }
 
     #[test]
+    fn upserts_session_index_from_workbench_events() {
+        let connection = create_index_test_connection();
+        let start = serde_json::json!({
+            "type": "session.lifecycle",
+            "sessionId": "session-a",
+            "lifecycle": "started",
+            "title": "Session A",
+            "workspacePath": "/workspace/geond-agent",
+            "selection": {
+                "backendAdapterId": "claude-code.external-cli-acp",
+                "backendAdapter": { "label": "Claude Code external CLI/ACP candidate" },
+                "providerRoute": {
+                    "label": "Z.ai Anthropic-compatible route",
+                    "apiKeyState": "missing"
+                },
+                "capabilityWarnings": ["Z.ai route key metadata is missing"]
+            },
+            "at": "2026-06-22T01:00:00.000Z"
+        });
+        let linked = serde_json::json!({
+            "type": "session.adapter.linked",
+            "sessionId": "session-a",
+            "adapterId": "claude-code.external-cli-acp",
+            "externalSessionId": "claude-session-a",
+            "at": "2026-06-22T01:00:01.000Z"
+        });
+        let approval = serde_json::json!({
+            "type": "approval.requested",
+            "sessionId": "session-a",
+            "approval": { "id": "approval-a" },
+            "at": "2026-06-22T01:00:02.000Z"
+        });
+        let resolved = serde_json::json!({
+            "type": "approval.resolved",
+            "sessionId": "session-a",
+            "approvalId": "approval-a",
+            "decision": "approved",
+            "at": "2026-06-22T01:00:03.000Z"
+        });
+        let completed = serde_json::json!({
+            "type": "session.lifecycle",
+            "sessionId": "session-a",
+            "lifecycle": "completed",
+            "at": "2026-06-22T01:00:04.000Z"
+        });
+
+        for event in [&start, &linked, &approval, &resolved, &completed] {
+            upsert_session_index_for_event(&connection, event).expect("upsert index event");
+        }
+
+        let record = read_session_index_record(&connection, "session-a")
+            .expect("read index")
+            .expect("session-a index row");
+
+        assert_eq!(record.lifecycle, "completed");
+        assert_eq!(record.title.as_deref(), Some("Session A"));
+        assert_eq!(
+            record.backend_label.as_deref(),
+            Some("Claude Code external CLI/ACP candidate")
+        );
+        assert!(record.provider_key_missing);
+        assert_eq!(record.pending_approval_count, 0);
+        assert!(record.resumable);
+    }
+
+    #[test]
+    fn backfills_session_index_from_existing_events() {
+        let connection = create_index_test_connection();
+        let start = serde_json::json!({
+            "type": "session.lifecycle",
+            "sessionId": "session-backfill",
+            "lifecycle": "started",
+            "title": "Backfill session",
+            "at": "2026-06-22T02:00:00.000Z"
+        });
+        let warning = serde_json::json!({
+            "type": "warning",
+            "sessionId": "session-backfill",
+            "id": "warning-backfill",
+            "message": "Synthetic warning",
+            "at": "2026-06-22T02:00:01.000Z"
+        });
+
+        for event in [start, warning] {
+            connection
+                .execute(
+                    "insert into workbench_events (session_id, event_type, event_at, payload_json)
+                     values (?1, ?2, ?3, ?4)",
+                    params![
+                        read_string(&event, "sessionId").expect("session id"),
+                        read_string(&event, "type").expect("event type"),
+                        read_string(&event, "at"),
+                        serde_json::to_string(&event).expect("serialize event")
+                    ],
+                )
+                .expect("insert event");
+        }
+
+        backfill_session_index_if_empty(&connection).expect("backfill index");
+        backfill_session_index_if_empty(&connection).expect("idempotent backfill");
+
+        let record = read_session_index_record(&connection, "session-backfill")
+            .expect("read index")
+            .expect("session-backfill index row");
+        let row_count: i64 = connection
+            .query_row("select count(*) from workbench_sessions", [], |row| {
+                row.get(0)
+            })
+            .expect("count session rows");
+
+        assert_eq!(record.title.as_deref(), Some("Backfill session"));
+        assert_eq!(record.warning_count, 1);
+        assert_eq!(row_count, 1);
+    }
+
+    #[test]
     fn maps_allowed_local_env_without_empty_values() {
         let root = env::temp_dir().join(format!("geond-agent-env-test-{}", std::process::id()));
         fs::create_dir_all(&root).expect("create temp env dir");
@@ -906,5 +1409,39 @@ mod tests {
             trim_line_ending("  {\"type\":\"assistant\"}  \n"),
             "  {\"type\":\"assistant\"}  "
         );
+    }
+
+    fn create_index_test_connection() -> Connection {
+        let connection = Connection::open_in_memory().expect("open in-memory sqlite");
+        connection
+            .execute_batch(
+                "create table workbench_events (
+                    id integer primary key autoincrement,
+                    session_id text not null,
+                    event_type text not null,
+                    event_at text,
+                    payload_json text not null,
+                    created_at text not null default current_timestamp
+                );
+                create table workbench_sessions (
+                    session_id text primary key,
+                    lifecycle text not null,
+                    title text,
+                    workspace_path text,
+                    backend_adapter_id text,
+                    backend_label text,
+                    provider_route_label text,
+                    provider_key_missing integer not null default 0,
+                    capability_warning text,
+                    external_sessions_json text not null default '{}',
+                    pending_approval_ids_json text not null default '[]',
+                    pending_approval_count integer not null default 0,
+                    warning_count integer not null default 0,
+                    error_count integer not null default 0,
+                    updated_at text
+                );",
+            )
+            .expect("create event/index tables");
+        connection
     }
 }

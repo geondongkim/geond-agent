@@ -49,8 +49,8 @@ export const DEFAULT_WORKBENCH_PERSISTENCE_BOUNDARY: WorkbenchPersistenceBoundar
   storesSecrets: false,
   storesRawLogs: false,
   notes: [
-    "TODO: wire SQLite persistence through Tauri commands after the event schema stabilizes.",
-    "Compact normalized events may be stored later, but secret values and raw Claude logs stay out of tracked persistence."
+    "Tauri stores non-secret preferences in app-data JSON and normalized workbench events in SQLite.",
+    "A durable session index may be materialized from events, but secret values and raw Claude logs stay out of tracked persistence."
   ]
 };
 
