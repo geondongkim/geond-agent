@@ -4,7 +4,7 @@ import { cn } from "../../lib/cn.js";
 
 const buttonVariants = {
   solid:
-    "bg-[color:var(--accent-strong)] text-[color:var(--ink)] shadow-[0_14px_30px_rgba(10,58,51,0.28)] hover:bg-[color:var(--accent)]",
+    "bg-[color:var(--accent-strong)] text-[color:var(--accent-ink)] shadow-[0_14px_30px_rgba(10,58,51,0.28)] hover:bg-[color:var(--accent)]",
   ghost:
     "bg-transparent text-[color:var(--ink-muted)] hover:bg-[color:var(--panel-muted)] hover:text-[color:var(--ink)]",
   outline:

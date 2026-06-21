@@ -3,23 +3,24 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
-  --shell: #101211;
-  --shell-raised: #171a18;
-  --rail: #121513;
-  --rail-raised: #1a1f1c;
-  --panel: #fbfcfb;
-  --panel-muted: #f1f4f2;
-  --panel-raised: #ffffff;
-  --border: rgba(18, 24, 22, 0.12);
-  --border-strong: rgba(18, 24, 22, 0.24);
-  --ink: #111614;
-  --ink-soft: #4e5a55;
-  --ink-muted: #717c77;
+  color-scheme: dark;
+  --shell: #080a09;
+  --shell-raised: #0d1110;
+  --rail: #0a0d0c;
+  --rail-raised: #121715;
+  --panel: #111614;
+  --panel-muted: #171d1a;
+  --panel-raised: #1b221f;
+  --border: rgba(218, 238, 228, 0.12);
+  --border-strong: rgba(218, 238, 228, 0.24);
+  --ink: #eef6f1;
+  --ink-soft: #b9c9c1;
+  --ink-muted: #81918a;
   --inverse: #eef5f0;
   --inverse-soft: #aebbb4;
-  --accent: #3fd0a4;
-  --accent-strong: #20b88c;
+  --accent: #43d6aa;
+  --accent-strong: #6ee8c2;
+  --accent-ink: #071511;
   --warning: #f2bd3d;
   --danger: #e75f6a;
   --info: #6ca6ff;
@@ -78,7 +79,7 @@ body {
   }
 
   .workbench-grid {
-    @apply grid min-h-0 grid-cols-1 bg-[color:var(--panel)] lg:grid-cols-[278px_minmax(0,1fr)] xl:grid-cols-[282px_minmax(0,1fr)_390px];
+    @apply grid min-h-0 grid-cols-1 bg-[color:var(--shell-raised)] lg:grid-cols-[278px_minmax(0,1fr)] xl:grid-cols-[282px_minmax(0,1fr)_390px];
   }
 
   .session-rail {
@@ -86,11 +87,11 @@ body {
   }
 
   .timeline-surface {
-    @apply flex min-h-0 flex-col border-r border-[color:var(--border)] bg-[color:var(--panel)] px-5 py-4;
+    @apply flex min-h-0 flex-col border-r border-[color:var(--border)] bg-[color:var(--panel)] px-5 py-4 text-[color:var(--ink)];
   }
 
   .inspector-surface {
-    @apply flex min-h-0 flex-col overflow-auto bg-[#ecefeb] p-3;
+    @apply flex min-h-0 flex-col overflow-auto bg-[color:var(--shell-raised)] p-3 text-[color:var(--ink)];
   }
 
   .panel-surface {
@@ -122,7 +123,7 @@ body {
   }
 
   .status-warn {
-    @apply bg-[rgba(242,189,61,0.18)] text-[#9b6f00];
+    @apply bg-[rgba(242,189,61,0.16)] text-[color:var(--warning)];
   }
 
   .status-danger {
@@ -130,7 +131,7 @@ body {
   }
 
   .status-neutral {
-    @apply bg-black/5 text-[color:var(--ink-soft)];
+    @apply bg-white/10 text-[color:var(--ink-soft)];
   }
 
   .rail-card {
@@ -166,11 +167,11 @@ body {
   }
 
   .event-card-command {
-    @apply my-3 rounded-md border border-black/20 bg-[color:var(--shell-raised)] px-3 py-3 text-[color:var(--inverse)];
+    @apply my-3 rounded-md border border-[rgba(108,166,255,0.28)] bg-[#0b1117] px-3 py-3 text-[color:var(--inverse)];
   }
 
   .event-card-warning {
-    @apply my-2 rounded-md border border-[rgba(242,189,61,0.45)] bg-[rgba(242,189,61,0.1)] px-3 py-3;
+    @apply my-2 rounded-md border border-[rgba(242,189,61,0.45)] bg-[rgba(242,189,61,0.1)] px-3 py-3 text-[color:var(--ink)];
   }
 
   .event-rail {
@@ -198,7 +199,7 @@ body {
   }
 
   .terminal-card {
-    @apply rounded-md border border-black/30 bg-[#0d100f] p-3 text-[color:var(--inverse)];
+    @apply rounded-md border border-white/10 bg-[#070908] p-3 text-[color:var(--inverse)];
   }
 
   .settings-field {
@@ -219,7 +220,7 @@ body {
   }
 
   .composer-dock {
-    @apply mt-3 rounded-lg border border-[color:var(--border-strong)] bg-[color:var(--panel-raised)] p-3 shadow-[0_-10px_30px_rgba(18,24,22,0.06)];
+    @apply mt-3 rounded-lg border border-[color:var(--border-strong)] bg-[color:var(--panel-raised)] p-3 shadow-[0_-18px_42px_rgba(0,0,0,0.28)];
   }
 
   .composer-input {
