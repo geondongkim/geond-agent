@@ -6,6 +6,8 @@ build/
 .next/
 .vite/
 coverage/
+test-results/
+playwright-report/
 *.log
 *.tsbuildinfo
 .playwright-cli/

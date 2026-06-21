@@ -6,8 +6,8 @@ export const desktopPersistenceBoundary: WorkbenchPersistenceBoundary = {
   storesSecrets: false,
   storesRawLogs: false,
   notes: [
-    "Settings use a renderer localStorage fallback in dev and should converge to Tauri app-data JSON.",
-    "TODO: keep SQLite behind a typed Tauri boundary until event storage settles.",
-    "This slice persists non-secret preferences only and does not store provider secrets or raw Claude logs."
+    "Settings use Tauri app-data JSON when native commands are available, with a renderer localStorage fallback in dev.",
+    "SQLite stores normalized workbench events through a Tauri command boundary.",
+    "This slice persists non-secret preferences and normalized events only; provider secrets and raw Claude logs are not stored."
   ]
 };

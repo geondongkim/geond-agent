@@ -6,7 +6,7 @@ import {
   type WorkbenchSessionDefaults
 } from "@geond-agent/ui-workbench";
 
-import type { DesktopDemoDocument } from "./demo-workbench.js";
+import type { DesktopDemoDocument, DesktopRunnerMode } from "./demo-workbench.js";
 import { Button } from "./components/ui/button.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs.js";
 import { cn } from "./lib/cn.js";
@@ -31,12 +31,6 @@ const uiLanguageOptions = [
   { value: "ko", label: "한국어" }
 ] as const;
 
-const agentLanguageOptions = [
-  { value: "system", label: "System" },
-  { value: "en", label: "English" },
-  { value: "ko", label: "한국어" }
-] as const;
-
 const backendOptions = [
   { value: "claude-code.external-cli-acp", label: "Claude Code external CLI/ACP" }
 ] as const;
@@ -53,11 +47,6 @@ const modelAliasOptions = [
   { value: "auto", label: "auto" }
 ] as const;
 
-const routingModeOptions = [
-  { value: "manual", label: "Manual" },
-  { value: "auto", label: "Auto" }
-] as const;
-
 interface AppProps {
   readonly document: DesktopDemoDocument;
 }
@@ -71,16 +60,38 @@ export function App({ document }: AppProps) {
   );
   const [sessionDefaults, setSessionDefaults] = useState(document.sessionDefaults);
   const [workspacePath, setWorkspacePath] = useState(
-    document.initialControllerSnapshot.projection.workspaces[0]?.path ?? "__all__"
+    document.activeWorkspace.path
   );
   const [inspectorTab, setInspectorTab] = useState("diff");
-  const [runnerStatus, setRunnerStatus] = useState("Fixture runner ready.");
+  const [runnerStatus, setRunnerStatus] = useState("");
+  const [runnerMode, setRunnerMode] = useState<DesktopRunnerMode>("fixture");
   const [ignoredRecordCount, setIgnoredRecordCount] = useState(document.ignoredRecordCount);
 
   const i18n = runtimeSnapshot.i18n;
   const settingsLabels = useMemo(() => createWorkbenchSettingsLabels(i18n), [i18n]);
+  const agentLanguageOptions = useMemo(
+    () => [
+      { value: "system", label: i18n.t("workbench.language.system") },
+      { value: "en", label: "English" },
+      { value: "ko", label: "한국어" }
+    ],
+    [i18n]
+  );
+  const routingModeOptions = useMemo(
+    () => [
+      { value: "manual", label: i18n.t("workbench.selection.manual") },
+      { value: "auto", label: i18n.t("workbench.selection.auto") }
+    ],
+    [i18n]
+  );
   const projection = controllerSnapshot.projection;
   const activeSession = projection.activeSession;
+  const workspaceOptions = useMemo(() => {
+    const options = new Map<string, { readonly label: string; readonly path: string }>();
+    document.workspaces.forEach((workspace) => options.set(workspace.path, workspace));
+    projection.workspaces.forEach((workspace) => options.set(workspace.path, workspace));
+    return [...options.values()];
+  }, [document.workspaces, projection.workspaces]);
   const filteredSessions = useMemo(() => {
     if (workspacePath === "__all__") {
       return projection.recentSessions;
@@ -93,28 +104,53 @@ export function App({ document }: AppProps) {
     setControllerSnapshot(document.controller.selectSession(sessionId));
   };
 
-  const startDemoSession = async () => {
+  const startSession = async (mode: DesktopRunnerMode) => {
     const nextIndex = controllerSnapshot.events.length + 1;
     const sessionId = `local-session-${Date.now()}`;
     const title = `Local demo session ${projection.sessions.length + 1}`;
-    setRunnerStatus("Starting local fixture runner...");
-    const result = await document.runner.run(
-      document.createRunnerRequest({
-        sessionId,
-        title,
-        prompt: "Run a local fixture-backed workbench session without a paid provider call.",
-        languageSettings: runtimeSnapshot.languageSettings,
-        sessionDefaults
-      })
+    const selectedWorkspacePath =
+      workspacePath === "__all__" ? document.activeWorkspace.path : workspacePath;
+    setRunnerStatus(
+      mode === "claude-live"
+        ? i18n.t("workbench.runner.startingClaude")
+        : i18n.t("workbench.runner.startingFixture")
     );
 
-    setIgnoredRecordCount(result.ignoredRecords.length);
-    setControllerSnapshot(
-      document.controller.appendEvents(result.events, { activateSessionId: sessionId })
-    );
-    setRunnerStatus(
-      `Appended ${result.events.length} events from ${result.command.executable} stream-json fixture run #${nextIndex}.`
-    );
+    try {
+      const result = await document.runSession(
+        mode,
+        document.createRunnerRequest({
+          sessionId,
+          title,
+          prompt: mode === "claude-live"
+            ? "Run a concise geond-agent workbench smoke session. Do not modify files."
+            : "Run a local fixture-backed workbench session without a paid provider call.",
+          languageSettings: runtimeSnapshot.languageSettings,
+          sessionDefaults,
+          workspacePath: selectedWorkspacePath
+        })
+      );
+
+      await document.eventStore.append(result.events);
+      setIgnoredRecordCount(result.ignoredRecords.length);
+      setControllerSnapshot(
+        document.controller.appendEvents(result.events, { activateSessionId: sessionId })
+      );
+      setRunnerStatus(
+        formatMessage(i18n.t("workbench.runner.appendedEvents"), {
+          count: result.events.length,
+          executable: result.command.executable,
+          index: nextIndex,
+          mode
+        })
+      );
+    } catch (error) {
+      setRunnerStatus(error instanceof Error ? error.message : i18n.t("workbench.runner.failed"));
+    }
+  };
+
+  const startSelectedRunner = () => {
+    void startSession(runnerMode);
   };
 
   const updateUiLanguage = async (language: string) => {
@@ -142,19 +178,35 @@ export function App({ document }: AppProps) {
           <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(108,224,199,0.85),transparent)]" />
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-2">
-              <p className="eyebrow">geond-agent workbench</p>
-              <h1 className="text-3xl font-semibold">Desktop UI first slice</h1>
+              <p className="eyebrow">{i18n.t("workbench.shell.eyebrow")}</p>
+              <h1 className="text-3xl font-semibold">{i18n.t("workbench.shell.title")}</h1>
               <p className="max-w-3xl text-sm leading-6 text-[color:var(--ink-soft)]">
-                Interactive local workbench with session selection, fixture runner events, persisted
-                settings, and Claude Code stream-json boundaries.
+                {i18n.t("workbench.shell.subtitle")}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={() => void startDemoSession()}>New demo session</Button>
-              <Button variant="outline" onClick={() => setInspectorTab("settings")}>
-                Settings
+              <label className="flex items-center gap-2 rounded-md border border-[color:var(--border)] bg-[color:var(--panel-muted)] px-3 py-2 text-sm">
+                <span className="muted-meta">{i18n.t("workbench.runner.mode")}</span>
+                <select
+                  value={runnerMode}
+                  onChange={(event) => setRunnerMode(event.target.value as DesktopRunnerMode)}
+                  className="rounded-md border border-[color:var(--border-strong)] bg-[color:var(--panel)] px-2 py-1 text-sm outline-none"
+                >
+                  <option value="fixture">{i18n.t("workbench.runner.fixture")}</option>
+                  <option value="claude-live">{i18n.t("workbench.runner.claudeLive")}</option>
+                </select>
+              </label>
+              <Button onClick={startSelectedRunner}>
+                {runnerMode === "claude-live"
+                  ? i18n.t("workbench.actions.runClaudeSession")
+                  : i18n.t("workbench.actions.newDemoSession")}
               </Button>
-              <Button variant="ghost">{runnerStatus}</Button>
+              <Button variant="outline" onClick={() => setInspectorTab("settings")}>
+                {i18n.t("workbench.actions.settings")}
+              </Button>
+              <Button variant="ghost">
+                {runnerStatus || i18n.t("workbench.runner.fixtureReady")}
+              </Button>
             </div>
           </div>
         </header>
@@ -164,7 +216,9 @@ export function App({ document }: AppProps) {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h2 className="panel-title">{i18n.t("workbench.sessionSidebar.title")}</h2>
-                <span className="muted-meta">{projection.sessions.length} total</span>
+                <span className="muted-meta">
+                  {projection.sessions.length} {i18n.t("workbench.status.total")}
+                </span>
               </div>
 
               <div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--panel-muted)] p-3">
@@ -177,10 +231,10 @@ export function App({ document }: AppProps) {
                   onChange={(event) => setWorkspacePath(event.target.value)}
                   className="mt-2 w-full rounded-md border border-[color:var(--border-strong)] bg-[color:var(--panel)] px-3 py-2 text-sm outline-none"
                 >
-                  <option value="__all__">All workspaces</option>
-                  {projection.workspaces.map((workspace) => (
+                  <option value="__all__">{i18n.t("workbench.workspace.all")}</option>
+                  {workspaceOptions.map((workspace) => (
                     <option key={workspace.path} value={workspace.path}>
-                      {workspace.label} ({workspace.sessionCount})
+                      {workspace.label}
                     </option>
                   ))}
                 </select>
@@ -191,12 +245,14 @@ export function App({ document }: AppProps) {
               activeSessionId={activeSession?.id}
               title={i18n.t("workbench.sessionSidebar.pinned")}
               sessions={projection.pinnedSessions}
+              i18n={i18n}
               onSelect={selectSession}
             />
             <SessionList
               activeSessionId={activeSession?.id}
               title={i18n.t("workbench.sessionSidebar.recent")}
               sessions={filteredSessions}
+              i18n={i18n}
               onSelect={selectSession}
             />
 
@@ -213,7 +269,7 @@ export function App({ document }: AppProps) {
                         <p className="mt-1 text-xs leading-5 text-[color:var(--ink-soft)]">{status.detail}</p>
                       </div>
                       <span className={cn("rounded-md px-2.5 py-1 text-[10px] font-bold uppercase", backendTone[status.level])}>
-                        {status.level}
+                        {formatStatusLabel(i18n, status.level)}
                       </span>
                     </div>
                   </div>
@@ -233,7 +289,7 @@ export function App({ document }: AppProps) {
                 </div>
                 {activeSession ? (
                   <span className={cn("rounded-md px-3 py-1 text-[10px] font-bold uppercase", lifecycleTone[activeSession.lifecycle])}>
-                    {activeSession.lifecycle}
+                    {formatStatusLabel(i18n, activeSession.lifecycle)}
                   </span>
                 ) : null}
               </div>
@@ -242,7 +298,7 @@ export function App({ document }: AppProps) {
                 <div className="grid gap-2 md:grid-cols-3">
                   {activeSession.plan.map((item) => (
                     <div key={item.id} className="rounded-lg border border-[color:var(--border)] bg-[color:var(--panel-muted)] p-3">
-                      <p className="muted-meta">{item.status}</p>
+                      <p className="muted-meta">{formatStatusLabel(i18n, item.status)}</p>
                       <p className="mt-1 text-sm font-medium">{item.title}</p>
                     </div>
                   ))}
@@ -260,7 +316,7 @@ export function App({ document }: AppProps) {
                         <h3 className="text-sm font-semibold">{entry.title}</h3>
                       </div>
                       <div className="text-right">
-                        {entry.status ? <p className="muted-meta">{entry.status}</p> : null}
+                        {entry.status ? <p className="muted-meta">{formatStatusLabel(i18n, entry.status)}</p> : null}
                         {entry.at ? <p className="text-[11px] text-[color:var(--ink-soft)]">{entry.at}</p> : null}
                       </div>
                     </div>
@@ -313,7 +369,7 @@ export function App({ document }: AppProps) {
                     ))}
                   </div>
                 ) : (
-                  <EmptyState text="No diff events in the active session." />
+                  <EmptyState text={i18n.t("workbench.empty.diff")} />
                 )}
               </TabsContent>
 
@@ -336,7 +392,7 @@ export function App({ document }: AppProps) {
                     ))}
                   </div>
                 ) : (
-                  <EmptyState text="No command output projected yet." />
+                  <EmptyState text={i18n.t("workbench.empty.terminal")} />
                 )}
               </TabsContent>
 
@@ -361,7 +417,7 @@ export function App({ document }: AppProps) {
                     ))}
                   </div>
                 ) : (
-                  <EmptyState text="No approval queue for the active session." />
+                  <EmptyState text={i18n.t("workbench.empty.approvals")} />
                 )}
               </TabsContent>
 
@@ -424,15 +480,15 @@ export function App({ document }: AppProps) {
                     />
                     <SettingsRow
                       label={i18n.t("workbench.selection.provider")}
-                      value={activeSession.selection.providerRoute?.label ?? activeSession.selection.providerRouteId ?? "n/a"}
+                      value={activeSession.selection.providerRoute?.label ?? activeSession.selection.providerRouteId ?? i18n.t("workbench.status.unknown")}
                     />
                     <SettingsRow
                       label={i18n.t("workbench.selection.model")}
-                      value={activeSession.selection.modelProfile?.label ?? activeSession.selection.modelProfileId ?? "n/a"}
+                      value={activeSession.selection.modelProfile?.label ?? activeSession.selection.modelProfileId ?? i18n.t("workbench.status.unknown")}
                     />
                     <SettingsRow
                       label={i18n.t("workbench.selection.routingMode")}
-                      value={activeSession.selection.routingMode}
+                      value={formatRoutingModeLabel(i18n, activeSession.selection.routingMode)}
                     />
                     <SettingsRow
                       label={i18n.t("workbench.selection.uiLanguage")}
@@ -441,8 +497,11 @@ export function App({ document }: AppProps) {
                     <SettingsRow
                       label={i18n.t("workbench.selection.agentLanguage")}
                       value={
-                        activeSession.selection.agentResponseLanguage ??
-                        runtimeSnapshot.languageSettings.agentResponseLanguage
+                        formatAgentLanguageLabel(
+                          i18n,
+                          activeSession.selection.agentResponseLanguage ??
+                            runtimeSnapshot.languageSettings.agentResponseLanguage
+                        )
                       }
                     />
                     <SettingsRow
@@ -452,11 +511,13 @@ export function App({ document }: AppProps) {
                           ? activeSession.selection.capabilityWarnings.join(" | ")
                           : `${document.bridgeCommand || "claude"} --bare -p --verbose --output-format stream-json`
                       }
-                      detail={`Ignored sanitized records: ${ignoredRecordCount}`}
+                      detail={formatMessage(i18n.t("workbench.selection.ignoredSanitizedRecords"), {
+                        count: ignoredRecordCount
+                      })}
                     />
                   </div>
                 ) : (
-                  <EmptyState text="No selection snapshot on the active session." />
+                  <EmptyState text={i18n.t("workbench.empty.selection")} />
                 )}
               </TabsContent>
             </Tabs>
@@ -467,13 +528,90 @@ export function App({ document }: AppProps) {
   );
 }
 
+function formatMessage(
+  template: string,
+  values: Readonly<Record<string, string | number>>
+): string {
+  return Object.entries(values).reduce(
+    (message, [key, value]) => message.replaceAll(`{${key}}`, String(value)),
+    template
+  );
+}
+
+function formatAgentLanguageLabel(
+  i18n: WorkbenchRuntimeSnapshot["i18n"],
+  language: string
+): string {
+  switch (language) {
+    case "system":
+      return i18n.t("workbench.language.system");
+    case "ko":
+      return "한국어";
+    case "en":
+      return "English";
+    default:
+      return language;
+  }
+}
+
+function formatRoutingModeLabel(
+  i18n: WorkbenchRuntimeSnapshot["i18n"],
+  mode: string | undefined
+): string {
+  switch (mode) {
+    case "manual":
+      return i18n.t("workbench.selection.manual");
+    case "auto":
+      return i18n.t("workbench.selection.auto");
+    default:
+      return mode ?? i18n.t("workbench.status.unknown");
+  }
+}
+
+function formatStatusLabel(
+  i18n: WorkbenchRuntimeSnapshot["i18n"],
+  status: string
+): string {
+  switch (status) {
+    case "created":
+      return i18n.t("workbench.status.created");
+    case "resumed":
+      return i18n.t("workbench.status.resumed");
+    case "paused":
+      return i18n.t("workbench.status.paused");
+    case "completed":
+      return i18n.t("workbench.status.completed");
+    case "started":
+      return i18n.t("workbench.status.started");
+    case "ready":
+      return i18n.t("workbench.status.ready");
+    case "attention":
+      return i18n.t("workbench.status.attention");
+    case "running":
+    case "in_progress":
+      return i18n.t("workbench.status.running");
+    case "succeeded":
+    case "approved":
+      return i18n.t("workbench.status.succeeded");
+    case "pending":
+      return i18n.t("workbench.status.pending");
+    case "failed":
+    case "rejected":
+      return i18n.t("workbench.status.failed");
+    default:
+      return status;
+  }
+}
+
 function SessionList({
   activeSessionId,
+  i18n,
   onSelect,
   sessions,
   title
 }: {
   readonly activeSessionId?: string;
+  readonly i18n: WorkbenchRuntimeSnapshot["i18n"];
   readonly onSelect: (sessionId: string) => void;
   readonly sessions: readonly DesktopDemoDocument["initialControllerSnapshot"]["projection"]["sessions"][number][];
   readonly title: string;
@@ -490,6 +628,7 @@ function SessionList({
             key={session.id}
             session={session}
             active={session.id === activeSessionId}
+            i18n={i18n}
             onSelect={() => onSelect(session.id)}
           />
         ))}
@@ -500,10 +639,12 @@ function SessionList({
 
 function SessionCard({
   active,
+  i18n,
   onSelect,
   session
 }: {
   readonly active: boolean;
+  readonly i18n: WorkbenchRuntimeSnapshot["i18n"];
   readonly onSelect: () => void;
   readonly session: DesktopDemoDocument["initialControllerSnapshot"]["projection"]["sessions"][number];
 }) {
@@ -521,19 +662,21 @@ function SessionCard({
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="text-sm font-semibold">{session.title}</p>
-          <p className="text-xs leading-5 text-[color:var(--ink-soft)]">{session.workspacePath ?? "n/a"}</p>
+          <p className="text-xs leading-5 text-[color:var(--ink-soft)]">
+            {session.workspacePath ?? i18n.t("workbench.status.unknown")}
+          </p>
         </div>
         <span className={cn("rounded-md px-2.5 py-1 text-[10px] font-bold uppercase", lifecycleTone[session.lifecycle])}>
-          {session.lifecycle}
+          {formatStatusLabel(i18n, session.lifecycle)}
         </span>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-[color:var(--ink-soft)]">
         <div>
-          <p className="muted-meta">backend</p>
-          <p className="mt-1">{session.backendLabel ?? "unknown"}</p>
+          <p className="muted-meta">{i18n.t("workbench.status.backend")}</p>
+          <p className="mt-1">{session.backendLabel ?? i18n.t("workbench.status.unknown")}</p>
         </div>
         <div>
-          <p className="muted-meta">approvals</p>
+          <p className="muted-meta">{i18n.t("workbench.status.approvals")}</p>
           <p className="mt-1">{session.pendingApprovalCount}</p>
         </div>
       </div>

@@ -253,11 +253,13 @@ SQLite stores local sessions, workbench events, session snapshots, approvals,
 tool calls, command output summaries, diff summaries, and usage metadata when
 available.
 
-During the early renderer-only slice, `apps/desktop` may use a browser
-`localStorage` settings adapter as a development fallback so the settings UI can
-prove save/reload behavior before Tauri commands are wired. That fallback must
-store only the same non-secret preference keys and should converge to Tauri app
-data JSON as the desktop command boundary is implemented.
+The desktop shell now exposes Tauri commands for app-data JSON preferences and a
+SQLite-backed normalized event store. During renderer-only Vite development,
+`apps/desktop` keeps a browser `localStorage` fallback so the same settings UI
+can prove save/reload behavior outside the native shell. Both paths are limited
+to non-secret preference keys and normalized workbench events; provider secrets,
+raw Claude logs, account state, and private local session files stay out of this
+persistence contract.
 
 Do not persist API key values, tokens, provider account state, raw Claude Code
 logs by default, raw private transcripts, or local user session files in tracked

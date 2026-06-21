@@ -36,6 +36,28 @@ export interface ClaudeCodeRunnerResult {
   readonly ignoredRecords: readonly ClaudeCodeIgnoredStreamRecord[];
 }
 
+export interface ClaudeCodeProcessExecutionResult {
+  readonly stdout: string;
+  readonly stderr?: string;
+  readonly exitCode?: number | null;
+}
+
+export type ClaudeCodeProcessExecutor = (
+  command: ExternalCliBoundary
+) => Promise<ClaudeCodeProcessExecutionResult>;
+
+export interface ClaudeCodeProcessRunnerResult extends ClaudeCodeRunnerResult {
+  readonly parseErrors: readonly string[];
+  readonly exitCode?: number | null;
+  readonly stderrPreview?: string;
+}
+
+export interface ClaudeCodeProcessRunner {
+  readonly id: "claude-code.process-stream-json";
+  readonly label: string;
+  readonly run: (request: ClaudeCodeRunnerRequest) => Promise<ClaudeCodeProcessRunnerResult>;
+}
+
 export interface ClaudeCodeFixtureReplayRunner {
   readonly id: "claude-code.fixture-replay";
   readonly label: string;
@@ -116,6 +138,32 @@ export function createClaudeCodeFixtureReplayRunner(
   };
 }
 
+export function createClaudeCodeProcessRunner(
+  execute: ClaudeCodeProcessExecutor
+): ClaudeCodeProcessRunner {
+  return {
+    id: "claude-code.process-stream-json",
+    label: "Claude Code live stream-json process",
+    run: async (request) => {
+      const command = buildClaudeCodeStreamJsonCommand(request);
+      const execution = await execute(command);
+      const parsed = parseClaudeCodeStreamJsonLines(execution.stdout, request.sessionId);
+
+      return {
+        command,
+        events: [
+          ...parsed.events,
+          ...createProcessDiagnosticEvents(request.sessionId, execution, parsed.parseErrors)
+        ],
+        ignoredRecords: parsed.ignoredRecords,
+        parseErrors: parsed.parseErrors,
+        exitCode: execution.exitCode,
+        stderrPreview: previewText(execution.stderr)
+      };
+    }
+  };
+}
+
 function prepareFixtureRecords(
   records: readonly unknown[],
   request: ClaudeCodeRunnerRequest
@@ -143,6 +191,55 @@ function prepareFixtureRecords(
 
 function timestampFor(offsetSeconds: number): string {
   return new Date(Date.UTC(2026, 5, 21, 3, 0, offsetSeconds)).toISOString();
+}
+
+function createProcessDiagnosticEvents(
+  sessionId: string,
+  execution: ClaudeCodeProcessExecutionResult,
+  parseErrors: readonly string[]
+): readonly WorkbenchEvent[] {
+  const events: WorkbenchEvent[] = [];
+  const stderrPreview = previewText(execution.stderr);
+
+  if (stderrPreview) {
+    events.push({
+      type: "command.output",
+      sessionId,
+      commandId: "claude-code",
+      stream: "stderr",
+      text: stderrPreview,
+      status: execution.exitCode && execution.exitCode !== 0 ? "failed" : "succeeded"
+    });
+  }
+
+  parseErrors.forEach((message, index) => {
+    events.push({
+      type: "warning",
+      sessionId,
+      id: `claude-code-stream-json-parse-${index + 1}`,
+      message
+    });
+  });
+
+  if (execution.exitCode && execution.exitCode !== 0) {
+    events.push({
+      type: "error",
+      sessionId,
+      id: "claude-code-process-exit",
+      message: `Claude Code exited with status ${execution.exitCode}.`
+    });
+  }
+
+  return events;
+}
+
+function previewText(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  return trimmed.length > 2000 ? `${trimmed.slice(0, 2000)}...` : trimmed;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
