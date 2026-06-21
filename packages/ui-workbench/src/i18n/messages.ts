@@ -91,6 +91,7 @@ export type UiMessageKey =
   | "workbench.shell.subtitle"
   | "workbench.actions.newDemoSession"
   | "workbench.actions.runClaudeSession"
+  | "workbench.actions.cancelRun"
   | "workbench.actions.settings"
   | "workbench.actions.chooseWorkspace"
   | "workbench.actions.pinSession"
@@ -115,6 +116,8 @@ export type UiMessageKey =
   | "workbench.runner.fixture"
   | "workbench.runner.claudeLive"
   | "workbench.runner.running"
+  | "workbench.runner.cancelled"
+  | "workbench.runner.cancelFailed"
   | "workbench.session.deleted"
   | "workbench.workspace.all"
   | "workbench.status.total"
@@ -232,6 +235,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.shell.subtitle": "Local native workbench with session selection, Claude Code runner boundaries, persisted settings, and normalized event storage.",
     "workbench.actions.newDemoSession": "New demo session",
     "workbench.actions.runClaudeSession": "Run Claude session",
+    "workbench.actions.cancelRun": "Cancel run",
     "workbench.actions.settings": "Settings",
     "workbench.actions.chooseWorkspace": "Choose workspace",
     "workbench.actions.pinSession": "Pin session",
@@ -256,6 +260,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runner.fixture": "Local fixture",
     "workbench.runner.claudeLive": "Claude Code live",
     "workbench.runner.running": "Running...",
+    "workbench.runner.cancelled": "Cancel requested for the live Claude run.",
+    "workbench.runner.cancelFailed": "No live Claude process was available to cancel.",
     "workbench.session.deleted": "Deleted {title}.",
     "workbench.workspace.all": "All workspaces",
     "workbench.status.total": "total",
@@ -370,6 +376,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.shell.subtitle": "세션 선택, Claude Code 실행 경계, 저장되는 설정, 정규화 이벤트 저장소를 갖춘 로컬 네이티브 워크벤치입니다.",
     "workbench.actions.newDemoSession": "새 데모 세션",
     "workbench.actions.runClaudeSession": "Claude 세션 실행",
+    "workbench.actions.cancelRun": "실행 취소",
     "workbench.actions.settings": "설정",
     "workbench.actions.chooseWorkspace": "워크스페이스 선택",
     "workbench.actions.pinSession": "세션 고정",
@@ -394,6 +401,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runner.fixture": "로컬 fixture",
     "workbench.runner.claudeLive": "Claude Code live",
     "workbench.runner.running": "실행 중...",
+    "workbench.runner.cancelled": "Live Claude 실행 취소를 요청했습니다.",
+    "workbench.runner.cancelFailed": "취소할 수 있는 Live Claude 프로세스가 없습니다.",
     "workbench.session.deleted": "{title} 세션을 삭제했습니다.",
     "workbench.workspace.all": "모든 워크스페이스",
     "workbench.status.total": "전체",

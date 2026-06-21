@@ -16,6 +16,7 @@ export interface ClaudeCodeStreamJsonCommandOptions {
   readonly modelAlias?: string;
   readonly permissionMode?: ClaudeCodePermissionMode;
   readonly sessionId?: string;
+  readonly timeoutMs?: number;
 }
 
 export interface ClaudeCodeRunnerRequest extends ClaudeCodeStreamJsonCommandOptions {
@@ -40,6 +41,8 @@ export interface ClaudeCodeProcessExecutionResult {
   readonly stdout: string;
   readonly stderr?: string;
   readonly exitCode?: number | null;
+  readonly stdoutTruncated?: boolean;
+  readonly stderrTruncated?: boolean;
 }
 
 export type ClaudeCodeProcessExecutor = (
@@ -76,6 +79,7 @@ export function buildClaudeCodeStreamJsonCommand(
   return {
     executable: options.executable ?? "claude",
     cwd: options.cwd,
+    timeoutMs: options.timeoutMs,
     args: [
       "--bare",
       "-p",
@@ -200,6 +204,15 @@ function createProcessDiagnosticEvents(
 ): readonly WorkbenchEvent[] {
   const events: WorkbenchEvent[] = [];
   const stderrPreview = previewText(execution.stderr);
+
+  if (execution.stdoutTruncated || execution.stderrTruncated) {
+    events.push({
+      type: "warning",
+      sessionId,
+      id: "claude-code-output-truncated",
+      message: "Claude Code returned more diagnostic output than the local cap; streamed events were still processed."
+    });
+  }
 
   if (stderrPreview) {
     events.push({

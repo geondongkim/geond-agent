@@ -205,7 +205,8 @@ function createRunnerRequest(options: CreateRunnerRequestOptions): ClaudeCodeRun
     uiLanguage: options.languageSettings.uiLanguage,
     agentResponseLanguage: normalizeAgentLanguageForRunner(
       options.languageSettings.agentResponseLanguage
-    )
+    ),
+    timeoutMs: 10 * 60 * 1000
   };
 }
 

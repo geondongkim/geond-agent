@@ -14,11 +14,13 @@ describe("Claude Code runner boundary", () => {
       cwd: "/workspace/geond-agent",
       modelAlias: "opus",
       permissionMode: "plan",
-      sessionId: "session-1"
+      sessionId: "session-1",
+      timeoutMs: 120000
     });
 
     expect(command.executable).toBe("claude");
     expect(command.cwd).toBe("/workspace/geond-agent");
+    expect(command.timeoutMs).toBe(120000);
     expect(command.args).toEqual([
       "--bare",
       "-p",
@@ -118,7 +120,8 @@ describe("Claude Code runner boundary", () => {
           "{not-json}"
         ].join("\n"),
         stderr: "Synthetic stderr diagnostic",
-        exitCode: 0
+        exitCode: 0,
+        stdoutTruncated: true
       };
     });
 
@@ -140,6 +143,12 @@ describe("Claude Code runner boundary", () => {
         type: "command.output",
         stream: "stderr",
         text: "Synthetic stderr diagnostic"
+      })
+    );
+    expect(result.events).toContainEqual(
+      expect.objectContaining({
+        type: "warning",
+        id: "claude-code-output-truncated"
       })
     );
     expect(result.parseErrors).toHaveLength(1);

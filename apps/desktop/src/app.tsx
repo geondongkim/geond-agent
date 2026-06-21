@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import {
   createWorkbenchSettingsLabels,
   createWorkbenchSessionStartEvents,
+  workbenchEventIdentity,
   type ApprovalDecision,
   type WorkbenchRuntimeSnapshot,
   type WorkbenchSelectionSnapshot,
@@ -18,6 +19,7 @@ import {
 
 import type { DesktopDemoDocument, DesktopRunnerMode } from "./demo-workbench.js";
 import {
+  cancelTauriClaudeCodeStream,
   CLAUDE_CODE_STREAM_EVENT,
   type TauriClaudeCodeStreamPayload
 } from "./claude-runner.js";
@@ -86,6 +88,8 @@ export function App({ document }: AppProps) {
   const [runnerStatus, setRunnerStatus] = useState("");
   const [runnerBusy, setRunnerBusy] = useState(false);
   const [runnerMode, setRunnerMode] = useState<DesktopRunnerMode>("fixture");
+  const [activeRunSessionId, setActiveRunSessionId] = useState<string | undefined>();
+  const [activeRunMode, setActiveRunMode] = useState<DesktopRunnerMode | undefined>();
   const [ignoredRecordCount, setIgnoredRecordCount] = useState(document.ignoredRecordCount);
   const [composerPrompt, setComposerPrompt] = useState("");
 
@@ -173,7 +177,7 @@ export function App({ document }: AppProps) {
     ) => {
       const nextEvents = options.markAsStreamed
         ? events.filter((event) => {
-            const key = eventIdentity(event);
+            const key = workbenchEventIdentity(event);
             if (streamedEventKeys.has(key)) {
               return false;
             }
@@ -192,6 +196,8 @@ export function App({ document }: AppProps) {
       );
     };
     setRunnerBusy(true);
+    setActiveRunSessionId(sessionId);
+    setActiveRunMode(mode);
     setRunnerStatus(
       mode === "claude-live"
         ? i18n.t("workbench.runner.startingClaude")
@@ -212,7 +218,7 @@ export function App({ document }: AppProps) {
       const resultEvents =
         mode === "claude-live"
           ? [
-              ...result.events.filter((event) => !streamedEventKeys.has(eventIdentity(event))),
+              ...result.events.filter((event) => !streamedEventKeys.has(workbenchEventIdentity(event))),
               ...createLiveRunCompletionEvents(sessionId, result)
             ]
           : result.events;
@@ -239,11 +245,30 @@ export function App({ document }: AppProps) {
     } finally {
       unlistenStream?.();
       setRunnerBusy(false);
+      setActiveRunSessionId(undefined);
+      setActiveRunMode(undefined);
     }
   };
 
   const startSelectedRunner = () => {
     void startSession(runnerMode);
+  };
+
+  const cancelActiveRun = async () => {
+    if (!activeRunSessionId || activeRunMode !== "claude-live") {
+      setRunnerStatus(i18n.t("workbench.runner.cancelFailed"));
+      return;
+    }
+
+    const cancelled = await cancelTauriClaudeCodeStream(activeRunSessionId);
+    const events = createLiveRunCancelledEvents(activeRunSessionId, i18n, cancelled);
+    await document.eventStore.append(events);
+    setControllerSnapshot(
+      document.controller.appendEvents(events, { activateSessionId: activeRunSessionId })
+    );
+    setRunnerStatus(
+      cancelled ? i18n.t("workbench.runner.cancelled") : i18n.t("workbench.runner.cancelFailed")
+    );
   };
 
   const togglePinnedSession = async () => {
@@ -393,6 +418,15 @@ export function App({ document }: AppProps) {
                 ? i18n.t("workbench.actions.runClaudeSession")
                 : i18n.t("workbench.actions.newDemoSession")}
             </Button>
+            {runnerBusy ? (
+              <Button
+                variant="outline"
+                onClick={() => void cancelActiveRun()}
+                disabled={activeRunMode !== "claude-live"}
+              >
+                {i18n.t("workbench.actions.cancelRun")}
+              </Button>
+            ) : null}
             <Button
               variant="outline"
               onClick={() => void togglePinnedSession()}
@@ -1110,6 +1144,36 @@ function createLiveRunFailureEvents(
   ];
 }
 
+function createLiveRunCancelledEvents(
+  sessionId: string,
+  i18n: WorkbenchRuntimeSnapshot["i18n"],
+  cancelled: boolean
+): readonly WorkbenchEvent[] {
+  const at = new Date().toISOString();
+  const message = cancelled
+    ? i18n.t("workbench.runner.cancelled")
+    : i18n.t("workbench.runner.cancelFailed");
+
+  return [
+    {
+      type: "command.output",
+      sessionId,
+      commandId: "claude-code-live-prelude",
+      stream: cancelled ? "status" : "stderr",
+      text: message,
+      status: cancelled ? "interrupted" : "failed",
+      at
+    },
+    {
+      type: cancelled ? "warning" : "error",
+      sessionId,
+      id: cancelled ? "claude-code-live-runner-cancel-requested" : "claude-code-live-runner-cancel-failed",
+      message,
+      at
+    }
+  ];
+}
+
 function createSelectionSnapshotFromRequest(
   request: RunnerRequest,
   i18n: WorkbenchRuntimeSnapshot["i18n"]
@@ -1167,10 +1231,6 @@ function isClaudeStreamPayload(value: unknown): value is TauriClaudeCodeStreamPa
 function previewStreamText(value: string): string {
   const trimmed = value.trim();
   return trimmed.length > 1200 ? `${trimmed.slice(0, 1200)}...` : trimmed;
-}
-
-function eventIdentity(event: WorkbenchEvent): string {
-  return JSON.stringify(event);
 }
 
 function matchesWorkspaceFilter(
