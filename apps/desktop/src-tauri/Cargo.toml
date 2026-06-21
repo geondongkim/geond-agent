@@ -1,0 +1,19 @@
+[package]
+name = "geond-agent-desktop"
+version = "0.0.0"
+description = "Tauri shell for geond-agent"
+authors = ["geond-agent"]
+edition = "2021"
+
+[lib]
+name = "geond_agent_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+rusqlite = "0.32"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }

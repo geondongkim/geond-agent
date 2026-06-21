@@ -31,4 +31,13 @@ bootstrap helper that composes:
 - `packages/zai-provider` endpoint/model routing helpers,
 - `packages/claude-code-bridge` external CLI/ACP boundary.
 
-The desktop framework remains undecided.
+The desktop shell is Tauri v2 with a React + Vite renderer. Native commands own:
+
+- app-data JSON settings for non-secret preferences,
+- SQLite storage for normalized workbench events,
+- workspace discovery for the active local checkout,
+- opt-in Claude Code `stream-json` process execution.
+
+The renderer keeps a browser `localStorage` and in-memory event-store fallback
+for Vite-only development. It must not persist provider secrets, raw Claude
+logs, account state, or private local tool session files.

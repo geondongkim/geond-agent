@@ -1,0 +1,436 @@
+import type {
+  ApprovalDecision,
+  CommandStatus,
+  WorkbenchEvent,
+  WorkbenchSessionLifecycle
+} from "./events.js";
+import {
+  createEmptyWorkbenchState,
+  replayWorkbenchEvents,
+  type CommandOutputSnapshot,
+  type WorkbenchSessionSnapshot,
+  type WorkbenchStateSnapshot
+} from "./replay.js";
+import type { WorkbenchSelectionSnapshot } from "./selection.js";
+
+export type WorkbenchTimelineEntryKind =
+  | "session"
+  | "selection"
+  | "assistant"
+  | "plan"
+  | "tool"
+  | "command"
+  | "diff"
+  | "approval"
+  | "warning"
+  | "error";
+
+export interface WorkbenchTimelineEntry {
+  readonly id: string;
+  readonly kind: WorkbenchTimelineEntryKind;
+  readonly at?: string;
+  readonly title: string;
+  readonly body?: string;
+  readonly status?: string;
+}
+
+export interface ProjectedSessionListItem {
+  readonly id: string;
+  readonly title: string;
+  readonly lifecycle: WorkbenchSessionLifecycle;
+  readonly workspacePath?: string;
+  readonly backendLabel?: string;
+  readonly updatedAt?: string;
+  readonly pendingApprovalCount: number;
+  readonly warningCount: number;
+  readonly errorCount: number;
+}
+
+export interface ProjectedWorkspaceSummary {
+  readonly path: string;
+  readonly label: string;
+  readonly sessionCount: number;
+  readonly updatedAt?: string;
+}
+
+export type ProjectedBackendStatusLevel = "ready" | "attention" | "unknown";
+
+export interface ProjectedBackendStatus {
+  readonly backendAdapterId: string;
+  readonly label: string;
+  readonly level: ProjectedBackendStatusLevel;
+  readonly detail: string;
+  readonly relatedSessionId: string;
+}
+
+export interface ProjectedCommandOutput {
+  readonly id: string;
+  readonly status: CommandStatus;
+  readonly exitCode?: number;
+  readonly preview: string;
+  readonly chunkCount: number;
+}
+
+export interface ProjectedWorkbenchSession {
+  readonly id: string;
+  readonly title: string;
+  readonly lifecycle: WorkbenchSessionLifecycle;
+  readonly workspacePath?: string;
+  readonly selection?: WorkbenchSelectionSnapshot;
+  readonly assistantMessages: readonly WorkbenchSessionSnapshot["assistantMessages"][string][];
+  readonly plan: WorkbenchSessionSnapshot["plan"];
+  readonly toolCalls: readonly WorkbenchSessionSnapshot["toolCalls"][string][];
+  readonly commandOutputs: readonly ProjectedCommandOutput[];
+  readonly diffs: readonly WorkbenchSessionSnapshot["diffs"][string][];
+  readonly approvals: readonly WorkbenchSessionSnapshot["approvals"][string][];
+  readonly notices: WorkbenchSessionSnapshot["notices"];
+  readonly timeline: readonly WorkbenchTimelineEntry[];
+}
+
+export interface WorkbenchProjection {
+  readonly activeSessionId?: string;
+  readonly sessions: readonly ProjectedSessionListItem[];
+  readonly pinnedSessions: readonly ProjectedSessionListItem[];
+  readonly recentSessions: readonly ProjectedSessionListItem[];
+  readonly workspaces: readonly ProjectedWorkspaceSummary[];
+  readonly backendStatuses: readonly ProjectedBackendStatus[];
+  readonly activeSession?: ProjectedWorkbenchSession;
+}
+
+export interface WorkbenchProjectionOptions {
+  readonly pinnedSessionIds?: readonly string[];
+  readonly activeSessionId?: string;
+}
+
+export function projectWorkbenchEvents(
+  events: readonly WorkbenchEvent[],
+  initialState: WorkbenchStateSnapshot = createEmptyWorkbenchState(),
+  options: WorkbenchProjectionOptions = {}
+): WorkbenchProjection {
+  const state = replayWorkbenchEvents(events, initialState);
+  return projectWorkbenchState(state, events, options);
+}
+
+export function projectWorkbenchState(
+  state: WorkbenchStateSnapshot,
+  events: readonly WorkbenchEvent[] = [],
+  options: WorkbenchProjectionOptions = {}
+): WorkbenchProjection {
+  const sessions = Object.values(state.sessions)
+    .map(projectSessionListItem)
+    .sort(compareSessionsByRecency);
+  const pinnedSessionIds = new Set(options.pinnedSessionIds ?? []);
+  const activeSessionId =
+    options.activeSessionId && state.sessions[options.activeSessionId]
+      ? options.activeSessionId
+      : state.activeSessionId ?? sessions[0]?.id;
+  const activeSessionState = activeSessionId ? state.sessions[activeSessionId] : undefined;
+
+  return {
+    activeSessionId,
+    sessions,
+    pinnedSessions: sessions.filter((session) => pinnedSessionIds.has(session.id)),
+    recentSessions: sessions.filter((session) => !pinnedSessionIds.has(session.id)),
+    workspaces: projectWorkspaceSummaries(Object.values(state.sessions)),
+    backendStatuses: projectBackendStatuses(Object.values(state.sessions)),
+    activeSession: activeSessionState
+      ? projectActiveSession(activeSessionState, events.filter((event) => event.sessionId === activeSessionId))
+      : undefined
+  };
+}
+
+function projectSessionListItem(session: WorkbenchSessionSnapshot): ProjectedSessionListItem {
+  return {
+    id: session.id,
+    title: session.title ?? session.id,
+    lifecycle: session.lifecycle,
+    workspacePath: session.workspacePath,
+    backendLabel: session.selection?.backendAdapter?.label,
+    updatedAt: session.updatedAt,
+    pendingApprovalCount: session.pendingApprovalIds.length,
+    warningCount: session.notices.filter((notice) => notice.level === "warning").length,
+    errorCount: session.notices.filter((notice) => notice.level === "error").length
+  };
+}
+
+function compareSessionsByRecency(
+  left: ProjectedSessionListItem,
+  right: ProjectedSessionListItem
+): number {
+  const leftStamp = left.updatedAt ?? "";
+  const rightStamp = right.updatedAt ?? "";
+  return rightStamp.localeCompare(leftStamp) || left.title.localeCompare(right.title) || left.id.localeCompare(right.id);
+}
+
+function projectActiveSession(
+  session: WorkbenchSessionSnapshot,
+  events: readonly WorkbenchEvent[]
+): ProjectedWorkbenchSession {
+  return {
+    id: session.id,
+    title: session.title ?? session.id,
+    lifecycle: session.lifecycle,
+    workspacePath: session.workspacePath,
+    selection: session.selection,
+    assistantMessages: Object.values(session.assistantMessages),
+    plan: session.plan,
+    toolCalls: Object.values(session.toolCalls),
+    commandOutputs: Object.values(session.commandOutputs).map(projectCommandOutput),
+    diffs: Object.values(session.diffs),
+    approvals: Object.values(session.approvals),
+    notices: session.notices,
+    timeline: events.map(projectTimelineEntry).filter((entry): entry is WorkbenchTimelineEntry => entry !== undefined)
+  };
+}
+
+function projectCommandOutput(command: CommandOutputSnapshot): ProjectedCommandOutput {
+  const preview = command.chunks
+    .map((chunk) => chunk.text.trim())
+    .filter((text) => text.length > 0)
+    .slice(-3)
+    .join("\n");
+
+  return {
+    id: command.id,
+    status: command.status,
+    exitCode: command.exitCode,
+    preview,
+    chunkCount: command.chunks.length
+  };
+}
+
+function projectTimelineEntry(event: WorkbenchEvent): WorkbenchTimelineEntry | undefined {
+  switch (event.type) {
+    case "session.lifecycle":
+      return {
+        id: `${event.type}:${event.sessionId}:${event.lifecycle}:${event.at ?? "unknown"}`,
+        kind: "session",
+        at: event.at,
+        title: describeSessionLifecycle(event.lifecycle),
+        body: event.title ?? event.workspacePath,
+        status: event.lifecycle
+      };
+    case "selection.snapshot.updated":
+      return {
+        id: `${event.type}:${event.sessionId}:${event.at ?? "unknown"}`,
+        kind: "selection",
+        at: event.at,
+        title: "Selection snapshot updated",
+        body: [event.selection.backendAdapterId, event.selection.providerRouteId, event.selection.modelProfileId]
+          .filter(Boolean)
+          .join(" / "),
+        status: event.selection.routingMode
+      };
+    case "assistant.text.delta":
+      return {
+        id: `${event.type}:${event.messageId}:${event.at ?? "unknown"}`,
+        kind: "assistant",
+        at: event.at,
+        title: "Assistant update",
+        body: event.text,
+        status: "streaming"
+      };
+    case "assistant.text.completed":
+      return event.text
+        ? {
+            id: `${event.type}:${event.messageId}:${event.at ?? "unknown"}`,
+            kind: "assistant",
+            at: event.at,
+            title: "Assistant message completed",
+            body: event.text,
+            status: "completed"
+          }
+        : undefined;
+    case "plan.updated":
+      return {
+        id: `${event.type}:${event.sessionId}:${event.at ?? "unknown"}`,
+        kind: "plan",
+        at: event.at,
+        title: "Plan updated",
+        body: event.items.map((item) => `${item.status}: ${item.title}`).join(" | "),
+        status: `${event.items.length} items`
+      };
+    case "tool.call.started":
+      return {
+        id: `${event.type}:${event.toolCall.id}:${event.at ?? "unknown"}`,
+        kind: "tool",
+        at: event.at,
+        title: event.toolCall.name,
+        body: event.toolCall.inputSummary,
+        status: event.toolCall.status
+      };
+    case "tool.call.updated":
+      return {
+        id: `${event.type}:${event.toolCallId}:${event.at ?? "unknown"}`,
+        kind: "tool",
+        at: event.at,
+        title: `Tool ${event.toolCallId}`,
+        body: event.outputSummary,
+        status: event.status
+      };
+    case "command.output":
+      return {
+        id: `${event.type}:${event.commandId}:${event.at ?? "unknown"}:${event.stream}`,
+        kind: "command",
+        at: event.at,
+        title: event.commandId,
+        body: event.text,
+        status: event.status ?? event.stream
+      };
+    case "diff.emitted":
+      return {
+        id: `${event.type}:${event.diff.id}:${event.at ?? "unknown"}`,
+        kind: "diff",
+        at: event.at,
+        title: event.diff.title ?? event.diff.id,
+        body: `${event.diff.files.length} file(s)`,
+        status: summarizeDiff(event.diff.files.length)
+      };
+    case "approval.requested":
+      return {
+        id: `${event.type}:${event.approval.id}:${event.at ?? "unknown"}`,
+        kind: "approval",
+        at: event.at,
+        title: event.approval.title,
+        body: event.approval.subject ?? event.approval.reason,
+        status: "pending"
+      };
+    case "approval.resolved":
+      return {
+        id: `${event.type}:${event.approvalId}:${event.at ?? "unknown"}`,
+        kind: "approval",
+        at: event.at,
+        title: `Approval ${event.approvalId}`,
+        status: describeApprovalDecision(event.decision)
+      };
+    case "warning":
+      return {
+        id: `${event.type}:${event.id}:${event.at ?? "unknown"}`,
+        kind: "warning",
+        at: event.at,
+        title: "Warning",
+        body: event.message,
+        status: "warning"
+      };
+    case "error":
+      return {
+        id: `${event.type}:${event.id}:${event.at ?? "unknown"}`,
+        kind: "error",
+        at: event.at,
+        title: "Error",
+        body: event.message,
+        status: "error"
+      };
+  }
+}
+
+function projectWorkspaceSummaries(
+  sessions: readonly WorkbenchSessionSnapshot[]
+): readonly ProjectedWorkspaceSummary[] {
+  const byPath = new Map<string, ProjectedWorkspaceSummary>();
+
+  sessions.forEach((session) => {
+    if (!session.workspacePath) {
+      return;
+    }
+
+    const current = byPath.get(session.workspacePath);
+    const next: ProjectedWorkspaceSummary = current
+      ? {
+          ...current,
+          sessionCount: current.sessionCount + 1,
+          updatedAt: compareMaybeIso(session.updatedAt, current.updatedAt) > 0
+            ? session.updatedAt
+            : current.updatedAt
+        }
+      : {
+          path: session.workspacePath,
+          label: basename(session.workspacePath),
+          sessionCount: 1,
+          updatedAt: session.updatedAt
+        };
+
+    byPath.set(session.workspacePath, next);
+  });
+
+  return Array.from(byPath.values()).sort((left, right) =>
+    compareMaybeIso(right.updatedAt, left.updatedAt) || left.label.localeCompare(right.label)
+  );
+}
+
+function projectBackendStatuses(
+  sessions: readonly WorkbenchSessionSnapshot[]
+): readonly ProjectedBackendStatus[] {
+  const statuses = new Map<string, ProjectedBackendStatus>();
+
+  sessions
+    .slice()
+    .sort((left, right) => compareMaybeIso(right.updatedAt, left.updatedAt))
+    .forEach((session) => {
+      const selection = session.selection;
+      const backendAdapterId = selection?.backendAdapterId;
+      const label = selection?.backendAdapter?.label;
+
+      if (!backendAdapterId || !label || statuses.has(backendAdapterId)) {
+        return;
+      }
+
+      const warning = selection.capabilityWarnings?.[0];
+      const providerKeyMissing = selection.providerRoute?.apiKeyState === "missing";
+
+      statuses.set(backendAdapterId, {
+        backendAdapterId,
+        label,
+        level: warning || providerKeyMissing ? "attention" : "ready",
+        detail:
+          warning ??
+          (providerKeyMissing
+            ? `${selection.providerRoute?.label ?? "provider route"} key metadata is missing`
+            : selection.providerRoute?.label ?? "Selection metadata available"),
+        relatedSessionId: session.id
+      });
+    });
+
+  return Array.from(statuses.values());
+}
+
+function describeSessionLifecycle(lifecycle: WorkbenchSessionLifecycle): string {
+  switch (lifecycle) {
+    case "created":
+      return "Session created";
+    case "started":
+      return "Session started";
+    case "resumed":
+      return "Session resumed";
+    case "paused":
+      return "Session paused";
+    case "completed":
+      return "Session completed";
+    case "failed":
+      return "Session failed";
+  }
+}
+
+function describeApprovalDecision(decision: ApprovalDecision): string {
+  switch (decision) {
+    case "approved":
+      return "approved";
+    case "rejected":
+      return "rejected";
+    case "cancelled":
+      return "cancelled";
+  }
+}
+
+function summarizeDiff(fileCount: number): string {
+  return fileCount === 1 ? "1 file" : `${fileCount} files`;
+}
+
+function basename(path: string): string {
+  const pieces = path.split("/").filter((piece) => piece.length > 0);
+  return pieces[pieces.length - 1] ?? path;
+}
+
+function compareMaybeIso(left: string | undefined, right: string | undefined): number {
+  return (left ?? "").localeCompare(right ?? "");
+}

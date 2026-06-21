@@ -97,6 +97,28 @@ Before copying, vendoring, or forking third-party code:
   include copied implementation text, generated bundles, assets, or test
   fixtures from upstream projects.
 
+## Workbench UI First Slice Dependency Posture
+
+The first desktop workbench UI slice adds package-managed third-party
+dependencies for the local shell, renderer, styling, testing, and small UI
+primitives. Current examples include React, React DOM, Vite, Tailwind CSS,
+PostCSS, Autoprefixer, Radix Tabs, Tauri API/CLI, `clsx`, `tailwind-merge`,
+Vitest, TypeScript, and `@types/*` packages, plus the Tauri Rust/crates.io
+dependencies used by `apps/desktop/src-tauri`.
+
+These dependencies are consumed as npm/pnpm packages or Rust crates. Their
+source is not copied into this repository as vendored app code, and upstream
+desktop application source or generated bundles are not committed as part of
+this slice. Dependency versions and transitive license metadata are tracked
+through `package.json`, `pnpm-lock.yaml`, and the Rust/Tauri manifest files
+rather than by importing upstream project trees.
+
+The expected posture for these dependencies is standard permissive OSS licensing
+such as MIT or Apache-2.0/MIT-family terms. If a future change requires copying,
+vendoring, or forking third-party UI/runtime source instead of consuming the
+published package/crate, that change must go back through the repository
+license-review rules above before merge.
+
 ## Claude Code Boundary
 
 Claude Code should be treated as an external user-installed dependency. The

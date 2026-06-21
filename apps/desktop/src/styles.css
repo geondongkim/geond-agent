@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --shell: #eef2f6;
+  --panel: rgba(250, 252, 253, 0.94);
+  --panel-muted: rgba(241, 245, 248, 0.82);
+  --border: rgba(28, 42, 53, 0.12);
+  --border-strong: rgba(28, 42, 53, 0.2);
+  --ink: #14202a;
+  --ink-soft: #51616c;
+  --ink-muted: #6d7b86;
+  --accent: #66d2c6;
+  --accent-strong: #74ddd0;
+  --shell-soft: #c5f0ea;
+  font-family: "IBM Plex Sans KR", "SF Pro Display", "Segoe UI", sans-serif;
+  background: linear-gradient(180deg, #f4f7fa 0%, #e7ecf1 100%);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: transparent;
+  color: var(--ink);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@layer components {
+  .panel-surface {
+    @apply relative rounded-lg border border-[color:var(--border)] bg-[color:var(--panel)] p-4 shadow-[0_20px_40px_rgba(18,32,41,0.08)] backdrop-blur xl:p-5;
+  }
+
+  .panel-title {
+    @apply text-sm font-semibold uppercase text-[color:var(--ink-soft)];
+  }
+
+  .eyebrow {
+    @apply text-[11px] font-bold uppercase text-[color:var(--ink-muted)];
+  }
+
+  .muted-meta {
+    @apply text-[10px] font-semibold uppercase text-[color:var(--ink-muted)];
+  }
+}
