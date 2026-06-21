@@ -69,6 +69,7 @@ export type UiMessageKey =
   | "workbench.actions.chooseWorkspace"
   | "workbench.actions.pinSession"
   | "workbench.actions.unpinSession"
+  | "workbench.actions.deleteSession"
   | "workbench.composer.label"
   | "workbench.composer.placeholder"
   | "workbench.composer.livePlaceholder"
@@ -88,6 +89,7 @@ export type UiMessageKey =
   | "workbench.runner.fixture"
   | "workbench.runner.claudeLive"
   | "workbench.runner.running"
+  | "workbench.session.deleted"
   | "workbench.workspace.all"
   | "workbench.status.total"
   | "workbench.status.approvals"
@@ -181,6 +183,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.chooseWorkspace": "Choose workspace",
     "workbench.actions.pinSession": "Pin session",
     "workbench.actions.unpinSession": "Unpin session",
+    "workbench.actions.deleteSession": "Delete session",
     "workbench.composer.label": "Agent command",
     "workbench.composer.placeholder": "Review the current workspace and continue the implementation.",
     "workbench.composer.livePlaceholder": "Run a concise geond-agent workbench smoke session. Do not modify files.",
@@ -200,6 +203,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runner.fixture": "Local fixture",
     "workbench.runner.claudeLive": "Claude Code live",
     "workbench.runner.running": "Running...",
+    "workbench.session.deleted": "Deleted {title}.",
     "workbench.workspace.all": "All workspaces",
     "workbench.status.total": "total",
     "workbench.status.approvals": "approvals",
@@ -290,6 +294,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.chooseWorkspace": "워크스페이스 선택",
     "workbench.actions.pinSession": "세션 고정",
     "workbench.actions.unpinSession": "고정 해제",
+    "workbench.actions.deleteSession": "세션 삭제",
     "workbench.composer.label": "에이전트 명령",
     "workbench.composer.placeholder": "현재 워크스페이스를 검토하고 구현을 이어갑니다.",
     "workbench.composer.livePlaceholder": "간결한 geond-agent 워크벤치 smoke 세션을 실행합니다. 파일은 수정하지 않습니다.",
@@ -309,6 +314,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runner.fixture": "로컬 fixture",
     "workbench.runner.claudeLive": "Claude Code live",
     "workbench.runner.running": "실행 중...",
+    "workbench.session.deleted": "{title} 세션을 삭제했습니다.",
     "workbench.workspace.all": "모든 워크스페이스",
     "workbench.status.total": "전체",
     "workbench.status.approvals": "승인",

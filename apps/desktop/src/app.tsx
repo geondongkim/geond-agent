@@ -256,6 +256,29 @@ export function App({ document }: AppProps) {
     setControllerSnapshot(document.controller.setPinnedSessionIds(savedPinnedSessionIds));
   };
 
+  const deleteActiveSession = async () => {
+    if (!activeSession || runnerBusy) {
+      return;
+    }
+
+    const deletedSession = activeSession;
+    const nextPinnedSessionIds = pinnedSessionIds.filter(
+      (sessionId) => sessionId !== deletedSession.id
+    );
+    const [, savedPinnedSessionIds] = await Promise.all([
+      document.eventStore.deleteSession(deletedSession.id),
+      document.savePinnedSessionIds(nextPinnedSessionIds)
+    ]);
+
+    setPinnedSessionIds(savedPinnedSessionIds);
+    setControllerSnapshot(document.controller.deleteSession(deletedSession.id));
+    setRunnerStatus(
+      formatMessage(i18n.t("workbench.session.deleted"), {
+        title: deletedSession.title
+      })
+    );
+  };
+
   const resolveApproval = async (
     approvalId: string,
     decision: ApprovalDecision
@@ -374,6 +397,13 @@ export function App({ document }: AppProps) {
               {activeSessionPinned
                 ? i18n.t("workbench.actions.unpinSession")
                 : i18n.t("workbench.actions.pinSession")}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => void deleteActiveSession()}
+              disabled={!activeSession || runnerBusy}
+            >
+              {i18n.t("workbench.actions.deleteSession")}
             </Button>
             <Button variant="outline" onClick={() => setInspectorTab("settings")}>
               {i18n.t("workbench.actions.settings")}

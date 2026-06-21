@@ -21,6 +21,7 @@ export interface WorkbenchSessionController {
   readonly setPinnedSessionIds: (
     sessionIds: readonly string[]
   ) => WorkbenchSessionControllerSnapshot;
+  readonly deleteSession: (sessionId: string) => WorkbenchSessionControllerSnapshot;
   readonly selectSession: (sessionId: string) => WorkbenchSessionControllerSnapshot;
 }
 
@@ -74,6 +75,12 @@ export function createWorkbenchSessionController(
     },
     setPinnedSessionIds: (sessionIds) => {
       pinnedSessionIds = [...new Set(sessionIds)];
+      return createSnapshot();
+    },
+    deleteSession: (sessionId) => {
+      events = events.filter((event) => event.sessionId !== sessionId);
+      pinnedSessionIds = pinnedSessionIds.filter((id) => id !== sessionId);
+      activeSessionId = activeSessionId === sessionId ? undefined : activeSessionId;
       return createSnapshot();
     },
     selectSession: (sessionId) => {

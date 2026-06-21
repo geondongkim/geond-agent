@@ -73,6 +73,32 @@ describe("createWorkbenchSessionController", () => {
     expect(pinned.events).toHaveLength(2);
   });
 
+  it("can delete a session from the replay stream and pinned projection", () => {
+    const controller = createWorkbenchSessionController({
+      initialEvents: [
+        ...createWorkbenchSessionStartEvents({
+          sessionId: "session-a",
+          title: "Session A",
+          at: "2026-06-21T02:00:00.000Z"
+        }),
+        ...createWorkbenchSessionStartEvents({
+          sessionId: "session-b",
+          title: "Session B",
+          at: "2026-06-21T02:01:00.000Z"
+        })
+      ],
+      pinnedSessionIds: ["session-a", "session-b"],
+      activeSessionId: "session-b"
+    });
+
+    const deleted = controller.deleteSession("session-b");
+
+    expect(deleted.activeSessionId).toBe("session-a");
+    expect(deleted.events.map((event) => event.sessionId)).toEqual(["session-a"]);
+    expect(deleted.projection.sessions.map((session) => session.id)).toEqual(["session-a"]);
+    expect(deleted.projection.pinnedSessions.map((session) => session.id)).toEqual(["session-a"]);
+  });
+
   it("tracks approval requests and resolutions through replayed projection state", () => {
     const controller = createWorkbenchSessionController();
     const sessionEvents = createWorkbenchSessionStartEvents({
