@@ -55,9 +55,9 @@ single demo component.
 
 ## Follow-ups
 
-- Split the inspector into per-tab modules when the next inspector feature
-  lands.
+- Done in ADR 0005: split the inspector into per-tab modules when the
+  catalog-driven backend/model picker feature landed.
 - Keep Playwright focused on shell workflows and Vitest focused on reducers,
   normalizers, helpers, and runner event factories.
-- Add provider registry and approval forwarding only after the decomposed shell
-  stays green in CI.
+- Continue deferring approval forwarding until the Claude Code permission event
+  shape is confirmed.

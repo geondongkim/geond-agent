@@ -1,4 +1,5 @@
 export * from "./boundary.js";
+export * from "./catalog.js";
 export * from "./capabilities.js";
 export * from "./redaction.fixtures.js";
 export * from "./redaction.js";

@@ -13,6 +13,7 @@ import {
   loadWorkbenchPinnedSessionIds,
   saveWorkbenchSessionDefaults,
   saveWorkbenchPinnedSessionIds,
+  validateWorkbenchSessionDefaults,
   type AgentResponseLanguage,
   type LocalSettingsStore,
   type UiI18n,
@@ -23,7 +24,8 @@ import {
   type WorkbenchSessionController,
   type WorkbenchSessionControllerSnapshot,
   type WorkbenchSessionDefaults,
-  type WorkbenchSettingsLabels
+  type WorkbenchSettingsLabels,
+  type WorkbenchSelectionCatalog
 } from "@geond-agent/ui-workbench";
 
 import { createTauriClaudeCodeExecutor } from "./claude-runner.js";
@@ -47,6 +49,8 @@ export interface DesktopDemoDocument {
   readonly settingsLabels: WorkbenchSettingsLabels;
   readonly languageSettings: WorkbenchLanguageSettings;
   readonly sessionDefaults: WorkbenchSessionDefaults;
+  readonly sessionDefaultWarnings: readonly string[];
+  readonly selectionCatalog: WorkbenchSelectionCatalog;
   readonly persistence: WorkbenchPersistenceBoundary;
   readonly providerSummary: string;
   readonly bridgeCommand: string;
@@ -140,6 +144,8 @@ export async function createDesktopDemoDocument(
     settingsLabels: createWorkbenchSettingsLabels(runtimeSnapshot.i18n),
     languageSettings: runtimeSnapshot.languageSettings,
     sessionDefaults: workbench.sessionDefaults,
+    sessionDefaultWarnings: workbench.sessionDefaultWarnings,
+    selectionCatalog: workbench.selectionCatalog,
     persistence: workbench.persistence,
     providerSummary: workbench.providerSummary,
     bridgeCommand: [workbench.bridge.process.executable, ...workbench.bridge.process.args]
@@ -153,8 +159,12 @@ export async function createDesktopDemoDocument(
       mode === "claude-live" ? liveRunner.run(request) : runner.run(request),
     chooseWorkspace: (defaultPath) => workspaceResolver.chooseWorkspace({ defaultPath }),
     saveSessionDefaults: async (settings) => {
-      await saveWorkbenchSessionDefaults(settingsStore, settings);
-      return settings;
+      const validated = validateWorkbenchSessionDefaults(
+        settings,
+        workbench.selectionCatalog
+      );
+      await saveWorkbenchSessionDefaults(settingsStore, validated.defaults);
+      return validated.defaults;
     },
     savePinnedSessionIds: (sessionIds) =>
       saveWorkbenchPinnedSessionIds(settingsStore, sessionIds)

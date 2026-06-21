@@ -1,3 +1,10 @@
+import {
+  supportedCapability,
+  unavailableCapability,
+  unknownCapability,
+  type BackendAdapterMetadata
+} from "@geond-agent/ui-workbench";
+
 export type ClaudeCodeBridgeCapabilityState =
   | "supported"
   | "candidate"
@@ -62,6 +69,35 @@ export function createClaudeCodeAdapterMetadata(
   };
 }
 
+export function createClaudeCodeBackendRegistryEntry(): BackendAdapterMetadata {
+  return {
+    id: "claude-code.external-cli-acp",
+    label: "Claude Code external CLI/ACP candidate",
+    kind: "claude-code",
+    capabilities: {
+      sessions: supportedCapability(),
+      resume: supportedCapability(),
+      fork: unknownCapability("Fork behavior is still deferred."),
+      toolCalls: supportedCapability(),
+      terminalOutput: supportedCapability(),
+      diffEvents: supportedCapability(),
+      approvals: unknownCapability(
+        "Approval forwarding needs a confirmed Claude Code permission event shape."
+      ),
+      modelRouting: supportedCapability(),
+      modelPicker: supportedCapability(),
+      autoRouting: unavailableCapability("Auto routing policy is deferred."),
+      usageQuotaReporting: unknownCapability(
+        "Usage reports depend on Claude Code and provider response metadata."
+      )
+    },
+    notes: [
+      "External tool only; no Claude Code binary is bundled.",
+      "Metadata describes the Claude Code adapter prototype, not the whole backend abstraction."
+    ]
+  };
+}
+
 export function supported(reason?: string): ClaudeCodeBridgeCapabilityStatus {
   return { state: "supported", reason };
 }
@@ -77,4 +113,3 @@ export function unsupported(reason: string): ClaudeCodeBridgeCapabilityStatus {
 export function unknown(reason: string): ClaudeCodeBridgeCapabilityStatus {
   return { state: "unknown", reason };
 }
-

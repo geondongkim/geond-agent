@@ -89,11 +89,12 @@ default route first; OpenCode remains a later horizontal-expansion route.
 
 ## Future Direction
 
-The UI workbench should eventually render backend picker and model picker
-surfaces. These controls must come from adapter/provider capability metadata, so
-the UI can show choices such as Claude Code adapter, ACP-compatible backend,
-external CLI/process backend, local model backend, Z.ai model profiles, and
-`auto` routing without storing provider secrets or account state.
+The UI workbench now exposes a neutral selection catalog boundary for backend
+picker and model picker surfaces. These controls must come from
+adapter/provider capability metadata, so the UI can show choices such as Claude
+Code adapter, ACP-compatible backend, external CLI/process backend, local model
+backend, Z.ai model profiles, and `auto` routing without storing provider
+secrets or account state.
 
 UI language, agent response language, backend selection, provider route, model
 profile, and routing mode are separate settings.

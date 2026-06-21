@@ -87,7 +87,11 @@ importers:
 
   packages/ui-workbench: {}
 
-  packages/zai-provider: {}
+  packages/zai-provider:
+    dependencies:
+      '@geond-agent/ui-workbench':
+        specifier: workspace:*
+        version: link:../ui-workbench
 
 packages:
 

@@ -196,6 +196,14 @@ metadata. It should not store provider API keys, tokens, local user session
 state, or provider account state. Secret values stay in local shell/keychain or
 ignored tool-specific settings managed outside the tracked repository.
 
+The first implementation uses a neutral workbench selection catalog as the
+single source of truth for picker labels and capability metadata. Concrete
+packages can expose catalog-shaped entries, such as the Claude Code backend
+adapter entry and Z.ai provider route/model entries, but the desktop app
+composes them through its own catalog boundary. The same catalog lookup behavior
+is used by settings picker options, live-run selection snapshots, and Claude
+Code stream-json selection normalization.
+
 These are separate settings:
 
 - UI language,

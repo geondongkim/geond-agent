@@ -1,10 +1,12 @@
 import {
   createWorkbenchRuntime,
   loadWorkbenchSessionDefaults,
+  validateWorkbenchSessionDefaults,
   type LocalSettingsStore,
   type WorkbenchPersistenceBoundary,
   type WorkbenchSessionDefaults,
-  type WorkbenchRuntime
+  type WorkbenchRuntime,
+  type WorkbenchSelectionCatalog
 } from "@geond-agent/ui-workbench";
 import {
   createZaiAnthropicCompatibleEnvironment,
@@ -18,6 +20,7 @@ import {
   type ClaudeCodeAcpBoundary
 } from "@geond-agent/claude-code-bridge";
 import { desktopPersistenceBoundary } from "./persistence/schema.js";
+import { createDesktopWorkbenchCatalog } from "./lib/workbench-catalog.js";
 
 export type DesktopFrameworkStatus = "tauri-v2";
 
@@ -46,6 +49,8 @@ export interface DesktopWorkbench {
   readonly bridge: ClaudeCodeAcpBoundary;
   readonly providerSummary: string;
   readonly sessionDefaults: WorkbenchSessionDefaults;
+  readonly sessionDefaultWarnings: readonly string[];
+  readonly selectionCatalog: WorkbenchSelectionCatalog;
   readonly persistence: WorkbenchPersistenceBoundary;
 }
 
@@ -56,8 +61,13 @@ export async function createDesktopWorkbench(
     settingsStore: options.settingsStore,
     systemLocales: options.systemLocales
   });
-  const sessionDefaults = await loadWorkbenchSessionDefaults(options.settingsStore);
+  const storedSessionDefaults = await loadWorkbenchSessionDefaults(options.settingsStore);
   const providerConfig = createZaiProviderConfig(options.environment);
+  const selectionCatalog = createDesktopWorkbenchCatalog(providerConfig);
+  const validatedSessionDefaults = validateWorkbenchSessionDefaults(
+    storedSessionDefaults,
+    selectionCatalog
+  );
   const providerEnvironment = createZaiAnthropicCompatibleEnvironment(providerConfig);
   const bridge = defineClaudeCodeAcpBoundary({
     cwd: options.workspacePath,
@@ -69,7 +79,9 @@ export async function createDesktopWorkbench(
     ui,
     bridge: redactClaudeCodeAcpBoundary(bridge),
     providerSummary: describeZaiProviderConfig(providerConfig),
-    sessionDefaults,
+    sessionDefaults: validatedSessionDefaults.defaults,
+    sessionDefaultWarnings: validatedSessionDefaults.warnings,
+    selectionCatalog,
     persistence: desktopPersistenceBoundary
   };
 }

@@ -149,18 +149,20 @@ Examples:
 
 ## Initial Implementation Order
 
-1. Add a document/type-level selection model.
-2. Add a Z.ai model profile catalog.
-3. Add a Claude Code backend profile.
-4. Pave the Claude Code implementation route through event normalization,
+1. Done: add a document/type-level selection model.
+2. Done: add a Z.ai model profile catalog.
+3. Done: add a Claude Code backend profile.
+4. Done: add a neutral workbench selection catalog consumed by desktop picker
+   options and bridge selection normalization.
+5. Pave the Claude Code implementation route through event normalization,
    session/resume handling, and permission metadata.
-5. Use manual routing first: `sonnet` alias for normal work, `opus` alias for
+6. Use manual routing first: `sonnet` alias for normal work, `opus` alias for
    hard feature/architecture work.
-6. Add a UI settings boundary for backend/model picker data.
-7. Add a per-session backend/model selection snapshot.
-8. Add OpenCode as the next horizontal-expansion route after the Claude Code
+7. Done: add a UI settings boundary for backend/model picker data.
+8. Done: add a per-session backend/model selection snapshot.
+9. Add OpenCode as the next horizontal-expansion route after the Claude Code
    path is stable.
-9. Add auto routing policy after manual selection and metadata reporting are
+10. Add auto routing policy after manual selection and metadata reporting are
    stable.
 
 ## Do Not Do Yet

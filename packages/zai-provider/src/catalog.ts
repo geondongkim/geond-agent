@@ -3,6 +3,12 @@ import {
   ZAI_CODING_OPENAI_BASE_URL,
   type ZaiModelProfileId
 } from "./routing.js";
+import {
+  unknownCapability,
+  type ModelProfileCapability,
+  type ModelProfileMetadata,
+  type ProviderRouteMetadata
+} from "@geond-agent/ui-workbench";
 
 export type ZaiReasoningCapability = "standard" | "thinking" | "reasoning" | "auto";
 
@@ -40,6 +46,11 @@ export interface ZaiOpenAiCompatibleRouteMetadata {
   readonly hasApiKey: boolean;
   readonly apiKeyState: "present" | "missing";
   readonly modelProfileIds: readonly ZaiModelProfileId[];
+}
+
+export interface ZaiCatalogEntries {
+  readonly providerRoutes: readonly ProviderRouteMetadata[];
+  readonly modelProfiles: readonly ModelProfileMetadata[];
 }
 
 export const ZAI_MODEL_PROFILES: readonly ZaiModelProfile[] = [
@@ -142,4 +153,79 @@ export function createZaiAnthropicRouteMetadata(input: {
     apiKeyState: hasApiKey ? "present" : "missing",
     modelProfileIds: ZAI_MODEL_PROFILES.map((profile) => profile.id)
   };
+}
+
+export function createZaiCatalogEntries(input: {
+  readonly hasAnthropicKey?: boolean;
+  readonly hasOpenAiKey?: boolean;
+  readonly anthropicEndpoint?: string;
+  readonly openAiEndpoint?: string;
+} = {}): ZaiCatalogEntries {
+  const anthropicRoute = createZaiAnthropicRouteMetadata({
+    endpoint: input.anthropicEndpoint,
+    hasApiKey: input.hasAnthropicKey
+  });
+  const openAiRoute = createZaiOpenAiRouteMetadata({
+    endpoint: input.openAiEndpoint,
+    hasApiKey: input.hasOpenAiKey
+  });
+
+  return {
+    providerRoutes: [
+      {
+        id: anthropicRoute.id,
+        providerId: anthropicRoute.providerId,
+        label: anthropicRoute.label,
+        kind: "anthropic-compatible",
+        endpoint: anthropicRoute.endpoint,
+        hasApiKey: anthropicRoute.hasApiKey,
+        apiKeyState: anthropicRoute.apiKeyState,
+        notes: ["Anthropic-compatible route metadata only; no provider call is made."]
+      },
+      {
+        id: openAiRoute.id,
+        providerId: openAiRoute.providerId,
+        label: openAiRoute.label,
+        kind: "openai-compatible",
+        endpoint: openAiRoute.endpoint,
+        hasApiKey: openAiRoute.hasApiKey,
+        apiKeyState: openAiRoute.apiKeyState,
+        notes: ["OpenAI-compatible route metadata only; no provider call is made."]
+      }
+    ],
+    modelProfiles: ZAI_MODEL_PROFILES.map((profile) => ({
+      id: profile.id,
+      label: profile.label,
+      providerRouteId: anthropicRoute.id,
+      aliases: profile.routeAliases,
+      capabilities: toWorkbenchModelCapabilities(profile),
+      availability: unknownCapability(
+        "Availability depends on the selected Z.ai route and local API key presence."
+      ),
+      notes: [
+        ...profile.recommendedFor.map((item) => `Recommended for ${item}.`),
+        ...(profile.notes ?? [])
+      ]
+    }))
+  };
+}
+
+function toWorkbenchModelCapabilities(
+  profile: ZaiModelProfile
+): readonly ModelProfileCapability[] {
+  const capabilities: ModelProfileCapability[] = ["coding", "streaming"];
+
+  if (profile.capabilities.toolCalling) {
+    capabilities.push("tool-calling");
+  }
+
+  if (profile.capabilities.thinking) {
+    capabilities.push("thinking");
+  }
+
+  if (profile.capabilities.reasoning === "reasoning") {
+    capabilities.push("reasoning");
+  }
+
+  return capabilities;
 }
