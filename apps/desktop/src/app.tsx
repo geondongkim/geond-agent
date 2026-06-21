@@ -2,14 +2,20 @@ import { useMemo, useState } from "react";
 
 import {
   createWorkbenchSettingsLabels,
+  createWorkbenchSessionStartEvents,
   type WorkbenchRuntimeSnapshot,
-  type WorkbenchSessionDefaults
+  type WorkbenchSelectionSnapshot,
+  type WorkbenchSessionDefaults,
+  type WorkbenchEvent
 } from "@geond-agent/ui-workbench";
 
 import type { DesktopDemoDocument, DesktopRunnerMode } from "./demo-workbench.js";
 import { Button } from "./components/ui/button.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs.js";
 import { cn } from "./lib/cn.js";
+
+type RunnerRequest = ReturnType<DesktopDemoDocument["createRunnerRequest"]>;
+type RunnerResult = Awaited<ReturnType<DesktopDemoDocument["runSession"]>>;
 
 const lifecycleTone = {
   started: "status-ok",
@@ -110,6 +116,16 @@ export function App({ document }: AppProps) {
     const title = `Local demo session ${projection.sessions.length + 1}`;
     const selectedWorkspacePath =
       workspacePath === "__all__" ? document.activeWorkspace.path : workspacePath;
+    const request = document.createRunnerRequest({
+      sessionId,
+      title,
+      prompt: mode === "claude-live"
+        ? "Run a concise geond-agent workbench smoke session. Do not modify files."
+        : "Run a local fixture-backed workbench session without a paid provider call.",
+      languageSettings: runtimeSnapshot.languageSettings,
+      sessionDefaults,
+      workspacePath: selectedWorkspacePath
+    });
     setRunnerStatus(
       mode === "claude-live"
         ? i18n.t("workbench.runner.startingClaude")
@@ -117,35 +133,45 @@ export function App({ document }: AppProps) {
     );
 
     try {
-      const result = await document.runSession(
-        mode,
-        document.createRunnerRequest({
-          sessionId,
-          title,
-          prompt: mode === "claude-live"
-            ? "Run a concise geond-agent workbench smoke session. Do not modify files."
-            : "Run a local fixture-backed workbench session without a paid provider call.",
-          languageSettings: runtimeSnapshot.languageSettings,
-          sessionDefaults,
-          workspacePath: selectedWorkspacePath
-        })
-      );
+      if (mode === "claude-live") {
+        const preludeEvents = createLiveRunPreludeEvents(request, title);
+        await document.eventStore.append(preludeEvents);
+        setControllerSnapshot(
+          document.controller.appendEvents(preludeEvents, { activateSessionId: sessionId })
+        );
+      }
 
-      await document.eventStore.append(result.events);
+      const result = await document.runSession(mode, request);
+      const resultEvents =
+        mode === "claude-live"
+          ? [...result.events, ...createLiveRunCompletionEvents(sessionId, result)]
+          : result.events;
+
+      await document.eventStore.append(resultEvents);
       setIgnoredRecordCount(result.ignoredRecords.length);
       setControllerSnapshot(
-        document.controller.appendEvents(result.events, { activateSessionId: sessionId })
+        document.controller.appendEvents(resultEvents, { activateSessionId: sessionId })
       );
       setRunnerStatus(
         formatMessage(i18n.t("workbench.runner.appendedEvents"), {
-          count: result.events.length,
+          count: resultEvents.length,
           executable: result.command.executable,
           index: nextIndex,
           mode
         })
       );
     } catch (error) {
-      setRunnerStatus(error instanceof Error ? error.message : i18n.t("workbench.runner.failed"));
+      const message = error instanceof Error ? error.message : i18n.t("workbench.runner.failed");
+
+      if (mode === "claude-live") {
+        const failureEvents = createLiveRunFailureEvents(sessionId, message);
+        await document.eventStore.append(failureEvents);
+        setControllerSnapshot(
+          document.controller.appendEvents(failureEvents, { activateSessionId: sessionId })
+        );
+      }
+
+      setRunnerStatus(message);
     }
   };
 
@@ -592,6 +618,168 @@ function formatMessage(
     (message, [key, value]) => message.replaceAll(`{${key}}`, String(value)),
     template
   );
+}
+
+function createLiveRunPreludeEvents(
+  request: RunnerRequest,
+  title: string
+): readonly WorkbenchEvent[] {
+  const at = new Date().toISOString();
+
+  return [
+    ...createWorkbenchSessionStartEvents({
+      sessionId: request.sessionId,
+      title,
+      workspacePath: request.workspacePath,
+      selection: createSelectionSnapshotFromRequest(request),
+      at
+    }),
+    {
+      type: "plan.updated",
+      sessionId: request.sessionId,
+      items: [
+        {
+          id: "launch-claude-code",
+          title: "Launch Claude Code stream-json runner",
+          status: "in_progress"
+        },
+        {
+          id: "normalize-events",
+          title: "Normalize stream-json records into WorkbenchEvent state",
+          status: "pending"
+        },
+        {
+          id: "inspect-workbench",
+          title: "Review terminal, diff, approvals, and warnings",
+          status: "pending"
+        }
+      ],
+      at
+    },
+    {
+      type: "command.output",
+      sessionId: request.sessionId,
+      commandId: "claude-code-live-prelude",
+      stream: "status",
+      text: describeLiveCommandPreview(request),
+      status: "running",
+      at
+    },
+    {
+      type: "warning",
+      sessionId: request.sessionId,
+      id: "claude-code-local-only-boundary",
+      message:
+        "Live execution keeps provider credentials and raw Claude logs outside committed workbench state.",
+      at
+    }
+  ];
+}
+
+function createLiveRunCompletionEvents(
+  sessionId: string,
+  result: RunnerResult
+): readonly WorkbenchEvent[] {
+  const at = new Date().toISOString();
+  const exitCode = getRunnerExitCode(result);
+  const failed = exitCode !== undefined && exitCode !== 0;
+  const parseErrorCount = "parseErrors" in result ? result.parseErrors.length : 0;
+
+  return [
+    {
+      type: "command.output",
+      sessionId,
+      commandId: "claude-code-live-prelude",
+      stream: "status",
+      text: [
+        `normalized events: ${result.events.length}`,
+        `ignored records: ${result.ignoredRecords.length}`,
+        `parse warnings: ${parseErrorCount}`
+      ].join("\n"),
+      status: failed ? "failed" : "succeeded",
+      exitCode,
+      at
+    },
+    {
+      type: "session.lifecycle",
+      sessionId,
+      lifecycle: failed ? "failed" : "completed",
+      at
+    }
+  ];
+}
+
+function createLiveRunFailureEvents(
+  sessionId: string,
+  message: string
+): readonly WorkbenchEvent[] {
+  const at = new Date().toISOString();
+
+  return [
+    {
+      type: "command.output",
+      sessionId,
+      commandId: "claude-code-live-prelude",
+      stream: "stderr",
+      text: message,
+      status: "failed",
+      at
+    },
+    {
+      type: "error",
+      sessionId,
+      id: "claude-code-live-runner-failed",
+      message,
+      at
+    },
+    {
+      type: "session.lifecycle",
+      sessionId,
+      lifecycle: "failed",
+      at
+    }
+  ];
+}
+
+function createSelectionSnapshotFromRequest(
+  request: RunnerRequest
+): WorkbenchSelectionSnapshot {
+  return {
+    backendAdapterId: request.backendAdapterId ?? "claude-code.external-cli-acp",
+    providerRouteId: request.providerRouteId,
+    modelProfileId: request.modelProfileId ?? request.modelAlias,
+    routingMode: request.routingMode ?? "manual",
+    uiLanguage: request.uiLanguage,
+    agentResponseLanguage: normalizeSelectionAgentLanguage(request.agentResponseLanguage),
+    capabilityWarnings: [
+      "Live runner selection is a local snapshot; provider credentials are not stored in UI state."
+    ]
+  };
+}
+
+function describeLiveCommandPreview(request: RunnerRequest): string {
+  return [
+    "claude --bare -p --verbose --output-format stream-json",
+    `model: ${request.modelAlias ?? "sonnet"}`,
+    `permission: ${request.permissionMode ?? "plan"}`,
+    `workspace: ${request.workspacePath ?? request.cwd ?? "(default)"}`,
+    `provider route: ${request.providerRouteId ?? "unknown"}`,
+    `routing mode: ${request.routingMode ?? "manual"}`
+  ].join("\n");
+}
+
+function getRunnerExitCode(result: RunnerResult): number | undefined {
+  if (!("exitCode" in result) || typeof result.exitCode !== "number") {
+    return undefined;
+  }
+
+  return result.exitCode;
+}
+
+function normalizeSelectionAgentLanguage(
+  value: string | undefined
+): WorkbenchSelectionSnapshot["agentResponseLanguage"] | undefined {
+  return value === "system" || value === "en" || value === "ko" ? value : undefined;
 }
 
 function formatAgentLanguageLabel(
