@@ -26,6 +26,11 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(page.getByRole("button", { name: "Unpin session" })).toBeVisible();
   await expect(page.getByText("Approval required")).toBeVisible();
 
+  await page.getByLabel("Search sessions").fill("no matching session");
+  await expect(page.getByText("No matching sessions.").first()).toBeVisible();
+  await page.getByLabel("Search sessions").fill("local");
+  await expect(page.getByRole("button", { name: /Local workbench session/ })).toBeVisible();
+
   await page.getByRole("button", { name: "Unpin session" }).click();
   await expect(page.getByRole("button", { name: "Pin session" })).toBeVisible();
   await expect.poll(async () =>
