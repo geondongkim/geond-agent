@@ -78,6 +78,7 @@ export function App({ document }: AppProps) {
   const [runnerStatus, setRunnerStatus] = useState("");
   const [runnerMode, setRunnerMode] = useState<DesktopRunnerMode>("fixture");
   const [ignoredRecordCount, setIgnoredRecordCount] = useState(document.ignoredRecordCount);
+  const [composerPrompt, setComposerPrompt] = useState("");
 
   const i18n = runtimeSnapshot.i18n;
   const settingsLabels = useMemo(() => createWorkbenchSettingsLabels(i18n), [i18n]);
@@ -122,12 +123,11 @@ export function App({ document }: AppProps) {
     const title = `Local demo session ${projection.sessions.length + 1}`;
     const selectedWorkspacePath =
       workspacePath === "__all__" ? document.activeWorkspace.path : workspacePath;
+    const prompt = createRunnerPrompt(mode, composerPrompt, i18n);
     const request = document.createRunnerRequest({
       sessionId,
       title,
-      prompt: mode === "claude-live"
-        ? "Run a concise geond-agent workbench smoke session. Do not modify files."
-        : "Run a local fixture-backed workbench session without a paid provider call.",
+      prompt,
       languageSettings: runtimeSnapshot.languageSettings,
       sessionDefaults,
       workspacePath: selectedWorkspacePath
@@ -422,12 +422,14 @@ export function App({ document }: AppProps) {
                 id="agent-command"
                 aria-label={i18n.t("workbench.composer.label")}
                 className="composer-input"
-                readOnly
-                value={
-                  runnerMode === "claude-live"
-                    ? "Run a concise geond-agent workbench smoke session. Do not modify files."
-                    : i18n.t("workbench.composer.placeholder")
-                }
+                placeholder={createRunnerPrompt(runnerMode, "", i18n)}
+                value={composerPrompt}
+                onChange={(event) => setComposerPrompt(event.target.value)}
+                onKeyDown={(event) => {
+                  if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                    startSelectedRunner();
+                  }
+                }}
               />
               <div className="mt-2 flex justify-end">
                 <Button onClick={startSelectedRunner}>{i18n.t("workbench.composer.dispatch")}</Button>
@@ -649,6 +651,21 @@ function formatMessage(
     (message, [key, value]) => message.replaceAll(`{${key}}`, String(value)),
     template
   );
+}
+
+function createRunnerPrompt(
+  mode: DesktopRunnerMode,
+  prompt: string,
+  i18n: WorkbenchRuntimeSnapshot["i18n"]
+): string {
+  const trimmed = prompt.trim();
+  if (trimmed.length > 0) {
+    return trimmed;
+  }
+
+  return mode === "claude-live"
+    ? "Run a concise geond-agent workbench smoke session. Do not modify files."
+    : i18n.t("workbench.composer.placeholder");
 }
 
 function createLiveRunPreludeEvents(
