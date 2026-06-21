@@ -1,6 +1,9 @@
 import {
   createWorkbenchRuntime,
+  loadWorkbenchSessionDefaults,
   type LocalSettingsStore,
+  type WorkbenchPersistenceBoundary,
+  type WorkbenchSessionDefaults,
   type WorkbenchRuntime
 } from "@geond-agent/ui-workbench";
 import {
@@ -14,8 +17,9 @@ import {
   redactClaudeCodeAcpBoundary,
   type ClaudeCodeAcpBoundary
 } from "@geond-agent/claude-code-bridge";
+import { desktopPersistenceBoundary } from "./persistence/schema.js";
 
-export type DesktopFrameworkStatus = "undecided";
+export type DesktopFrameworkStatus = "tauri-v2";
 
 export interface DesktopAppBoundary {
   readonly frameworkStatus: DesktopFrameworkStatus;
@@ -24,7 +28,7 @@ export interface DesktopAppBoundary {
 }
 
 export const desktopAppBoundary: DesktopAppBoundary = {
-  frameworkStatus: "undecided",
+  frameworkStatus: "tauri-v2",
   ownsNativeShell: true,
   storesProviderSecrets: false
 };
@@ -41,6 +45,8 @@ export interface DesktopWorkbench {
   readonly ui: WorkbenchRuntime;
   readonly bridge: ClaudeCodeAcpBoundary;
   readonly providerSummary: string;
+  readonly sessionDefaults: WorkbenchSessionDefaults;
+  readonly persistence: WorkbenchPersistenceBoundary;
 }
 
 export async function createDesktopWorkbench(
@@ -50,6 +56,7 @@ export async function createDesktopWorkbench(
     settingsStore: options.settingsStore,
     systemLocales: options.systemLocales
   });
+  const sessionDefaults = await loadWorkbenchSessionDefaults(options.settingsStore);
   const providerConfig = createZaiProviderConfig(options.environment);
   const providerEnvironment = createZaiAnthropicCompatibleEnvironment(providerConfig);
   const bridge = defineClaudeCodeAcpBoundary({
@@ -61,6 +68,8 @@ export async function createDesktopWorkbench(
     boundary: desktopAppBoundary,
     ui,
     bridge: redactClaudeCodeAcpBoundary(bridge),
-    providerSummary: describeZaiProviderConfig(providerConfig)
+    providerSummary: describeZaiProviderConfig(providerConfig),
+    sessionDefaults,
+    persistence: desktopPersistenceBoundary
   };
 }
