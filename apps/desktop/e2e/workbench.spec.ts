@@ -28,6 +28,9 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(page.locator(".workbench-frame")).toHaveCSS("background-color", "rgb(13, 17, 16)");
   await expect(page.locator(".session-rail, .timeline-surface")).toHaveCount(2);
   await expect(page.getByRole("button", { name: "Attach workspace" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Route settings" })).toBeVisible();
+  await expect(page.locator(".composer-toolbar")).toBeVisible();
+  await expect(page.locator(".composer-tool-pill").filter({ hasText: "sonnet" })).toBeVisible();
   await expect(page.locator(".inspector-surface")).toHaveCount(0);
   await page.getByRole("button", { name: "Hide sessions" }).click();
   await expect(page.locator(".session-rail")).toHaveCount(0);
@@ -36,6 +39,8 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await page.screenshot({ path: "test-results/workbench-dark-smoke.png" });
   await page.getByRole("button", { name: "Show workspace panel" }).click();
   await expect(page.getByRole("heading", { name: "Workspace panel", exact: true })).toBeVisible();
+  await expect(page.getByText("Tools", { exact: true })).toBeVisible();
+  await expect(page.locator(".tool-tab-grid")).toBeVisible();
   await expect(page.getByRole("tab", { name: "Review" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Browser" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Files" })).toBeVisible();
@@ -83,6 +88,10 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(page.getByRole("button", { name: "Unpin session" })).toBeVisible();
 
   await page.getByRole("tab", { name: "Settings" }).click();
+  await expect(page.getByText("Language", { exact: true })).toBeVisible();
+  await expect(page.getByText("Backend and model route", { exact: true })).toBeVisible();
+  await expect(page.getByText("Composer and review", { exact: true })).toBeVisible();
+  await expect(page.getByText("Safety and persistence", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Runner mode")).toContainText("Local fixture");
   await expect(page.getByLabel("Runner mode")).toContainText("Claude Code live");
   await expect(page.getByLabel("Runner mode")).toHaveValue("fixture");

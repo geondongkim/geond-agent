@@ -135,6 +135,10 @@ export type UiMessageKey =
   | "workbench.composer.placeholder"
   | "workbench.composer.livePlaceholder"
   | "workbench.composer.dispatch"
+  | "workbench.composer.routeSettings"
+  | "workbench.composer.model"
+  | "workbench.composer.permission"
+  | "workbench.composer.contextCount"
   | "workbench.livePlan.launch"
   | "workbench.livePlan.normalize"
   | "workbench.livePlan.inspect"
@@ -187,6 +191,7 @@ export type UiMessageKey =
   | "workbench.workspacePanel.files"
   | "workbench.workspacePanel.chat"
   | "workbench.workspacePanel.settings"
+  | "workbench.workspacePanel.tools"
   | "workbench.workspacePanel.browserTitle"
   | "workbench.workspacePanel.browserDetail"
   | "workbench.workspacePanel.filesTitle"
@@ -209,6 +214,10 @@ export type UiMessageKey =
   | "workbench.context.kind.file"
   | "workbench.context.kind.selection"
   | "workbench.context.kind.note"
+  | "workbench.settings.languageSection"
+  | "workbench.settings.routingSection"
+  | "workbench.settings.inputSection"
+  | "workbench.settings.safetySection"
   | "workbench.empty.diff"
   | "workbench.empty.terminal"
   | "workbench.empty.approvals"
@@ -366,6 +375,10 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.composer.placeholder": "Review the current workspace and continue the implementation.",
     "workbench.composer.livePlaceholder": "Run a concise geond-agent workbench smoke session. Do not modify files.",
     "workbench.composer.dispatch": "Dispatch",
+    "workbench.composer.routeSettings": "Route settings",
+    "workbench.composer.model": "Model",
+    "workbench.composer.permission": "Permission",
+    "workbench.composer.contextCount": "{count} attached",
     "workbench.livePlan.launch": "Launch Claude Code stream-json runner",
     "workbench.livePlan.normalize": "Normalize stream-json records into WorkbenchEvent state",
     "workbench.livePlan.inspect": "Review terminal, diff, approvals, and warnings",
@@ -418,6 +431,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.workspacePanel.files": "Files",
     "workbench.workspacePanel.chat": "Side chat",
     "workbench.workspacePanel.settings": "Settings",
+    "workbench.workspacePanel.tools": "Tools",
     "workbench.workspacePanel.browserTitle": "Browser slot",
     "workbench.workspacePanel.browserDetail": "Reserved for the Tauri webview/browser tool surface. It will stay local-only and session-scoped before live browsing is wired.",
     "workbench.workspacePanel.filesTitle": "Files slot",
@@ -440,6 +454,10 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.context.kind.file": "File",
     "workbench.context.kind.selection": "Selection",
     "workbench.context.kind.note": "Note",
+    "workbench.settings.languageSection": "Language",
+    "workbench.settings.routingSection": "Backend and model route",
+    "workbench.settings.inputSection": "Composer and review",
+    "workbench.settings.safetySection": "Safety and persistence",
     "workbench.empty.diff": "No diff events in the active session.",
     "workbench.empty.terminal": "No command output projected yet.",
     "workbench.empty.approvals": "No approval queue for the active session.",
@@ -594,6 +612,10 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.composer.placeholder": "현재 워크스페이스를 검토하고 구현을 이어갑니다.",
     "workbench.composer.livePlaceholder": "간결한 geond-agent 워크벤치 smoke 세션을 실행합니다. 파일은 수정하지 않습니다.",
     "workbench.composer.dispatch": "실행",
+    "workbench.composer.routeSettings": "라우트 설정",
+    "workbench.composer.model": "모델",
+    "workbench.composer.permission": "권한",
+    "workbench.composer.contextCount": "{count}개 첨부",
     "workbench.livePlan.launch": "Claude Code stream-json runner 시작",
     "workbench.livePlan.normalize": "stream-json 레코드를 WorkbenchEvent 상태로 정규화",
     "workbench.livePlan.inspect": "터미널, 변경 사항, 승인, 경고 검토",
@@ -646,6 +668,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.workspacePanel.files": "파일",
     "workbench.workspacePanel.chat": "사이드 채팅",
     "workbench.workspacePanel.settings": "설정",
+    "workbench.workspacePanel.tools": "도구",
     "workbench.workspacePanel.browserTitle": "브라우저 슬롯",
     "workbench.workspacePanel.browserDetail": "Tauri webview/browser 도구 표면을 위한 자리입니다. 실제 연결 전까지 로컬 전용, 세션 단위 경계로 유지합니다.",
     "workbench.workspacePanel.filesTitle": "파일 슬롯",
@@ -668,6 +691,10 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.context.kind.file": "파일",
     "workbench.context.kind.selection": "선택",
     "workbench.context.kind.note": "메모",
+    "workbench.settings.languageSection": "언어",
+    "workbench.settings.routingSection": "백엔드와 모델 라우트",
+    "workbench.settings.inputSection": "입력과 검토",
+    "workbench.settings.safetySection": "안전과 저장",
     "workbench.empty.diff": "활성 세션에 변경 이벤트가 없습니다.",
     "workbench.empty.terminal": "아직 표시할 명령 출력이 없습니다.",
     "workbench.empty.approvals": "활성 세션의 승인 대기열이 없습니다.",
