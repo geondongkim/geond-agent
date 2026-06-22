@@ -17,9 +17,10 @@ import {
   Zap
 } from "lucide-react";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.js";
+import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs.js";
 import type { ProjectedActiveSession } from "../lib/workbench-types.js";
 import { formatProviderSummary } from "../lib/workbench-format.js";
+import { InspectorBrowserTab } from "./inspector/inspector-browser-tab.js";
 import { InspectorFilesTab } from "./inspector/inspector-files-tab.js";
 import { InspectorSettingsTab } from "./inspector/inspector-settings-tab.js";
 import { InspectorSideChatTab } from "./inspector/inspector-side-chat-tab.js";
@@ -213,10 +214,12 @@ export function InspectorPane({
           enqueueSideChatDraft={enqueueSideChatDraft}
           i18n={i18n}
         />
-        <WorkspacePlaceholderTab
-          value="browser"
-          title={i18n.t("workbench.workspacePanel.browserTitle")}
-          detail={i18n.t("workbench.workspacePanel.browserDetail")}
+        <InspectorBrowserTab
+          activeSession={activeSession}
+          commandOutputs={inspectorData?.commandOutputs}
+          enqueueSideChatDraft={enqueueSideChatDraft}
+          i18n={i18n}
+          setInspectorTab={setInspectorTab}
         />
         <InspectorFilesTab
           activeSession={activeSession}
@@ -256,24 +259,5 @@ export function InspectorPane({
         />
       </Tabs>
     </aside>
-  );
-}
-
-function WorkspacePlaceholderTab({
-  detail,
-  title,
-  value
-}: {
-  readonly detail: string;
-  readonly title: string;
-  readonly value: string;
-}) {
-  return (
-    <TabsContent value={value} className="border-0 bg-transparent p-0">
-      <div className="inspector-card">
-        <p className="text-sm font-semibold">{title}</p>
-        <p className="mt-2 text-xs leading-5 text-[color:var(--ink-soft)]">{detail}</p>
-      </div>
-    </TabsContent>
   );
 }

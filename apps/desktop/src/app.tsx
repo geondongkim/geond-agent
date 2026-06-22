@@ -24,7 +24,11 @@ import { useWorkbenchActions } from "./lib/use-workbench-actions.js";
 import { useWorkbenchDerivedState } from "./lib/use-workbench-derived-state.js";
 import { useWorkbenchOptions } from "./lib/use-workbench-options.js";
 import { useWorkbenchRunner } from "./runs/use-workbench-runner.js";
-import { createSideChatDraft, type SideChatDraft } from "./lib/side-chat-drafts.js";
+import {
+  createSideChatDraft,
+  filterSideChatDraftsForSession,
+  type SideChatDraft
+} from "./lib/side-chat-drafts.js";
 
 interface AppProps {
   readonly document: DesktopDemoDocument;
@@ -116,6 +120,10 @@ export function App({ document }: AppProps) {
     activeSessionListItem?.resumable && activeExternalSession && !runnerBusy
   );
   const canFollowUpApprovals = canResumeActiveSession && runnerMode === "claude-live";
+  const visibleSideChatDrafts = useMemo(
+    () => filterSideChatDraftsForSession(sideChatDrafts, activeSession?.id),
+    [activeSession?.id, sideChatDrafts]
+  );
   const selectWorkspacePath = (path: string) => {
     setWorkspacePath(path);
     if (path !== "__all__") {
@@ -134,7 +142,9 @@ export function App({ document }: AppProps) {
     setRunnerMode(savedMode);
   };
   const enqueueSideChatDraft = (text: string, sourceLabel?: string) => {
-    const draft = createSideChatDraft(text, sourceLabel);
+    const draft = createSideChatDraft(text, sourceLabel, {
+      sessionId: activeSession?.id
+    });
     if (!draft) {
       return;
     }
@@ -448,7 +458,7 @@ export function App({ document }: AppProps) {
               bridgeCommand={document.bridgeCommand}
               canFollowUpApprovals={canFollowUpApprovals}
               composerEnterBehaviorOptions={composerEnterBehaviorOptions}
-              drafts={sideChatDrafts}
+              drafts={visibleSideChatDrafts}
               enqueueSideChatDraft={enqueueSideChatDraft}
               followUpPolicyOptions={followUpPolicyOptions}
               ignoredRecordCount={ignoredRecordCount}

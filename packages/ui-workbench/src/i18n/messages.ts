@@ -195,6 +195,14 @@ export type UiMessageKey =
   | "workbench.workspacePanel.tools"
   | "workbench.workspacePanel.browserTitle"
   | "workbench.workspacePanel.browserDetail"
+  | "workbench.browser.title"
+  | "workbench.browser.detail"
+  | "workbench.browser.localOnly"
+  | "workbench.browser.workspace"
+  | "workbench.browser.queueCheck"
+  | "workbench.browser.openTerminal"
+  | "workbench.browser.openFiles"
+  | "workbench.browser.empty"
   | "workbench.workspacePanel.filesTitle"
   | "workbench.workspacePanel.filesDetail"
   | "workbench.workspacePanel.chatTitle"
@@ -464,6 +472,14 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.workspacePanel.tools": "Tools",
     "workbench.workspacePanel.browserTitle": "Browser slot",
     "workbench.workspacePanel.browserDetail": "Reserved for the Tauri webview/browser tool surface. It will stay local-only and session-scoped before live browsing is wired.",
+    "workbench.browser.title": "Local browser check",
+    "workbench.browser.detail": "Prepare UI validation follow-ups from the active session evidence. Live browser automation will be wired through a local Tauri command boundary later.",
+    "workbench.browser.localOnly": "Local-only surface; no browser logs or private transcripts are persisted here.",
+    "workbench.browser.workspace": "Workspace",
+    "workbench.browser.queueCheck": "Queue browser check",
+    "workbench.browser.openTerminal": "Open terminal",
+    "workbench.browser.openFiles": "Open files",
+    "workbench.browser.empty": "Open a session before preparing a browser validation follow-up.",
     "workbench.workspacePanel.filesTitle": "Files slot",
     "workbench.workspacePanel.filesDetail": "Reserved for workspace file context, changed files, and local evidence attachments. Raw private files are not persisted into normalized workbench events.",
     "workbench.workspacePanel.chatTitle": "Side chat slot",
@@ -730,6 +746,14 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.workspacePanel.tools": "도구",
     "workbench.workspacePanel.browserTitle": "브라우저 슬롯",
     "workbench.workspacePanel.browserDetail": "Tauri webview/browser 도구 표면을 위한 자리입니다. 실제 연결 전까지 로컬 전용, 세션 단위 경계로 유지합니다.",
+    "workbench.browser.title": "로컬 브라우저 검증",
+    "workbench.browser.detail": "활성 세션의 증거를 바탕으로 UI 검증 후속 초안을 준비합니다. 실제 브라우저 자동화는 이후 로컬 Tauri command 경계로 연결합니다.",
+    "workbench.browser.localOnly": "로컬 전용 표면입니다. 브라우저 로그나 private transcript는 여기에 저장하지 않습니다.",
+    "workbench.browser.workspace": "워크스페이스",
+    "workbench.browser.queueCheck": "브라우저 검증 초안 추가",
+    "workbench.browser.openTerminal": "터미널 열기",
+    "workbench.browser.openFiles": "파일 열기",
+    "workbench.browser.empty": "브라우저 검증 후속 초안을 준비하려면 먼저 세션을 여세요.",
     "workbench.workspacePanel.filesTitle": "파일 슬롯",
     "workbench.workspacePanel.filesDetail": "워크스페이스 파일 컨텍스트, 변경 파일, 로컬 증거 첨부를 위한 자리입니다. 원본 private 파일은 정규화 이벤트에 저장하지 않습니다.",
     "workbench.workspacePanel.chatTitle": "사이드 채팅 슬롯",

@@ -71,6 +71,9 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect.poll(async () =>
     page.evaluate(() => window.localStorage.getItem("geond-agent.workbench.side-chat-drafts"))
   ).toContain("apps/desktop/src/app.tsx");
+  await expect.poll(async () =>
+    page.evaluate(() => window.localStorage.getItem("geond-agent.workbench.side-chat-drafts"))
+  ).toContain("\"sessionId\":\"local-session-1\"");
   await expect(filesPanel.getByRole("heading", { name: "Attached context" })).toBeVisible();
   await expect(filesPanel.getByText("Metadata only", { exact: true }).first()).toBeVisible();
   await expect(filesPanel.getByText("Workspace path attached as metadata only")).toBeVisible();
@@ -102,6 +105,25 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(page.getByLabel("Agent command")).toHaveValue(
     "Check the evidence preview before dispatching."
   );
+  await expect.poll(async () =>
+    page.evaluate(() => window.localStorage.getItem("geond-agent.workbench.side-chat-drafts"))
+  ).toBe("[]");
+  await page.getByRole("tab", { name: "Browser" }).click();
+  const browserPanel = page.getByRole("tabpanel", { name: "Browser" });
+  await expect(browserPanel.getByText("Local browser check")).toBeVisible();
+  await expect(browserPanel.getByText("Local-only surface")).toBeVisible();
+  await expect(browserPanel.getByText("apps/desktop/src/app.tsx")).toHaveCount(0);
+  await browserPanel.getByRole("button", { name: "Queue browser check" }).click();
+  await page.getByRole("tab", { name: "Side chat" }).click();
+  await expect(sideChatPanel.getByText("Review browser/local validation")).toBeVisible();
+  await expect.poll(async () =>
+    page.evaluate(() => window.localStorage.getItem("geond-agent.workbench.side-chat-drafts"))
+  ).toContain("\"sessionId\":\"local-session-1\"");
+  await sideChatPanel
+    .locator(".side-chat-draft-card")
+    .filter({ hasText: "Review browser/local validation" })
+    .getByRole("button", { name: "Remove" })
+    .click();
   await expect.poll(async () =>
     page.evaluate(() => window.localStorage.getItem("geond-agent.workbench.side-chat-drafts"))
   ).toBe("[]");
@@ -234,6 +256,15 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(approvalsPanel.getByText("resolved / approved")).toBeVisible();
   await expect(approvalsPanel.getByText("Run verification command")).toBeVisible();
   await expect(approvalsPanel.getByText("High risk")).toBeVisible();
+  await approvalsPanel.getByRole("button", { name: "Queue follow-up" }).first().click();
+  await page.getByRole("tab", { name: "Side chat" }).click();
+  await expect(sideChatPanel.getByText("Review the approval request")).toBeVisible();
+  await sideChatPanel
+    .locator(".side-chat-draft-card")
+    .filter({ hasText: "Run verification command" })
+    .getByRole("button", { name: "Remove" })
+    .click();
+  await page.getByRole("tab", { name: "Review" }).click();
   await approvalsPanel.getByRole("button", { name: "View terminal" }).click();
   await expect(page.getByRole("tabpanel", { name: "Terminal" })).toBeVisible();
   await page.getByRole("tab", { name: "Review" }).click();
