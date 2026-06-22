@@ -332,8 +332,11 @@ output previews, diff summaries, and usage metadata into queryable tables
 derived from the normalized event stream. The desktop shell exposes those
 materialized views through Tauri query commands, and the renderer consumes them
 through a typed `createDesktopMaterializedEventStore` boundary so inspector
-panes do not need to replay the full event stream for every lookup. During
-renderer-only Vite development, `apps/desktop` keeps a browser `localStorage`
+panes do not need to replay the full event stream for every lookup. The active
+inspector read model refreshes the selected session from SQLite materialized
+views and falls back to replay-derived projection data in renderer-only
+development. During renderer-only Vite development, `apps/desktop` keeps a
+browser `localStorage`
 fallback so the same settings UI can prove save/reload behavior outside the
 native shell. Both paths are limited to non-secret preference keys and
 normalized workbench events; provider secrets, raw Claude logs, account state,

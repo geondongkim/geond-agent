@@ -66,4 +66,6 @@ contents from context attachments.
 materialized event views. It reads context attachments, tool calls, command
 output previews, diff summaries, and usage metadata through Tauri commands when
 the native shell is available, and falls back to an in-memory read model during
-renderer-only development.
+renderer-only development. The active inspector refreshes those materialized
+records for the selected session and falls back to replay-derived projection
+data when native SQLite commands are unavailable.

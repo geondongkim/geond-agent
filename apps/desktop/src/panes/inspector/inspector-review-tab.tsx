@@ -25,6 +25,7 @@ import {
   formatUsageNumber,
   formatUsageSourceLabel
 } from "../../lib/workbench-format.js";
+import type { InspectorSessionReadModel } from "../../lib/inspector-read-model.js";
 import type { ProjectedActiveSession } from "../../lib/workbench-types.js";
 
 export function InspectorReviewTab({
@@ -34,6 +35,7 @@ export function InspectorReviewTab({
   canFollowUpApprovals,
   i18n,
   ignoredRecordCount,
+  inspectorData,
   resolveApproval,
   runtimeSnapshot,
   setInspectorTab
@@ -44,6 +46,7 @@ export function InspectorReviewTab({
   readonly canFollowUpApprovals: boolean;
   readonly i18n: UiI18n;
   readonly ignoredRecordCount: number;
+  readonly inspectorData?: InspectorSessionReadModel;
   readonly resolveApproval: (approvalId: string, decision: ApprovalDecision) => void;
   readonly runtimeSnapshot: WorkbenchRuntimeSnapshot;
   readonly setInspectorTab: (tab: string) => void;
@@ -56,7 +59,9 @@ export function InspectorReviewTab({
     );
   }
 
-  const latestUsage = activeSession.usageReports.at(-1);
+  const diffs = inspectorData?.diffs ?? activeSession.diffs;
+  const usageReports = inspectorData?.usageReports ?? activeSession.usageReports;
+  const latestUsage = usageReports.at(-1);
 
   return (
     <TabsContent value="review" className="border-0 bg-transparent p-0">
@@ -136,11 +141,11 @@ export function InspectorReviewTab({
         <section className="review-section">
           <div className="review-section-heading">
             <h3>{i18n.t("workbench.diff.title")}</h3>
-            <span className="metric-pill">{activeSession.diffs.length}</span>
+            <span className="metric-pill">{diffs.length}</span>
           </div>
-          {activeSession.diffs.length ? (
+          {diffs.length ? (
             <div className="space-y-2">
-              {activeSession.diffs.map((diff) => (
+              {diffs.map((diff) => (
                 <div key={diff.id} className="inspector-card">
                   <p className="text-sm font-semibold">{diff.title ?? diff.id}</p>
                   <p className="mt-1 text-xs leading-5 text-[color:var(--ink-soft)]">

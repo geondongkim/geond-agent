@@ -11,6 +11,11 @@ import { AppBar } from "./panes/app-bar.js";
 import { InspectorPane } from "./panes/inspector.js";
 import { SessionRailPane } from "./panes/session-rail.js";
 import { TimelinePane } from "./panes/timeline.js";
+import {
+  createMaterializedInspectorSessionReadModel,
+  createProjectionInspectorSessionReadModel,
+  type InspectorSessionReadModel
+} from "./lib/inspector-read-model.js";
 import { useWorkbenchActions } from "./lib/use-workbench-actions.js";
 import { useWorkbenchDerivedState } from "./lib/use-workbench-derived-state.js";
 import { useWorkbenchOptions } from "./lib/use-workbench-options.js";
@@ -41,6 +46,9 @@ export function App({ document }: AppProps) {
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [materializedInspectorData, setMaterializedInspectorData] = useState<
+    InspectorSessionReadModel | undefined
+  >(() => createProjectionInspectorSessionReadModel(document.initialControllerSnapshot.projection.activeSession));
 
   const i18n = runtimeSnapshot.i18n;
   const {
@@ -73,6 +81,10 @@ export function App({ document }: AppProps) {
     sessionQuery,
     workspacePath
   });
+  const inspectorData =
+    materializedInspectorData?.sessionId === activeSession?.id
+      ? materializedInspectorData
+      : createProjectionInspectorSessionReadModel(activeSession);
   const {
     activeRunMode,
     cancelActiveRun,
@@ -233,6 +245,54 @@ export function App({ document }: AppProps) {
     return () => globalThis.document.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  useEffect(() => {
+    if (!activeSession) {
+      setMaterializedInspectorData(undefined);
+      return;
+    }
+
+    let cancelled = false;
+    const sessionId = activeSession.id;
+
+    void (async () => {
+      const [
+        contextAttachments,
+        toolCalls,
+        commandOutputs,
+        diffSummaries,
+        usageMetadata
+      ] = await Promise.all([
+        document.materializedEventStore.listContextAttachments(sessionId),
+        document.materializedEventStore.listToolCalls(sessionId),
+        document.materializedEventStore.listCommandOutputs(sessionId),
+        document.materializedEventStore.listDiffSummaries(sessionId),
+        document.materializedEventStore.listUsageMetadata(sessionId)
+      ]);
+
+      if (cancelled) {
+        return;
+      }
+
+      setMaterializedInspectorData(
+        createMaterializedInspectorSessionReadModel(
+          {
+            sessionId,
+            contextAttachments,
+            toolCalls,
+            commandOutputs,
+            diffSummaries,
+            usageMetadata
+          },
+          activeSession
+        )
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSession, controllerSnapshot.events.length, document]);
+
   function openInspectorTab(tab: string) {
     setInspectorTab(tab);
     setRightPanelOpen(true);
@@ -314,6 +374,7 @@ export function App({ document }: AppProps) {
               ignoredRecordCount={ignoredRecordCount}
               i18n={i18n}
               inspectorTab={inspectorTab}
+              inspectorData={inspectorData}
               modelAliasOptions={modelAliasOptions}
               permissionModeOptions={permissionModeOptions}
               persistenceNotes={document.persistence.notes}
