@@ -47,6 +47,9 @@
   review delivery, kept separate from backend/model/language settings.
 - SQLite-backed local sessions, events, snapshots, approvals, tool calls,
   command output summaries, diff summaries, and usage metadata.
+- Started native event materialization for context attachments, tool calls,
+  command output previews, diff summaries, and usage metadata through schema v3
+  tables derived from normalized events.
 - Per-session projection:
   - load durable session summaries first,
   - replay detailed event streams for the active session only,
