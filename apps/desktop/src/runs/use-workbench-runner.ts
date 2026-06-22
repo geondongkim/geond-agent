@@ -88,7 +88,10 @@ export function useWorkbenchRunner({
       existingSession?.workspacePath ??
       (workspacePath === "__all__" ? document.activeWorkspace.path : workspacePath);
     const prompt =
-      options.promptOverride ?? createRunnerPrompt(mode, composerPrompt, i18n);
+      options.promptOverride ??
+      createRunnerPrompt(mode, composerPrompt, i18n, {
+        activeSession: controllerSnapshot.projection.activeSession
+      });
     const request = document.createRunnerRequest({
       sessionId,
       title,

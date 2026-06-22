@@ -8,7 +8,13 @@ const MAX_SOURCE_LABEL_LENGTH = 240;
 export interface SideChatDraft {
   readonly id: string;
   readonly sourceLabel?: string;
+  readonly sessionId?: string;
   readonly text: string;
+}
+
+export interface CreateSideChatDraftOptions {
+  readonly now?: number;
+  readonly sessionId?: string;
 }
 
 export async function loadSideChatDrafts(
@@ -38,19 +44,33 @@ export async function saveSideChatDrafts(
 export function createSideChatDraft(
   text: string,
   sourceLabel?: string,
-  now: number = Date.now()
+  options: CreateSideChatDraftOptions | number = {}
 ): SideChatDraft | undefined {
   const normalizedText = normalizeText(text, MAX_TEXT_LENGTH);
   if (!normalizedText) {
     return undefined;
   }
 
+  const now = typeof options === "number" ? options : options.now ?? Date.now();
+  const sessionId = typeof options === "number" ? undefined : normalizeText(options.sessionId, 160);
   const normalizedSourceLabel = normalizeText(sourceLabel, MAX_SOURCE_LABEL_LENGTH);
   return {
     id: `side-chat-draft-${now}-${stableTextSuffix(normalizedText)}`,
     text: normalizedText,
+    sessionId,
     sourceLabel: normalizedSourceLabel
   };
+}
+
+export function filterSideChatDraftsForSession(
+  drafts: readonly SideChatDraft[],
+  sessionId: string | undefined
+): readonly SideChatDraft[] {
+  if (!sessionId) {
+    return drafts.filter((draft) => !draft.sessionId);
+  }
+
+  return drafts.filter((draft) => !draft.sessionId || draft.sessionId === sessionId);
 }
 
 export function normalizeSideChatDrafts(value: unknown): readonly SideChatDraft[] {
@@ -77,6 +97,7 @@ function normalizeSideChatDraft(value: unknown, index: number): readonly SideCha
     {
       id: normalizeText(value.id, 160) ?? `side-chat-draft-${index}`,
       text,
+      sessionId: normalizeText(value.sessionId, 160),
       sourceLabel: normalizeText(value.sourceLabel, MAX_SOURCE_LABEL_LENGTH)
     }
   ];
