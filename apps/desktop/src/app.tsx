@@ -356,7 +356,7 @@ export function App({ document }: AppProps) {
             runnerStatus={runnerStatus}
             sessionDefaults={sessionDefaults}
             setComposerPrompt={setComposerPrompt}
-            setInspectorTab={setInspectorTab}
+            setInspectorTab={openInspectorTab}
             startSelectedRunner={startSelectedRunner}
             togglePinnedSession={togglePinnedSession}
           />

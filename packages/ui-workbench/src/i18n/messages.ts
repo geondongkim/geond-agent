@@ -154,6 +154,11 @@ export type UiMessageKey =
   | "workbench.runner.running"
   | "workbench.runner.cancelled"
   | "workbench.runner.cancelFailed"
+  | "workbench.recovery.title"
+  | "workbench.recovery.resumeDetail"
+  | "workbench.recovery.checkDetail"
+  | "workbench.recovery.openTerminal"
+  | "workbench.recovery.openSettings"
   | "workbench.commandPalette.title"
   | "workbench.commandPalette.search"
   | "workbench.commandPalette.noResults"
@@ -380,6 +385,11 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runner.running": "Running...",
     "workbench.runner.cancelled": "Cancel requested for the live Claude run.",
     "workbench.runner.cancelFailed": "No live Claude process was available to cancel.",
+    "workbench.recovery.title": "Recovery available",
+    "workbench.recovery.resumeDetail": "This session has an external Claude session link. Inspect terminal output, adjust settings if needed, then resume from the saved external session.",
+    "workbench.recovery.checkDetail": "This run stopped before a resumable external session was available. Inspect terminal output and settings before dispatching another run.",
+    "workbench.recovery.openTerminal": "Terminal",
+    "workbench.recovery.openSettings": "Settings",
     "workbench.commandPalette.title": "Command menu",
     "workbench.commandPalette.search": "Search actions",
     "workbench.commandPalette.noResults": "No matching actions.",
@@ -603,6 +613,11 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runner.running": "실행 중...",
     "workbench.runner.cancelled": "Live Claude 실행 취소를 요청했습니다.",
     "workbench.runner.cancelFailed": "취소할 수 있는 Live Claude 프로세스가 없습니다.",
+    "workbench.recovery.title": "복구 가능",
+    "workbench.recovery.resumeDetail": "이 세션에는 외부 Claude 세션 링크가 있습니다. 터미널 출력을 확인하고 필요하면 설정을 조정한 뒤 저장된 외부 세션에서 이어쓸 수 있습니다.",
+    "workbench.recovery.checkDetail": "이 실행은 이어쓸 수 있는 외부 세션이 준비되기 전에 멈췄습니다. 다시 실행하기 전에 터미널 출력과 설정을 확인하세요.",
+    "workbench.recovery.openTerminal": "터미널",
+    "workbench.recovery.openSettings": "설정",
     "workbench.commandPalette.title": "명령 메뉴",
     "workbench.commandPalette.search": "작업 검색",
     "workbench.commandPalette.noResults": "일치하는 작업이 없습니다.",
