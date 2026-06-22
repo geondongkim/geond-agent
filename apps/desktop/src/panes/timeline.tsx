@@ -1,5 +1,16 @@
 import type { UiI18n, WorkbenchSessionDefaults } from "@geond-agent/ui-workbench";
-import { Paperclip, Pin, PinOff, RotateCcw, Send, Square, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  Paperclip,
+  Pin,
+  PinOff,
+  RotateCcw,
+  Send,
+  Settings,
+  Square,
+  Terminal,
+  Trash2
+} from "lucide-react";
 
 import { Button } from "../components/ui/button.js";
 import { EmptyState } from "../components/workbench/empty-state.js";
@@ -66,6 +77,7 @@ export function TimelinePane({
     contextAttachments.length - visibleContextAttachments.length,
     0
   );
+  const recoveryState = getRecoveryState(activeSession, canResumeActiveSession, runnerBusy);
 
   return (
     <section className="timeline-surface">
@@ -100,6 +112,38 @@ export function TimelinePane({
           <Button variant="outline" onClick={() => setInspectorTab("review")}>
             {i18n.t("workbench.approvals.review")}
           </Button>
+        </div>
+      ) : null}
+
+      {recoveryState ? (
+        <div className="recovery-banner">
+          <div className="flex min-w-0 items-start gap-3">
+            <AlertTriangle className="mt-0.5 shrink-0 text-[color:var(--danger)]" size={18} />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">{i18n.t("workbench.recovery.title")}</p>
+              <p className="mt-1 text-xs leading-5 text-[color:var(--ink-soft)]">
+                {recoveryState.canResume
+                  ? i18n.t("workbench.recovery.resumeDetail")
+                  : i18n.t("workbench.recovery.checkDetail")}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => setInspectorTab("terminal")}>
+              <Terminal size={14} />
+              {i18n.t("workbench.recovery.openTerminal")}
+            </Button>
+            <Button variant="outline" className="gap-2" onClick={() => setInspectorTab("settings")}>
+              <Settings size={14} />
+              {i18n.t("workbench.recovery.openSettings")}
+            </Button>
+            {recoveryState.canResume ? (
+              <Button className="gap-2" onClick={resumeActiveSession}>
+                <RotateCcw size={14} />
+                {i18n.t("workbench.actions.resumeSession")}
+              </Button>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
@@ -301,4 +345,24 @@ export function TimelinePane({
       </div>
     </section>
   );
+}
+
+function getRecoveryState(
+  activeSession: ProjectedActiveSession | undefined,
+  canResume: boolean,
+  runnerBusy: boolean
+): { readonly canResume: boolean } | undefined {
+  if (!activeSession || runnerBusy) {
+    return undefined;
+  }
+
+  const hasInterruptedOrFailedCommand = activeSession.commandOutputs.some(
+    (command) => command.status === "failed" || command.status === "interrupted"
+  );
+  const needsRecovery =
+    activeSession.lifecycle === "failed" ||
+    activeSession.lifecycle === "paused" ||
+    hasInterruptedOrFailedCommand;
+
+  return needsRecovery ? { canResume } : undefined;
 }
