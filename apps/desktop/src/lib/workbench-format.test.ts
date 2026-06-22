@@ -5,7 +5,9 @@ import { createUiI18n } from "@geond-agent/ui-workbench";
 import {
   formatExternalSessionId,
   formatMessage,
-  formatStatusLabel
+  formatStatusLabel,
+  formatUsageCost,
+  formatUsageNumber
 } from "./workbench-format.js";
 
 describe("desktop workbench formatting helpers", () => {
@@ -24,5 +26,10 @@ describe("desktop workbench formatting helpers", () => {
   it("keeps external session identifiers compact for the inspector", () => {
     expect(formatExternalSessionId("1234567890abcdefXYZ")).toBe("12345678...fXYZ");
     expect(formatExternalSessionId("short-id")).toBe("short-id");
+  });
+
+  it("uses localized not-available labels for missing usage metadata", () => {
+    expect(formatUsageNumber(createUiI18n("ko"), undefined)).toBe("해당 없음");
+    expect(formatUsageCost(createUiI18n("en"), undefined)).toBe("n/a");
   });
 });

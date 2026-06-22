@@ -81,7 +81,9 @@ export function InspectorReviewTab({
                   className="inspector-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--accent)]"
                   role="group"
                   tabIndex={approval.status === "pending" ? 0 : undefined}
-                  aria-label={`Approval ${approval.title}`}
+                  aria-label={formatMessage(i18n.t("workbench.approvals.ariaLabel"), {
+                    title: approval.title
+                  })}
                   onKeyDown={(event) => {
                     handleApprovalKeyDown(event, approval, resolveApproval);
                   }}
@@ -176,7 +178,9 @@ export function InspectorReviewTab({
           <div className="review-section-heading">
             <h3>{i18n.t("workbench.usage.title")}</h3>
             <span className="status-pill status-neutral">
-              {latestUsage ? formatUsageCost(latestUsage.costUsd) : "n/a"}
+              {latestUsage
+                ? formatUsageCost(i18n, latestUsage.costUsd)
+                : i18n.t("workbench.status.notAvailable")}
             </span>
           </div>
           {latestUsage ? (
@@ -195,19 +199,19 @@ export function InspectorReviewTab({
               <div className="usage-grid mt-3">
                 <UsageMetric
                   label={i18n.t("workbench.usage.input")}
-                  value={formatUsageNumber(latestUsage.inputTokens)}
+                  value={formatUsageNumber(i18n, latestUsage.inputTokens)}
                 />
                 <UsageMetric
                   label={i18n.t("workbench.usage.output")}
-                  value={formatUsageNumber(latestUsage.outputTokens)}
+                  value={formatUsageNumber(i18n, latestUsage.outputTokens)}
                 />
                 <UsageMetric
                   label={i18n.t("workbench.usage.context")}
-                  value={formatUsageNumber(latestUsage.contextWindow)}
+                  value={formatUsageNumber(i18n, latestUsage.contextWindow)}
                 />
                 <UsageMetric
                   label={i18n.t("workbench.usage.maxOutput")}
-                  value={formatUsageNumber(latestUsage.maxOutputTokens)}
+                  value={formatUsageNumber(i18n, latestUsage.maxOutputTokens)}
                 />
               </div>
             </div>
