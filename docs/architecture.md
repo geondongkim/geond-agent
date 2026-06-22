@@ -302,12 +302,16 @@ tool calls, command output summaries, diff summaries, and usage metadata when
 available.
 
 The desktop shell now exposes Tauri commands for app-data JSON preferences and a
-SQLite-backed normalized event store. During renderer-only Vite development,
-`apps/desktop` keeps a browser `localStorage` fallback so the same settings UI
-can prove save/reload behavior outside the native shell. Both paths are limited
-to non-secret preference keys and normalized workbench events; provider secrets,
-raw Claude logs, account state, and private local session files stay out of this
-persistence contract.
+SQLite-backed normalized event store. The native event store uses
+`PRAGMA user_version` migrations and transactionally appends workbench events
+with derived updates. Approval requests and resolutions are materialized into a
+queryable `workbench_approvals` table so pending approval counts come from
+approval rows rather than hand-maintained JSON-only session summaries. During
+renderer-only Vite development, `apps/desktop` keeps a browser `localStorage`
+fallback so the same settings UI can prove save/reload behavior outside the
+native shell. Both paths are limited to non-secret preference keys and
+normalized workbench events; provider secrets, raw Claude logs, account state,
+and private local session files stay out of this persistence contract.
 
 Claude Code execution is also a Tauri command boundary. The shell may read a
 workspace-local `.env.local` file and pass only allowlisted Claude/Z.ai routing
