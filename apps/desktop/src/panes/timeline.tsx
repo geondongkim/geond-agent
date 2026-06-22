@@ -1,5 +1,5 @@
 import type { UiI18n, WorkbenchSessionDefaults } from "@geond-agent/ui-workbench";
-import { Pin, PinOff, RotateCcw, Square, Trash2 } from "lucide-react";
+import { Pin, PinOff, RotateCcw, Send, Square, Trash2 } from "lucide-react";
 
 import { Button } from "../components/ui/button.js";
 import { EmptyState } from "../components/workbench/empty-state.js";
@@ -35,7 +35,6 @@ export function TimelinePane({
   sessionDefaults,
   setComposerPrompt,
   setInspectorTab,
-  setRunnerMode,
   startSelectedRunner,
   togglePinnedSession
 }: {
@@ -55,7 +54,6 @@ export function TimelinePane({
   readonly sessionDefaults: WorkbenchSessionDefaults;
   readonly setComposerPrompt: (prompt: string) => void;
   readonly setInspectorTab: (tab: string) => void;
-  readonly setRunnerMode: (mode: DesktopRunnerMode) => void;
   readonly startSelectedRunner: () => void;
   readonly togglePinnedSession: () => void;
 }) {
@@ -151,9 +149,16 @@ export function TimelinePane({
           <label className="muted-meta" htmlFor="agent-command">
             {i18n.t("workbench.composer.label")}
           </label>
-          <span className="font-mono text-[11px] text-[color:var(--ink-muted)]">
-            {sessionDefaults.defaultBackendAdapterId} / {sessionDefaults.defaultModelAlias}
-          </span>
+          <button
+            type="button"
+            className="route-summary-chip"
+            onClick={() => setInspectorTab("settings")}
+          >
+            {runnerMode === "claude-live"
+              ? i18n.t("workbench.runner.claudeLive")
+              : i18n.t("workbench.runner.fixture")}{" "}
+            / {sessionDefaults.defaultModelAlias}
+          </button>
         </div>
         <textarea
           id="agent-command"
@@ -170,20 +175,9 @@ export function TimelinePane({
         />
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <div className="composer-options">
-            <label className="inline-field compact-field">
-              <span className="text-[10px] font-bold uppercase text-[color:var(--ink-muted)]">
-                {i18n.t("workbench.runner.mode")}
-              </span>
-              <select
-                aria-label={i18n.t("workbench.runner.mode")}
-                value={runnerMode}
-                onChange={(event) => setRunnerMode(event.target.value as DesktopRunnerMode)}
-                className="control-select"
-              >
-                <option value="fixture">{i18n.t("workbench.runner.fixture")}</option>
-                <option value="claude-live">{i18n.t("workbench.runner.claudeLive")}</option>
-              </select>
-            </label>
+            <span className="composer-chip">{sessionDefaults.defaultBackendAdapterId}</span>
+            <span className="composer-chip">{sessionDefaults.defaultProviderRouteId}</span>
+            <span className="composer-chip">{sessionDefaults.defaultPermissionMode}</span>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
             <Button
@@ -232,7 +226,8 @@ export function TimelinePane({
               <RotateCcw size={14} />
               {i18n.t("workbench.actions.resumeSession")}
             </Button>
-            <Button onClick={startSelectedRunner} disabled={runnerBusy}>
+            <Button className="gap-2" onClick={startSelectedRunner} disabled={runnerBusy}>
+              <Send size={14} />
               {runnerBusy
                 ? i18n.t("workbench.runner.running")
                 : i18n.t("workbench.composer.dispatch")}

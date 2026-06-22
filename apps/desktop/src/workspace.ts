@@ -18,7 +18,7 @@ export interface ChooseWorkspaceOptions {
   readonly defaultPath?: string;
 }
 
-const FALLBACK_WORKSPACE: DesktopWorkspaceDescriptor = {
+export const FALLBACK_WORKSPACE: DesktopWorkspaceDescriptor = {
   id: "geond-agent",
   label: "geond-agent",
   path: "geond-agent"
@@ -44,7 +44,7 @@ export function createDesktopWorkspaceResolver(): DesktopWorkspaceResolver {
         });
 
         return typeof selected === "string"
-          ? createWorkspaceDescriptor(selected)
+          ? createDesktopWorkspaceDescriptor(selected)
           : undefined;
       } catch {
         return undefined;
@@ -53,7 +53,7 @@ export function createDesktopWorkspaceResolver(): DesktopWorkspaceResolver {
   };
 }
 
-function createWorkspaceDescriptor(path: string): DesktopWorkspaceDescriptor {
+export function createDesktopWorkspaceDescriptor(path: string): DesktopWorkspaceDescriptor {
   return {
     id: path,
     label: basename(path),

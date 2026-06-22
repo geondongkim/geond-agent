@@ -38,8 +38,16 @@ import type { DesktopWorkbenchEventStore } from "./persistence/event-store.js";
 import { createDesktopWorkbenchEventStore } from "./persistence/event-store.js";
 import type { DesktopWorkbenchSessionIndexStore } from "./persistence/session-index.js";
 import { createDesktopWorkbenchSessionIndexStore } from "./persistence/session-index.js";
+import {
+  RUNNER_MODE_SETTINGS_KEY,
+  WORKSPACE_SETTINGS_KEY
+} from "./persistence/tauri-settings.js";
 import type { DesktopWorkspaceDescriptor } from "./workspace.js";
-import { createDesktopWorkspaceResolver } from "./workspace.js";
+import {
+  FALLBACK_WORKSPACE,
+  createDesktopWorkspaceDescriptor,
+  createDesktopWorkspaceResolver
+} from "./workspace.js";
 
 export type DesktopRunnerMode = "fixture" | "claude-live";
 
@@ -56,6 +64,7 @@ export interface DesktopDemoDocument {
   readonly settingsLabels: WorkbenchSettingsLabels;
   readonly languageSettings: WorkbenchLanguageSettings;
   readonly sessionDefaults: WorkbenchSessionDefaults;
+  readonly runnerMode: DesktopRunnerMode;
   readonly sessionDefaultWarnings: readonly string[];
   readonly selectionCatalog: WorkbenchSelectionCatalog;
   readonly persistence: WorkbenchPersistenceBoundary;
@@ -72,6 +81,10 @@ export interface DesktopDemoDocument {
   readonly chooseWorkspace: (
     defaultPath?: string
   ) => Promise<DesktopWorkspaceDescriptor | undefined>;
+  readonly saveWorkspace: (
+    workspace: DesktopWorkspaceDescriptor
+  ) => Promise<DesktopWorkspaceDescriptor>;
+  readonly saveRunnerMode: (mode: DesktopRunnerMode) => Promise<DesktopRunnerMode>;
   readonly saveSessionDefaults: (
     settings: WorkbenchSessionDefaults
   ) => Promise<WorkbenchSessionDefaults>;
@@ -95,18 +108,20 @@ export async function createDesktopDemoDocument(
   settingsStore: LocalSettingsStore
 ): Promise<DesktopDemoDocument> {
   const workspaceResolver = createDesktopWorkspaceResolver();
-  const workspaces = await workspaceResolver.listWorkspaces();
-  const activeWorkspace = workspaces[0] ?? {
-    id: "geond-agent",
-    label: "geond-agent",
-    path: "geond-agent"
-  };
+  const listedWorkspaces = await workspaceResolver.listWorkspaces();
+  const savedWorkspace = await loadSavedWorkspace(settingsStore);
+  const workspaces = mergeWorkspaces([
+    ...(savedWorkspace ? [savedWorkspace] : []),
+    ...listedWorkspaces
+  ]);
+  const activeWorkspace = savedWorkspace ?? workspaces[0] ?? FALLBACK_WORKSPACE;
   const workbench = await createDesktopWorkbench({
     settingsStore,
     systemLocales: navigator.languages,
     workspacePath: activeWorkspace.path
   });
   const runtimeSnapshot = workbench.ui.getSnapshot();
+  const savedRunnerMode = await loadSavedRunnerMode(settingsStore);
   const runner = createClaudeCodeFixtureReplayRunner();
   const liveRunner = createClaudeCodeProcessRunner(createTauriClaudeCodeExecutor());
   const eventStore = createDesktopWorkbenchEventStore();
@@ -155,6 +170,7 @@ export async function createDesktopDemoDocument(
     settingsLabels: createWorkbenchSettingsLabels(runtimeSnapshot.i18n),
     languageSettings: runtimeSnapshot.languageSettings,
     sessionDefaults: workbench.sessionDefaults,
+    runnerMode: savedRunnerMode,
     sessionDefaultWarnings: workbench.sessionDefaultWarnings,
     selectionCatalog: workbench.selectionCatalog,
     persistence: workbench.persistence,
@@ -169,6 +185,15 @@ export async function createDesktopDemoDocument(
     runSession: (mode, request) =>
       mode === "claude-live" ? liveRunner.run(request) : runner.run(request),
     chooseWorkspace: (defaultPath) => workspaceResolver.chooseWorkspace({ defaultPath }),
+    saveWorkspace: async (workspace) => {
+      await settingsStore.setItem(WORKSPACE_SETTINGS_KEY, workspace.path);
+      return workspace;
+    },
+    saveRunnerMode: async (mode) => {
+      const validated = validateRunnerMode(mode);
+      await settingsStore.setItem(RUNNER_MODE_SETTINGS_KEY, validated);
+      return validated;
+    },
     saveSessionDefaults: async (settings) => {
       const validated = validateWorkbenchSessionDefaults(
         settings,
@@ -180,6 +205,44 @@ export async function createDesktopDemoDocument(
     savePinnedSessionIds: (sessionIds) =>
       saveWorkbenchPinnedSessionIds(settingsStore, sessionIds)
   };
+}
+
+async function loadSavedWorkspace(
+  settingsStore: LocalSettingsStore
+): Promise<DesktopWorkspaceDescriptor | undefined> {
+  const path = await settingsStore.getItem(WORKSPACE_SETTINGS_KEY);
+  return path && path.trim().length > 0
+    ? createDesktopWorkspaceDescriptor(path)
+    : undefined;
+}
+
+async function loadSavedRunnerMode(
+  settingsStore: LocalSettingsStore
+): Promise<DesktopRunnerMode> {
+  const saved = await settingsStore.getItem(RUNNER_MODE_SETTINGS_KEY);
+  return saved === "fixture" || saved === "claude-live"
+    ? saved
+    : defaultDesktopRunnerMode();
+}
+
+function defaultDesktopRunnerMode(): DesktopRunnerMode {
+  return isTauriRuntime() ? "claude-live" : "fixture";
+}
+
+function isTauriRuntime(): boolean {
+  return Boolean((globalThis as { readonly __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
+}
+
+function validateRunnerMode(mode: DesktopRunnerMode): DesktopRunnerMode {
+  return mode === "claude-live" ? "claude-live" : "fixture";
+}
+
+function mergeWorkspaces(
+  workspaces: readonly DesktopWorkspaceDescriptor[]
+): readonly DesktopWorkspaceDescriptor[] {
+  const merged = new Map<string, DesktopWorkspaceDescriptor>();
+  workspaces.forEach((workspace) => merged.set(workspace.path, workspace));
+  return [...merged.values()];
 }
 
 async function createPersistedSessionDocument(options: {

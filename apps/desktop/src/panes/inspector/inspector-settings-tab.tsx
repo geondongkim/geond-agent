@@ -9,6 +9,7 @@ import type {
 import { TabsContent } from "../../components/ui/tabs.js";
 import { SettingsRow } from "../../components/workbench/settings-row.js";
 import { SettingsSelect } from "../../components/workbench/settings-select.js";
+import type { DesktopRunnerMode } from "../../demo-workbench.js";
 
 export function InspectorSettingsTab({
   agentLanguageOptions,
@@ -20,9 +21,11 @@ export function InspectorSettingsTab({
   providerRouteOptions,
   routingModeOptions,
   runtimeSnapshot,
+  runnerMode,
   sessionDefaults,
   settingsLabels,
   updateAgentResponseLanguage,
+  updateRunnerMode,
   updateSessionDefaults,
   updateUiLanguage
 }: {
@@ -35,9 +38,11 @@ export function InspectorSettingsTab({
   readonly providerRouteOptions: readonly WorkbenchCatalogOption[];
   readonly routingModeOptions: readonly { readonly value: string; readonly label: string }[];
   readonly runtimeSnapshot: WorkbenchRuntimeSnapshot;
+  readonly runnerMode: DesktopRunnerMode;
   readonly sessionDefaults: WorkbenchSessionDefaults;
   readonly settingsLabels: WorkbenchSettingsLabels;
   readonly updateAgentResponseLanguage: (language: string) => void;
+  readonly updateRunnerMode: (mode: DesktopRunnerMode) => void;
   readonly updateSessionDefaults: (patch: Partial<WorkbenchSessionDefaults>) => void;
   readonly updateUiLanguage: (language: string) => void;
 }) {
@@ -55,6 +60,14 @@ export function InspectorSettingsTab({
           value={runtimeSnapshot.languageSettings.agentResponseLanguage}
           options={agentLanguageOptions}
           onChange={(value) => void updateAgentResponseLanguage(value)}
+        />
+        <SettingsSelect
+          label={i18n.t("workbench.runner.mode")}
+          value={runnerMode}
+          options={runnerModeOptions(i18n)}
+          onChange={(value) =>
+            void updateRunnerMode(value === "claude-live" ? "claude-live" : "fixture")
+          }
         />
         <SettingsSelect
           label={settingsLabels.fields.backend}
@@ -109,3 +122,10 @@ const uiLanguageOptions = [
   { value: "en", label: "English" },
   { value: "ko", label: "한국어" }
 ] as const;
+
+function runnerModeOptions(i18n: UiI18n) {
+  return [
+    { value: "claude-live", label: i18n.t("workbench.runner.claudeLive") },
+    { value: "fixture", label: i18n.t("workbench.runner.fixture") }
+  ] as const;
+}

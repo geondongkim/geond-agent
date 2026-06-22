@@ -17,6 +17,7 @@ const LANGUAGE_SETTINGS_KEY: &str = "geond-agent.workbench.language";
 const SESSION_DEFAULTS_SETTINGS_KEY: &str = "geond-agent.workbench.session-defaults";
 const PINNED_SESSION_IDS_SETTINGS_KEY: &str = "geond-agent.workbench.pinned-session-ids";
 const WORKSPACE_SETTINGS_KEY: &str = "geond-agent.workbench.workspace";
+const RUNNER_MODE_SETTINGS_KEY: &str = "geond-agent.workbench.runner-mode";
 const LOCAL_ENV_FILE_NAME: &str = ".env.local";
 const CLAUDE_STREAM_EVENT_NAME: &str = "geond-agent://claude-code-stream-json";
 const CLAUDE_DEFAULT_TIMEOUT_MS: u64 = 10 * 60 * 1000;
@@ -570,7 +571,8 @@ fn ensure_allowed_setting_key(key: &str) -> Result<(), String> {
         LANGUAGE_SETTINGS_KEY
         | SESSION_DEFAULTS_SETTINGS_KEY
         | PINNED_SESSION_IDS_SETTINGS_KEY
-        | WORKSPACE_SETTINGS_KEY => Ok(()),
+        | WORKSPACE_SETTINGS_KEY
+        | RUNNER_MODE_SETTINGS_KEY => Ok(()),
         _ => Err("Unsupported settings key.".to_string()),
     }
 }
@@ -1479,6 +1481,7 @@ mod tests {
         assert!(ensure_allowed_setting_key(SESSION_DEFAULTS_SETTINGS_KEY).is_ok());
         assert!(ensure_allowed_setting_key(PINNED_SESSION_IDS_SETTINGS_KEY).is_ok());
         assert!(ensure_allowed_setting_key(WORKSPACE_SETTINGS_KEY).is_ok());
+        assert!(ensure_allowed_setting_key(RUNNER_MODE_SETTINGS_KEY).is_ok());
         assert!(ensure_allowed_setting_key("geond-agent.workbench.provider-credential").is_err());
     }
 

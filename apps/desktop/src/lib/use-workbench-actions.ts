@@ -196,6 +196,7 @@ export function useWorkbenchActions({
       next.set(selected.path, selected);
       return [...next.values()];
     });
+    await document.saveWorkspace(selected);
     setWorkspacePath(selected.path);
   };
 
