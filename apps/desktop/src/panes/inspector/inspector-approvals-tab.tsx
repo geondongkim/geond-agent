@@ -14,6 +14,7 @@ import { cn } from "../../lib/cn.js";
 import {
   approvalTone,
   formatApprovalDecision,
+  formatMessage,
   formatStatusLabel
 } from "../../lib/workbench-format.js";
 import type { ProjectedActiveSession } from "../../lib/workbench-types.js";
@@ -53,7 +54,9 @@ export function InspectorApprovalsTab({
                 className="inspector-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--accent)]"
                 role="group"
                 tabIndex={approval.status === "pending" ? 0 : undefined}
-                aria-label={`Approval ${approval.title}`}
+                aria-label={formatMessage(i18n.t("workbench.approvals.ariaLabel"), {
+                  title: approval.title
+                })}
                 onKeyDown={(event) => {
                   handleApprovalKeyDown(event, approval, resolveApproval);
                 }}

@@ -33,33 +33,33 @@ export function InspectorUsageTab({
                   </p>
                 </div>
                 <span className="status-pill status-neutral">
-                  {formatUsageCost(usage.costUsd)}
+                  {formatUsageCost(i18n, usage.costUsd)}
                 </span>
               </div>
               <div className="usage-grid mt-3">
                 <UsageMetric
                   label={i18n.t("workbench.usage.input")}
-                  value={formatUsageNumber(usage.inputTokens)}
+                  value={formatUsageNumber(i18n, usage.inputTokens)}
                 />
                 <UsageMetric
                   label={i18n.t("workbench.usage.output")}
-                  value={formatUsageNumber(usage.outputTokens)}
+                  value={formatUsageNumber(i18n, usage.outputTokens)}
                 />
                 <UsageMetric
                   label={i18n.t("workbench.usage.cacheRead")}
-                  value={formatUsageNumber(usage.cacheReadInputTokens)}
+                  value={formatUsageNumber(i18n, usage.cacheReadInputTokens)}
                 />
                 <UsageMetric
                   label={i18n.t("workbench.usage.cacheCreate")}
-                  value={formatUsageNumber(usage.cacheCreationInputTokens)}
+                  value={formatUsageNumber(i18n, usage.cacheCreationInputTokens)}
                 />
                 <UsageMetric
                   label={i18n.t("workbench.usage.context")}
-                  value={formatUsageNumber(usage.contextWindow)}
+                  value={formatUsageNumber(i18n, usage.contextWindow)}
                 />
                 <UsageMetric
                   label={i18n.t("workbench.usage.maxOutput")}
-                  value={formatUsageNumber(usage.maxOutputTokens)}
+                  value={formatUsageNumber(i18n, usage.maxOutputTokens)}
                 />
               </div>
               {usage.serviceTier ? (

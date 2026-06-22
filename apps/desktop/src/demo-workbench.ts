@@ -142,6 +142,7 @@ export async function createDesktopDemoDocument(
           activeWorkspace,
           eventStore,
           initialSessionId,
+          i18n: runtimeSnapshot.i18n,
           languageSettings: runtimeSnapshot.languageSettings,
           runner,
           sessionDefaults: workbench.sessionDefaults
@@ -275,6 +276,7 @@ async function createInitialFixtureDocument(options: {
   readonly activeWorkspace: DesktopWorkspaceDescriptor;
   readonly eventStore: DesktopWorkbenchEventStore;
   readonly initialSessionId: string;
+  readonly i18n: UiI18n;
   readonly languageSettings: WorkbenchLanguageSettings;
   readonly runner: ClaudeCodeFixtureReplayRunner;
   readonly sessionDefaults: WorkbenchSessionDefaults;
@@ -287,8 +289,8 @@ async function createInitialFixtureDocument(options: {
   const initialRun = await options.runner.run(
     createRunnerRequest({
       sessionId: options.initialSessionId,
-      title: "Local workbench session",
-      prompt: "Start a local demo session without making paid provider calls.",
+      title: options.i18n.t("workbench.session.initialTitle"),
+      prompt: options.i18n.t("workbench.session.initialPrompt"),
       languageSettings: options.languageSettings,
       sessionDefaults: options.sessionDefaults,
       workspacePath: options.activeWorkspace.path

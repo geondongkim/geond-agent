@@ -79,7 +79,11 @@ export function useWorkbenchRunner({
     const nextIndex = controllerSnapshot.events.length + 1;
     const sessionId = options.resumeSessionId ?? `local-session-${Date.now()}`;
     const existingSession = projectionSessions.find((session) => session.id === sessionId);
-    const title = existingSession?.title ?? `Local demo session ${projectionSessions.length + 1}`;
+    const title =
+      existingSession?.title ??
+      formatMessage(i18n.t("workbench.session.defaultTitle"), {
+        index: projectionSessions.length + 1
+      });
     const selectedWorkspacePath =
       existingSession?.workspacePath ??
       (workspacePath === "__all__" ? document.activeWorkspace.path : workspacePath);

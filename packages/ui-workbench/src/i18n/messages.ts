@@ -94,6 +94,7 @@ export type UiMessageKey =
   | "workbench.approvals.reject"
   | "workbench.approvals.resolved"
   | "workbench.approvals.followUpQueued"
+  | "workbench.approvals.ariaLabel"
   | "workbench.approvals.decisionApproved"
   | "workbench.approvals.decisionRejected"
   | "workbench.approvals.decisionCancelled"
@@ -127,6 +128,9 @@ export type UiMessageKey =
   | "workbench.actions.showWorkspacePanel"
   | "workbench.actions.hideWorkspacePanel"
   | "workbench.actions.openCommandMenu"
+  | "workbench.session.initialTitle"
+  | "workbench.session.initialPrompt"
+  | "workbench.session.defaultTitle"
   | "workbench.composer.label"
   | "workbench.composer.placeholder"
   | "workbench.composer.livePlaceholder"
@@ -167,6 +171,7 @@ export type UiMessageKey =
   | "workbench.status.approvals"
   | "workbench.status.backend"
   | "workbench.status.unknown"
+  | "workbench.status.notAvailable"
   | "workbench.workspacePanel.title"
   | "workbench.workspacePanel.backend"
   | "workbench.workspacePanel.provider"
@@ -314,6 +319,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.approvals.reject": "Reject",
     "workbench.approvals.resolved": "Recorded {decision} for {title}.",
     "workbench.approvals.followUpQueued": "Recorded {decision} for {title}. Resuming Claude Code with that approved context.",
+    "workbench.approvals.ariaLabel": "Approval {title}",
     "workbench.approvals.decisionApproved": "approved",
     "workbench.approvals.decisionRejected": "rejected",
     "workbench.approvals.decisionCancelled": "cancelled",
@@ -347,6 +353,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.showWorkspacePanel": "Show workspace panel",
     "workbench.actions.hideWorkspacePanel": "Hide workspace panel",
     "workbench.actions.openCommandMenu": "Open command menu",
+    "workbench.session.initialTitle": "Local workbench session",
+    "workbench.session.initialPrompt": "Start a local demo session without making paid provider calls.",
+    "workbench.session.defaultTitle": "Local demo session {index}",
     "workbench.composer.label": "Agent command",
     "workbench.composer.placeholder": "Review the current workspace and continue the implementation.",
     "workbench.composer.livePlaceholder": "Run a concise geond-agent workbench smoke session. Do not modify files.",
@@ -387,6 +396,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.status.approvals": "approvals",
     "workbench.status.backend": "backend",
     "workbench.status.unknown": "unknown",
+    "workbench.status.notAvailable": "n/a",
     "workbench.workspacePanel.title": "Workspace panel",
     "workbench.workspacePanel.backend": "Backend",
     "workbench.workspacePanel.provider": "Provider",
@@ -531,6 +541,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.approvals.reject": "거절",
     "workbench.approvals.resolved": "{title}에 {decision} 결정을 기록했습니다.",
     "workbench.approvals.followUpQueued": "{title}에 {decision} 결정을 기록했습니다. 승인된 컨텍스트로 Claude Code를 이어 실행합니다.",
+    "workbench.approvals.ariaLabel": "승인 {title}",
     "workbench.approvals.decisionApproved": "승인",
     "workbench.approvals.decisionRejected": "거절",
     "workbench.approvals.decisionCancelled": "취소",
@@ -564,6 +575,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.showWorkspacePanel": "워크스페이스 패널 열기",
     "workbench.actions.hideWorkspacePanel": "워크스페이스 패널 닫기",
     "workbench.actions.openCommandMenu": "명령 메뉴 열기",
+    "workbench.session.initialTitle": "로컬 워크벤치 세션",
+    "workbench.session.initialPrompt": "유료 프로바이더 호출 없이 로컬 데모 세션을 시작합니다.",
+    "workbench.session.defaultTitle": "로컬 데모 세션 {index}",
     "workbench.composer.label": "에이전트 명령",
     "workbench.composer.placeholder": "현재 워크스페이스를 검토하고 구현을 이어갑니다.",
     "workbench.composer.livePlaceholder": "간결한 geond-agent 워크벤치 smoke 세션을 실행합니다. 파일은 수정하지 않습니다.",
@@ -604,6 +618,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.status.approvals": "승인",
     "workbench.status.backend": "백엔드",
     "workbench.status.unknown": "알 수 없음",
+    "workbench.status.notAvailable": "해당 없음",
     "workbench.workspacePanel.title": "워크스페이스 패널",
     "workbench.workspacePanel.backend": "백엔드",
     "workbench.workspacePanel.provider": "프로바이더",
