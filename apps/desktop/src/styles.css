@@ -326,6 +326,26 @@ body {
     @apply min-h-[74px] w-full resize-none rounded-xl border border-white/10 bg-[#303431] px-3 py-2 text-sm leading-6 text-[color:var(--ink)] outline-none placeholder:text-[color:var(--ink-muted)];
   }
 
+  .context-strip {
+    @apply mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/15 px-3 py-2;
+  }
+
+  .context-chip-row {
+    @apply mt-1 flex min-w-0 flex-wrap items-center gap-2;
+  }
+
+  .context-chip {
+    @apply inline-flex h-7 max-w-[210px] items-center gap-1.5 truncate rounded-md border border-white/10 bg-[#202522] px-2.5 font-mono text-[11px] text-[color:var(--ink-soft)] transition-colors hover:border-[color:var(--accent)] hover:text-[color:var(--accent-strong)];
+  }
+
+  .context-chip span {
+    @apply text-[color:var(--ink-muted)];
+  }
+
+  .context-chip-more {
+    @apply max-w-none;
+  }
+
   .composer-options {
     @apply flex min-w-0 flex-wrap items-center gap-2;
   }

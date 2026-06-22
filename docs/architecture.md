@@ -283,11 +283,11 @@ optional file range, language, summary, provenance, and content state. They do
 not store raw private file contents by default.
 
 The first desktop slice can attach the selected workspace path from the command
-menu as `metadata-only` context and render it in the Files inspector. Future IDE
-surfaces can use the same event shape for current-file and selected-text
-references, but must keep editor credentials, raw selections, private buffers,
-and plugin session state outside portable workbench events unless the user
-explicitly exports sanitized evidence.
+menu or composer context strip as `metadata-only` context and render it in the
+Files inspector. Future IDE surfaces can use the same event shape for
+current-file and selected-text references, but must keep editor credentials, raw
+selections, private buffers, and plugin session state outside portable
+workbench events unless the user explicitly exports sanitized evidence.
 
 ## Session Continuity Boundary
 

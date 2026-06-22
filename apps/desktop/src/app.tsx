@@ -283,6 +283,7 @@ export function App({ document }: AppProps) {
             activeRunMode={activeRunMode}
             activeSession={activeSession}
             activeSessionPinned={activeSessionPinned}
+            attachWorkspaceContext={attachWorkspaceContext}
             canResumeActiveSession={canResumeActiveSession}
             cancelActiveRun={cancelActiveRun}
             composerPrompt={composerPrompt}

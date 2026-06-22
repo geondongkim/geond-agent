@@ -44,6 +44,8 @@ The desktop shell is Tauri v2 with a React + Vite renderer. Native commands own:
 - command-menu actions for starting the selected runner, choosing workspaces,
   attaching metadata-only workspace context, opening inspector tabs, and
   toggling workbench panels.
+- composer context chips for reviewing attached workspace/file references before
+  dispatching a run.
 - non-secret interaction preferences such as runner mode, follow-up policy,
   composer Enter behavior, and review delivery.
 
