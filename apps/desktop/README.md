@@ -39,6 +39,8 @@ The desktop shell is Tauri v2 with a React + Vite renderer. Native commands own:
 - schema v3 materialized tables for context attachments, tool calls, command
   output previews, diff summaries, and usage metadata derived from normalized
   events,
+- Tauri query commands and a typed renderer client for reading those
+  materialized inspector records without replaying the full event stream,
 - workspace discovery for the active local checkout,
 - opt-in Claude Code `stream-json` process execution.
 - command-menu actions for starting the selected runner, choosing workspaces,
@@ -59,3 +61,9 @@ The renderer keeps a browser `localStorage` and in-memory event-store fallback
 for Vite-only development. It must not persist provider secrets, raw Claude
 logs, account state, private local tool session files, or raw private file
 contents from context attachments.
+
+`createDesktopMaterializedEventStore` is the renderer boundary for the v3
+materialized event views. It reads context attachments, tool calls, command
+output previews, diff summaries, and usage metadata through Tauri commands when
+the native shell is available, and falls back to an in-memory read model during
+renderer-only development.

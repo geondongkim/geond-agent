@@ -329,8 +329,11 @@ queryable `workbench_approvals` table so pending approval counts come from
 approval rows rather than hand-maintained JSON-only session summaries. The v3
 persistence slice also materializes context attachments, tool calls, command
 output previews, diff summaries, and usage metadata into queryable tables
-derived from the normalized event stream. During renderer-only Vite
-development, `apps/desktop` keeps a browser `localStorage`
+derived from the normalized event stream. The desktop shell exposes those
+materialized views through Tauri query commands, and the renderer consumes them
+through a typed `createDesktopMaterializedEventStore` boundary so inspector
+panes do not need to replay the full event stream for every lookup. During
+renderer-only Vite development, `apps/desktop` keeps a browser `localStorage`
 fallback so the same settings UI can prove save/reload behavior outside the
 native shell. Both paths are limited to non-secret preference keys and
 normalized workbench events; provider secrets, raw Claude logs, account state,

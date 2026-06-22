@@ -22,6 +22,8 @@ import {
 import { desktopPersistenceBoundary } from "./persistence/schema.js";
 import { createDesktopWorkbenchCatalog } from "./lib/workbench-catalog.js";
 
+export * from "./persistence/materialized-event-store.js";
+
 export type DesktopFrameworkStatus = "tauri-v2";
 
 export interface DesktopAppBoundary {
