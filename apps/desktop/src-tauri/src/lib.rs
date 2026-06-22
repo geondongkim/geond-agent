@@ -23,6 +23,7 @@ const CLAUDE_DEFAULT_TIMEOUT_MS: u64 = 10 * 60 * 1000;
 const CLAUDE_MAX_TIMEOUT_MS: u64 = 60 * 60 * 1000;
 const PROCESS_OUTPUT_CAP_BYTES: usize = 1024 * 1024;
 const PROCESS_OUTPUT_TRUNCATED_MARKER: &str = "\n... [truncated]\n";
+const EVENT_STORE_SCHEMA_VERSION: i64 = 2;
 const CLAUDE_ENV_KEYS: &[&str] = &[
     "ANTHROPIC_API_KEY",
     "ANTHROPIC_BASE_URL",
@@ -90,6 +91,23 @@ pub struct SessionIndexRecord {
     resumable: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkbenchApprovalRecord {
+    session_id: String,
+    approval_id: String,
+    kind: String,
+    title: Option<String>,
+    subject: Option<String>,
+    reason: Option<String>,
+    status: String,
+    decision: Option<String>,
+    requested_at: Option<String>,
+    resolved_at: Option<String>,
+    source_event_id: Option<i64>,
+    updated_at: Option<String>,
+}
+
 type ProcessHandle = Arc<Mutex<Child>>;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -103,6 +121,7 @@ pub fn run() {
             append_workbench_events,
             list_workbench_events,
             list_workbench_sessions,
+            list_workbench_approvals,
             delete_workbench_session_events,
             list_workspaces,
             run_claude_code_stream_json,
@@ -137,28 +156,43 @@ fn remove_app_setting(app: AppHandle, key: String) -> Result<(), String> {
 
 #[tauri::command]
 fn append_workbench_events(app: AppHandle, events: Vec<Value>) -> Result<usize, String> {
-    let connection = open_event_store(&app)?;
-    let mut statement = connection
-        .prepare(
-            "insert into workbench_events (session_id, event_type, event_at, payload_json)
-             values (?1, ?2, ?3, ?4)",
-        )
-        .map_err(to_string)?;
+    let mut connection = open_event_store(&app)?;
+    append_events_to_store(&mut connection, events)
+}
 
+fn append_events_to_store(
+    connection: &mut Connection,
+    events: Vec<Value>,
+) -> Result<usize, String> {
+    let transaction = connection.transaction().map_err(to_string)?;
     let mut inserted = 0;
-    for event in events {
-        let session_id = read_string(&event, "sessionId").unwrap_or_else(|| "unknown".to_string());
-        let event_type = read_string(&event, "type").unwrap_or_else(|| "unknown".to_string());
-        let event_at = read_string(&event, "at");
-        let payload = serde_json::to_string(&event).map_err(to_string)?;
 
-        statement
-            .execute(params![session_id, event_type, event_at, payload])
+    {
+        let mut statement = transaction
+            .prepare(
+                "insert into workbench_events (session_id, event_type, event_at, payload_json)
+             values (?1, ?2, ?3, ?4)",
+            )
             .map_err(to_string)?;
-        upsert_session_index_for_event(&connection, &event)?;
-        inserted += 1;
+
+        for event in events {
+            let session_id =
+                read_string(&event, "sessionId").unwrap_or_else(|| "unknown".to_string());
+            let event_type = read_string(&event, "type").unwrap_or_else(|| "unknown".to_string());
+            let event_at = read_string(&event, "at");
+            let payload = serde_json::to_string(&event).map_err(to_string)?;
+
+            statement
+                .execute(params![session_id, event_type, event_at, payload])
+                .map_err(to_string)?;
+            let source_event_id = transaction.last_insert_rowid();
+            materialize_approval_for_event(&transaction, &event, source_event_id)?;
+            upsert_session_index_for_event(&transaction, &event)?;
+            inserted += 1;
+        }
     }
 
+    transaction.commit().map_err(to_string)?;
     Ok(inserted)
 }
 
@@ -193,7 +227,8 @@ fn list_workbench_events(app: AppHandle, session_id: Option<String>) -> Result<V
 #[tauri::command]
 fn list_workbench_sessions(app: AppHandle) -> Result<Vec<SessionIndexRecord>, String> {
     let connection = open_event_store(&app)?;
-    let mut statement = connection
+    let mut sessions = {
+        let mut statement = connection
         .prepare(
             "select session_id, lifecycle, title, workspace_path, backend_adapter_id,
                     backend_label, provider_route_label, provider_key_missing,
@@ -202,42 +237,57 @@ fn list_workbench_sessions(app: AppHandle) -> Result<Vec<SessionIndexRecord>, St
              from workbench_sessions
              order by coalesce(updated_at, '') desc, coalesce(title, session_id) asc, session_id asc",
         )
-        .map_err(to_string)?;
+            .map_err(to_string)?;
 
-    let sessions = statement
-        .query_map([], |row| {
-            let external_sessions_json: String = row.get(9)?;
-            let pending_approval_ids_json: String = row.get(10)?;
-            let external_sessions = serde_json::from_str(&external_sessions_json)
-                .unwrap_or_else(|_| Value::Object(Map::new()));
-            let pending_approval_ids =
-                serde_json::from_str(&pending_approval_ids_json).unwrap_or_else(|_| Vec::new());
-            let lifecycle: String = row.get(1)?;
-            let resumable = is_session_index_record_resumable(&lifecycle, &external_sessions);
+        let rows = statement
+            .query_map([], |row| {
+                let external_sessions_json: String = row.get(9)?;
+                let pending_approval_ids_json: String = row.get(10)?;
+                let external_sessions = serde_json::from_str(&external_sessions_json)
+                    .unwrap_or_else(|_| Value::Object(Map::new()));
+                let pending_approval_ids =
+                    serde_json::from_str(&pending_approval_ids_json).unwrap_or_else(|_| Vec::new());
+                let lifecycle: String = row.get(1)?;
+                let resumable = is_session_index_record_resumable(&lifecycle, &external_sessions);
 
-            Ok(SessionIndexRecord {
-                id: row.get(0)?,
-                lifecycle,
-                title: row.get(2)?,
-                workspace_path: row.get(3)?,
-                backend_adapter_id: row.get(4)?,
-                backend_label: row.get(5)?,
-                provider_route_label: row.get(6)?,
-                provider_key_missing: row.get::<_, i64>(7)? != 0,
-                capability_warning: row.get(8)?,
-                external_sessions,
-                pending_approval_count: pending_approval_ids.len(),
-                pending_approval_ids,
-                warning_count: row.get::<_, i64>(12)? as usize,
-                error_count: row.get::<_, i64>(13)? as usize,
-                updated_at: row.get(14)?,
-                resumable,
+                Ok(SessionIndexRecord {
+                    id: row.get(0)?,
+                    lifecycle,
+                    title: row.get(2)?,
+                    workspace_path: row.get(3)?,
+                    backend_adapter_id: row.get(4)?,
+                    backend_label: row.get(5)?,
+                    provider_route_label: row.get(6)?,
+                    provider_key_missing: row.get::<_, i64>(7)? != 0,
+                    capability_warning: row.get(8)?,
+                    external_sessions,
+                    pending_approval_count: pending_approval_ids.len(),
+                    pending_approval_ids,
+                    warning_count: row.get::<_, i64>(12)? as usize,
+                    error_count: row.get::<_, i64>(13)? as usize,
+                    updated_at: row.get(14)?,
+                    resumable,
+                })
             })
-        })
-        .map_err(to_string)?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(to_string)?;
+            .map_err(to_string)?;
+        rows.collect::<Result<Vec<_>, _>>().map_err(to_string)?
+    };
+
+    for session in sessions.iter_mut() {
+        sync_session_index_record_approvals(&connection, session)?;
+    }
+
     Ok(sessions)
+}
+
+#[tauri::command]
+fn list_workbench_approvals(
+    app: AppHandle,
+    session_id: Option<String>,
+    status: Option<String>,
+) -> Result<Vec<WorkbenchApprovalRecord>, String> {
+    let connection = open_event_store(&app)?;
+    list_approval_records(&connection, session_id.as_deref(), status.as_deref())
 }
 
 #[tauri::command]
@@ -680,42 +730,314 @@ fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {
 
 fn open_event_store(app: &AppHandle) -> Result<Connection, String> {
     let path = app_data_dir(app)?.join("workbench.sqlite3");
-    let connection = Connection::open(path).map_err(to_string)?;
-    connection
-        .execute_batch(
-            "create table if not exists workbench_events (
-                id integer primary key autoincrement,
-                session_id text not null,
-                event_type text not null,
-                event_at text,
-                payload_json text not null,
-                created_at text not null default current_timestamp
-            );
-            create index if not exists idx_workbench_events_session
-                on workbench_events(session_id, id);
-            create table if not exists workbench_sessions (
-                session_id text primary key,
-                lifecycle text not null,
-                title text,
-                workspace_path text,
-                backend_adapter_id text,
-                backend_label text,
-                provider_route_label text,
-                provider_key_missing integer not null default 0,
-                capability_warning text,
-                external_sessions_json text not null default '{}',
-                pending_approval_ids_json text not null default '[]',
-                pending_approval_count integer not null default 0,
-                warning_count integer not null default 0,
-                error_count integer not null default 0,
-                updated_at text
-            );
-            create index if not exists idx_workbench_sessions_updated
-                on workbench_sessions(updated_at);",
-        )
-        .map_err(to_string)?;
+    let mut connection = Connection::open(path).map_err(to_string)?;
+    migrate_event_store(&mut connection)?;
     backfill_session_index_if_empty(&connection)?;
     Ok(connection)
+}
+
+fn migrate_event_store(connection: &mut Connection) -> Result<(), String> {
+    let mut version = event_store_user_version(connection)?;
+    if version > EVENT_STORE_SCHEMA_VERSION {
+        return Err(format!(
+            "Workbench event store schema version {version} is newer than supported version {EVENT_STORE_SCHEMA_VERSION}."
+        ));
+    }
+
+    if version < 1 {
+        let transaction = connection.transaction().map_err(to_string)?;
+        transaction
+            .execute_batch(
+                "create table if not exists workbench_events (
+                    id integer primary key autoincrement,
+                    session_id text not null,
+                    event_type text not null,
+                    event_at text,
+                    payload_json text not null,
+                    created_at text not null default current_timestamp
+                );
+                create index if not exists idx_workbench_events_session
+                    on workbench_events(session_id, id);
+                create table if not exists workbench_sessions (
+                    session_id text primary key,
+                    lifecycle text not null,
+                    title text,
+                    workspace_path text,
+                    backend_adapter_id text,
+                    backend_label text,
+                    provider_route_label text,
+                    provider_key_missing integer not null default 0,
+                    capability_warning text,
+                    external_sessions_json text not null default '{}',
+                    pending_approval_ids_json text not null default '[]',
+                    pending_approval_count integer not null default 0,
+                    warning_count integer not null default 0,
+                    error_count integer not null default 0,
+                    updated_at text
+                );
+                create index if not exists idx_workbench_sessions_updated
+                    on workbench_sessions(updated_at);
+                pragma user_version = 1;",
+            )
+            .map_err(to_string)?;
+        transaction.commit().map_err(to_string)?;
+        version = 1;
+    }
+
+    if version < 2 {
+        let transaction = connection.transaction().map_err(to_string)?;
+        transaction
+            .execute_batch(
+                "create table if not exists workbench_approvals (
+                    session_id text not null,
+                    approval_id text not null,
+                    kind text not null default 'unknown',
+                    title text,
+                    subject text,
+                    reason text,
+                    status text not null,
+                    decision text,
+                    requested_at text,
+                    resolved_at text,
+                    source_event_id integer,
+                    updated_at text,
+                    primary key (session_id, approval_id)
+                );
+                create index if not exists idx_workbench_approvals_session_status
+                    on workbench_approvals(session_id, status, requested_at, updated_at);
+                create index if not exists idx_workbench_approvals_status
+                    on workbench_approvals(status, updated_at);
+                pragma user_version = 2;",
+            )
+            .map_err(to_string)?;
+        backfill_approvals_from_events(&transaction)?;
+        transaction.commit().map_err(to_string)?;
+    }
+
+    Ok(())
+}
+
+fn event_store_user_version(connection: &Connection) -> Result<i64, String> {
+    connection
+        .query_row("pragma user_version", [], |row| row.get(0))
+        .map_err(to_string)
+}
+
+#[cfg(test)]
+fn create_event_store_schema(connection: &mut Connection) -> Result<(), String> {
+    migrate_event_store(connection)?;
+    backfill_session_index_if_empty(connection)
+}
+
+fn backfill_approvals_from_events(connection: &Connection) -> Result<(), String> {
+    let mut statement = connection
+        .prepare("select id, payload_json from workbench_events order by id asc")
+        .map_err(to_string)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+        })
+        .map_err(to_string)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(to_string)?;
+
+    for (source_event_id, payload) in rows {
+        let event = serde_json::from_str::<Value>(&payload).map_err(to_string)?;
+        materialize_approval_for_event(connection, &event, source_event_id)?;
+    }
+
+    backfill_session_approval_counts(connection)
+}
+
+fn backfill_session_approval_counts(connection: &Connection) -> Result<(), String> {
+    let mut statement = connection
+        .prepare("select session_id from workbench_sessions order by session_id asc")
+        .map_err(to_string)?;
+    let session_ids = statement
+        .query_map([], |row| row.get::<_, String>(0))
+        .map_err(to_string)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(to_string)?;
+
+    for session_id in session_ids {
+        let pending_approval_ids = pending_approval_ids_for_session(connection, &session_id)?;
+        let pending_approval_ids_json =
+            serde_json::to_string(&pending_approval_ids).map_err(to_string)?;
+        connection
+            .execute(
+                "update workbench_sessions
+                 set pending_approval_ids_json = ?2,
+                     pending_approval_count = ?3
+                 where session_id = ?1",
+                params![
+                    session_id,
+                    pending_approval_ids_json,
+                    pending_approval_ids.len() as i64
+                ],
+            )
+            .map_err(to_string)?;
+    }
+
+    Ok(())
+}
+
+fn materialize_approval_for_event(
+    connection: &Connection,
+    event: &Value,
+    source_event_id: i64,
+) -> Result<(), String> {
+    let event_type = read_string(event, "type").unwrap_or_default();
+    let Some(session_id) = read_string(event, "sessionId") else {
+        return Ok(());
+    };
+
+    match event_type.as_str() {
+        "approval.requested" => {
+            let Some(approval) = event.get("approval") else {
+                return Ok(());
+            };
+            let Some(approval_id) = read_string(approval, "id") else {
+                return Ok(());
+            };
+            let requested_at =
+                read_string(approval, "requestedAt").or_else(|| read_string(event, "at"));
+            let updated_at = read_string(event, "at").or_else(|| requested_at.clone());
+            connection
+                .execute(
+                    "insert into workbench_approvals (
+                        session_id, approval_id, kind, title, subject, reason, status, decision,
+                        requested_at, resolved_at, source_event_id, updated_at
+                     ) values (?1, ?2, ?3, ?4, ?5, ?6, 'pending', null, ?7, null, ?8, ?9)
+                     on conflict(session_id, approval_id) do update set
+                        kind = excluded.kind,
+                        title = excluded.title,
+                        subject = excluded.subject,
+                        reason = excluded.reason,
+                        status = 'pending',
+                        decision = null,
+                        requested_at = coalesce(excluded.requested_at, workbench_approvals.requested_at),
+                        resolved_at = null,
+                        source_event_id = excluded.source_event_id,
+                        updated_at = excluded.updated_at",
+                    params![
+                        session_id,
+                        approval_id,
+                        read_string(approval, "kind").unwrap_or_else(|| "unknown".to_string()),
+                        read_string(approval, "title"),
+                        read_string(approval, "subject"),
+                        read_string(approval, "reason"),
+                        requested_at,
+                        source_event_id,
+                        updated_at,
+                    ],
+                )
+                .map_err(to_string)?;
+        }
+        "approval.resolved" => {
+            let Some(approval_id) = read_string(event, "approvalId") else {
+                return Ok(());
+            };
+            let resolved_at = read_string(event, "at");
+            let updated_at = resolved_at.clone();
+            connection
+                .execute(
+                    "insert into workbench_approvals (
+                        session_id, approval_id, kind, title, subject, reason, status, decision,
+                        requested_at, resolved_at, source_event_id, updated_at
+                     ) values (?1, ?2, 'unknown', null, null, null, 'resolved', ?3, null, ?4, ?5, ?6)
+                     on conflict(session_id, approval_id) do update set
+                        status = 'resolved',
+                        decision = excluded.decision,
+                        resolved_at = excluded.resolved_at,
+                        source_event_id = excluded.source_event_id,
+                        updated_at = excluded.updated_at",
+                    params![
+                        session_id,
+                        approval_id,
+                        read_string(event, "decision"),
+                        resolved_at,
+                        source_event_id,
+                        updated_at,
+                    ],
+                )
+                .map_err(to_string)?;
+        }
+        _ => {}
+    }
+
+    Ok(())
+}
+
+fn list_approval_records(
+    connection: &Connection,
+    session_id: Option<&str>,
+    status: Option<&str>,
+) -> Result<Vec<WorkbenchApprovalRecord>, String> {
+    if let Some(status) = status {
+        if !matches!(status, "pending" | "resolved") {
+            return Err("Approval status filter must be pending or resolved.".to_string());
+        }
+    }
+
+    let mut statement = connection
+        .prepare(
+            "select session_id, approval_id, kind, title, subject, reason, status, decision,
+                    requested_at, resolved_at, source_event_id, updated_at
+             from workbench_approvals
+             where (?1 is null or session_id = ?1)
+               and (?2 is null or status = ?2)
+             order by coalesce(requested_at, updated_at, ''), session_id, approval_id",
+        )
+        .map_err(to_string)?;
+
+    let rows = statement
+        .query_map(params![session_id, status], |row| {
+            Ok(WorkbenchApprovalRecord {
+                session_id: row.get(0)?,
+                approval_id: row.get(1)?,
+                kind: row.get(2)?,
+                title: row.get(3)?,
+                subject: row.get(4)?,
+                reason: row.get(5)?,
+                status: row.get(6)?,
+                decision: row.get(7)?,
+                requested_at: row.get(8)?,
+                resolved_at: row.get(9)?,
+                source_event_id: row.get(10)?,
+                updated_at: row.get(11)?,
+            })
+        })
+        .map_err(to_string)?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(to_string)
+}
+
+fn pending_approval_ids_for_session(
+    connection: &Connection,
+    session_id: &str,
+) -> Result<Vec<String>, String> {
+    let mut statement = connection
+        .prepare(
+            "select approval_id
+             from workbench_approvals
+             where session_id = ?1 and status = 'pending'
+             order by coalesce(requested_at, updated_at, ''), approval_id",
+        )
+        .map_err(to_string)?;
+
+    let rows = statement
+        .query_map(params![session_id], |row| row.get::<_, String>(0))
+        .map_err(to_string)?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(to_string)
+}
+
+fn sync_session_index_record_approvals(
+    connection: &Connection,
+    record: &mut SessionIndexRecord,
+) -> Result<(), String> {
+    let pending_approval_ids = pending_approval_ids_for_session(connection, &record.id)?;
+    record.pending_approval_count = pending_approval_ids.len();
+    record.pending_approval_ids = pending_approval_ids;
+    Ok(())
 }
 
 fn delete_events_for_session(connection: &Connection, session_id: &str) -> Result<usize, String> {
@@ -730,6 +1052,14 @@ fn delete_events_for_session(connection: &Connection, session_id: &str) -> Resul
         )
         .map_err(to_string)
         .and_then(|deleted| {
+            if table_exists(connection, "workbench_approvals")? {
+                connection
+                    .execute(
+                        "delete from workbench_approvals where session_id = ?1",
+                        params![session_id],
+                    )
+                    .map_err(to_string)?;
+            }
             if table_exists(connection, "workbench_sessions")? {
                 connection
                     .execute(
@@ -776,6 +1106,7 @@ fn upsert_session_index_for_event(connection: &Connection, event: &Value) -> Res
     let mut record = read_session_index_record(connection, &session_id)?
         .unwrap_or_else(|| empty_session_index_record(session_id));
     apply_event_to_session_index_record(&mut record, event);
+    sync_session_index_record_approvals(connection, &mut record)?;
     write_session_index_record(connection, &record)
 }
 
@@ -806,7 +1137,7 @@ fn read_session_index_record(
     let lifecycle: String = row.get(1).map_err(to_string)?;
     let resumable = is_session_index_record_resumable(&lifecycle, &external_sessions);
 
-    Ok(Some(SessionIndexRecord {
+    let mut record = SessionIndexRecord {
         id: row.get(0).map_err(to_string)?,
         lifecycle: lifecycle.clone(),
         title: row.get(2).map_err(to_string)?,
@@ -823,13 +1154,18 @@ fn read_session_index_record(
         error_count: row.get::<_, i64>(13).map_err(to_string)? as usize,
         updated_at: row.get(14).map_err(to_string)?,
         resumable,
-    }))
+    };
+
+    sync_session_index_record_approvals(connection, &mut record)?;
+    Ok(Some(record))
 }
 
 fn write_session_index_record(
     connection: &Connection,
     record: &SessionIndexRecord,
 ) -> Result<(), String> {
+    let mut record = record.clone();
+    sync_session_index_record_approvals(connection, &mut record)?;
     let external_sessions_json =
         serde_json::to_string(&record.external_sessions).map_err(to_string)?;
     let pending_approval_ids_json =
@@ -870,7 +1206,7 @@ fn write_session_index_record(
                 record.capability_warning.as_deref(),
                 external_sessions_json,
                 pending_approval_ids_json,
-                record.pending_approval_ids.len() as i64,
+                record.pending_approval_count as i64,
                 record.warning_count as i64,
                 record.error_count as i64,
                 record.updated_at.as_deref(),
@@ -1148,19 +1484,21 @@ mod tests {
 
     #[test]
     fn deletes_events_for_one_session_only() {
-        let connection = Connection::open_in_memory().expect("open in-memory sqlite");
+        let mut connection = Connection::open_in_memory().expect("open in-memory sqlite");
+        create_event_store_schema(&mut connection).expect("create event store schema");
         connection
-            .execute_batch(
-                "create table workbench_events (
-                    id integer primary key autoincrement,
-                    session_id text not null,
-                    event_type text not null,
-                    event_at text,
-                    payload_json text not null,
-                    created_at text not null default current_timestamp
-                );",
+            .execute(
+                "insert into workbench_sessions (session_id, lifecycle) values (?1, ?2)",
+                params!["session-a", "started"],
             )
-            .expect("create event table");
+            .expect("insert session-a index");
+        connection
+            .execute(
+                "insert into workbench_approvals (session_id, approval_id, kind, status)
+                 values (?1, ?2, ?3, ?4)",
+                params!["session-a", "approval-a", "command", "pending"],
+            )
+            .expect("insert session-a approval");
         connection
             .execute(
                 "insert into workbench_events (session_id, event_type, payload_json) values (?1, ?2, ?3)",
@@ -1188,16 +1526,24 @@ mod tests {
                 |row| row.get(0),
             )
             .expect("count session-b");
+        let approval_a_remaining: i64 = connection
+            .query_row(
+                "select count(*) from workbench_approvals where session_id = ?1",
+                params!["session-a"],
+                |row| row.get(0),
+            )
+            .expect("count session-a approvals");
 
         assert_eq!(deleted, 1);
         assert_eq!(remaining, 1);
         assert_eq!(session_b_remaining, 1);
+        assert_eq!(approval_a_remaining, 0);
         assert!(delete_events_for_session(&connection, " ").is_err());
     }
 
     #[test]
     fn upserts_session_index_from_workbench_events() {
-        let connection = create_index_test_connection();
+        let mut connection = create_index_test_connection();
         let start = serde_json::json!({
             "type": "session.lifecycle",
             "sessionId": "session-a",
@@ -1242,9 +1588,11 @@ mod tests {
             "at": "2026-06-22T01:00:04.000Z"
         });
 
-        for event in [&start, &linked, &approval, &resolved, &completed] {
-            upsert_session_index_for_event(&connection, event).expect("upsert index event");
-        }
+        append_events_to_store(
+            &mut connection,
+            vec![start, linked, approval, resolved, completed],
+        )
+        .expect("append events");
 
         let record = read_session_index_record(&connection, "session-a")
             .expect("read index")
@@ -1259,6 +1607,66 @@ mod tests {
         assert!(record.provider_key_missing);
         assert_eq!(record.pending_approval_count, 0);
         assert!(record.resumable);
+    }
+
+    #[test]
+    fn materializes_approvals_during_transactional_append() {
+        let mut connection = create_index_test_connection();
+        let start = serde_json::json!({
+            "type": "session.lifecycle",
+            "sessionId": "session-approval",
+            "lifecycle": "started",
+            "title": "Approval session",
+            "at": "2026-06-22T03:00:00.000Z"
+        });
+        let requested = serde_json::json!({
+            "type": "approval.requested",
+            "sessionId": "session-approval",
+            "approval": {
+                "id": "approval-command",
+                "kind": "command",
+                "title": "Run verification",
+                "subject": "pnpm verify",
+                "reason": "Validate the slice"
+            },
+            "at": "2026-06-22T03:00:01.000Z"
+        });
+
+        append_events_to_store(&mut connection, vec![start, requested]).expect("append request");
+
+        let pending = list_approval_records(&connection, Some("session-approval"), Some("pending"))
+            .expect("list pending approvals");
+        let record = read_session_index_record(&connection, "session-approval")
+            .expect("read session index")
+            .expect("session-approval index row");
+
+        assert_eq!(pending.len(), 1);
+        assert_eq!(pending[0].approval_id, "approval-command");
+        assert_eq!(pending[0].kind, "command");
+        assert_eq!(pending[0].status, "pending");
+        assert_eq!(record.pending_approval_ids, vec!["approval-command"]);
+        assert_eq!(record.pending_approval_count, 1);
+
+        let resolved = serde_json::json!({
+            "type": "approval.resolved",
+            "sessionId": "session-approval",
+            "approvalId": "approval-command",
+            "decision": "approved",
+            "at": "2026-06-22T03:00:02.000Z"
+        });
+        append_events_to_store(&mut connection, vec![resolved]).expect("append resolution");
+
+        let resolved_records =
+            list_approval_records(&connection, Some("session-approval"), Some("resolved"))
+                .expect("list resolved approvals");
+        let record = read_session_index_record(&connection, "session-approval")
+            .expect("read session index")
+            .expect("session-approval index row");
+
+        assert_eq!(resolved_records.len(), 1);
+        assert_eq!(resolved_records[0].decision.as_deref(), Some("approved"));
+        assert_eq!(record.pending_approval_ids, Vec::<String>::new());
+        assert_eq!(record.pending_approval_count, 0);
     }
 
     #[test]
@@ -1309,6 +1717,69 @@ mod tests {
         assert_eq!(record.title.as_deref(), Some("Backfill session"));
         assert_eq!(record.warning_count, 1);
         assert_eq!(row_count, 1);
+    }
+
+    #[test]
+    fn migrates_unversioned_event_store_and_backfills_approvals() {
+        let mut connection = Connection::open_in_memory().expect("open in-memory sqlite");
+        connection
+            .execute_batch(
+                "create table workbench_events (
+                    id integer primary key autoincrement,
+                    session_id text not null,
+                    event_type text not null,
+                    event_at text,
+                    payload_json text not null,
+                    created_at text not null default current_timestamp
+                );",
+            )
+            .expect("create legacy events table");
+
+        let requested = serde_json::json!({
+            "type": "approval.requested",
+            "sessionId": "legacy-session",
+            "approval": {
+                "id": "legacy-approval",
+                "kind": "filesystem",
+                "title": "Write file"
+            },
+            "at": "2026-06-22T04:00:00.000Z"
+        });
+        let resolved = serde_json::json!({
+            "type": "approval.resolved",
+            "sessionId": "legacy-session",
+            "approvalId": "legacy-approval",
+            "decision": "rejected",
+            "at": "2026-06-22T04:00:01.000Z"
+        });
+
+        for event in [requested, resolved] {
+            connection
+                .execute(
+                    "insert into workbench_events (session_id, event_type, event_at, payload_json)
+                     values (?1, ?2, ?3, ?4)",
+                    params![
+                        read_string(&event, "sessionId").expect("session id"),
+                        read_string(&event, "type").expect("event type"),
+                        read_string(&event, "at"),
+                        serde_json::to_string(&event).expect("serialize event")
+                    ],
+                )
+                .expect("insert legacy event");
+        }
+
+        create_event_store_schema(&mut connection).expect("migrate event store");
+
+        let version = event_store_user_version(&connection).expect("read user version");
+        let approvals =
+            list_approval_records(&connection, Some("legacy-session"), Some("resolved"))
+                .expect("list migrated approvals");
+
+        assert_eq!(version, EVENT_STORE_SCHEMA_VERSION);
+        assert_eq!(approvals.len(), 1);
+        assert_eq!(approvals[0].approval_id, "legacy-approval");
+        assert_eq!(approvals[0].kind, "filesystem");
+        assert_eq!(approvals[0].decision.as_deref(), Some("rejected"));
     }
 
     #[test]
@@ -1412,36 +1883,8 @@ mod tests {
     }
 
     fn create_index_test_connection() -> Connection {
-        let connection = Connection::open_in_memory().expect("open in-memory sqlite");
-        connection
-            .execute_batch(
-                "create table workbench_events (
-                    id integer primary key autoincrement,
-                    session_id text not null,
-                    event_type text not null,
-                    event_at text,
-                    payload_json text not null,
-                    created_at text not null default current_timestamp
-                );
-                create table workbench_sessions (
-                    session_id text primary key,
-                    lifecycle text not null,
-                    title text,
-                    workspace_path text,
-                    backend_adapter_id text,
-                    backend_label text,
-                    provider_route_label text,
-                    provider_key_missing integer not null default 0,
-                    capability_warning text,
-                    external_sessions_json text not null default '{}',
-                    pending_approval_ids_json text not null default '[]',
-                    pending_approval_count integer not null default 0,
-                    warning_count integer not null default 0,
-                    error_count integer not null default 0,
-                    updated_at text
-                );",
-            )
-            .expect("create event/index tables");
+        let mut connection = Connection::open_in_memory().expect("open in-memory sqlite");
+        create_event_store_schema(&mut connection).expect("create event store schema");
         connection
     }
 }
