@@ -79,8 +79,10 @@ export type UiMessageKey =
   | "workbench.approvals.viewDiff"
   | "workbench.approvals.viewTerminal"
   | "workbench.approvals.approve"
+  | "workbench.approvals.approveAndResume"
   | "workbench.approvals.reject"
   | "workbench.approvals.resolved"
+  | "workbench.approvals.followUpQueued"
   | "workbench.approvals.decisionApproved"
   | "workbench.approvals.decisionRejected"
   | "workbench.approvals.decisionCancelled"
@@ -238,8 +240,10 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.approvals.viewDiff": "View diff",
     "workbench.approvals.viewTerminal": "View terminal",
     "workbench.approvals.approve": "Approve",
+    "workbench.approvals.approveAndResume": "Approve & resume",
     "workbench.approvals.reject": "Reject",
     "workbench.approvals.resolved": "Recorded {decision} for {title}.",
+    "workbench.approvals.followUpQueued": "Recorded {decision} for {title}. Resuming Claude Code with that approved context.",
     "workbench.approvals.decisionApproved": "approved",
     "workbench.approvals.decisionRejected": "rejected",
     "workbench.approvals.decisionCancelled": "cancelled",
@@ -394,8 +398,10 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.approvals.viewDiff": "변경 보기",
     "workbench.approvals.viewTerminal": "터미널 보기",
     "workbench.approvals.approve": "승인",
+    "workbench.approvals.approveAndResume": "승인하고 이어쓰기",
     "workbench.approvals.reject": "거절",
     "workbench.approvals.resolved": "{title}에 {decision} 결정을 기록했습니다.",
+    "workbench.approvals.followUpQueued": "{title}에 {decision} 결정을 기록했습니다. 승인된 컨텍스트로 Claude Code를 이어 실행합니다.",
     "workbench.approvals.decisionApproved": "승인",
     "workbench.approvals.decisionRejected": "거절",
     "workbench.approvals.decisionCancelled": "취소",

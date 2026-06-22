@@ -3,11 +3,16 @@ import type { Dispatch, SetStateAction } from "react";
 import type {
   ApprovalDecision,
   UiI18n,
+  WorkbenchApprovalSnapshot,
   WorkbenchEvent,
   WorkbenchRuntimeSnapshot,
   WorkbenchSessionControllerSnapshot,
   WorkbenchSessionDefaults
 } from "@geond-agent/ui-workbench";
+import {
+  buildClaudeCodeApprovalFollowUpPrompt,
+  selectClaudeCodeApprovalFollowUpPermissionMode
+} from "@geond-agent/claude-code-bridge";
 
 import type { DesktopDemoDocument, DesktopRunnerMode } from "../demo-workbench.js";
 import type { DesktopWorkspaceDescriptor } from "../workspace.js";
@@ -123,8 +128,8 @@ export function useWorkbenchActions({
       return;
     }
 
-    const approvalTitle =
-      activeSession.approvals.find((approval) => approval.id === approvalId)?.title ?? approvalId;
+    const approval = activeSession.approvals.find((approval) => approval.id === approvalId);
+    const approvalTitle = approval?.title ?? approvalId;
     const events: readonly WorkbenchEvent[] = [
       {
         type: "approval.resolved",
@@ -139,6 +144,37 @@ export function useWorkbenchActions({
     setControllerSnapshot(
       document.controller.appendEvents(events, { activateSessionId: activeSession.id })
     );
+
+    const followUpExternalSessionId = activeExternalSession?.externalSessionId;
+    if (
+      shouldRunApprovalFollowUp(
+        activeSession,
+        activeExternalSession,
+        approval,
+        decision,
+        runnerBusy,
+        runnerMode
+      ) &&
+      followUpExternalSessionId
+    ) {
+      setRunnerStatus(
+        formatMessage(i18n.t("workbench.approvals.followUpQueued"), {
+          decision: formatApprovalDecision(i18n, decision),
+          title: approvalTitle
+        })
+      );
+      await startSession("claude-live", {
+        resumeSessionId: activeSession.id,
+        externalSessionId: followUpExternalSessionId,
+        promptOverride: buildClaudeCodeApprovalFollowUpPrompt({ approval, decision }),
+        permissionModeOverride: selectClaudeCodeApprovalFollowUpPermissionMode(
+          approval,
+          decision
+        )
+      });
+      return;
+    }
+
     setRunnerStatus(
       formatMessage(i18n.t("workbench.approvals.resolved"), {
         decision: formatApprovalDecision(i18n, decision),
@@ -193,4 +229,22 @@ export function useWorkbenchActions({
     updateSessionDefaults,
     updateUiLanguage
   };
+}
+
+function shouldRunApprovalFollowUp(
+  activeSession: ProjectedActiveSession,
+  activeExternalSession: ProjectedActiveSession["externalSessions"][string] | undefined,
+  approval: WorkbenchApprovalSnapshot | undefined,
+  decision: ApprovalDecision,
+  runnerBusy: boolean,
+  runnerMode: DesktopRunnerMode
+): approval is WorkbenchApprovalSnapshot {
+  return Boolean(
+    approval &&
+      decision === "approved" &&
+      runnerMode === "claude-live" &&
+      activeExternalSession &&
+      !runnerBusy &&
+      ["completed", "failed", "paused"].includes(activeSession.lifecycle)
+  );
 }

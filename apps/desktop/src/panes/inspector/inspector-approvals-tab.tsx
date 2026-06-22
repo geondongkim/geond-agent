@@ -20,12 +20,14 @@ import type { ProjectedActiveSession } from "../../lib/workbench-types.js";
 
 export function InspectorApprovalsTab({
   activeSession,
+  canFollowUpApprovals,
   i18n,
   permissionMode,
   resolveApproval,
   setInspectorTab
 }: {
   readonly activeSession?: ProjectedActiveSession;
+  readonly canFollowUpApprovals: boolean;
   readonly i18n: UiI18n;
   readonly permissionMode: WorkbenchPermissionMode;
   readonly resolveApproval: (approvalId: string, decision: ApprovalDecision) => void;
@@ -95,7 +97,9 @@ export function InspectorApprovalsTab({
                       {i18n.t("workbench.approvals.reject")}
                     </Button>
                     <Button onClick={() => void resolveApproval(approval.id, "approved")}>
-                      {i18n.t("workbench.approvals.approve")}
+                      {canFollowUpApprovals
+                        ? i18n.t("workbench.approvals.approveAndResume")
+                        : i18n.t("workbench.approvals.approve")}
                     </Button>
                   </div>
                 ) : null}

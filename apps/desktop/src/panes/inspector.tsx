@@ -20,6 +20,7 @@ import { InspectorUsageTab } from "./inspector/inspector-usage-tab.js";
 export function InspectorPane({
   activeExternalSession,
   activeSession,
+  canFollowUpApprovals,
   agentLanguageOptions,
   backendOptions,
   bridgeCommand,
@@ -43,6 +44,7 @@ export function InspectorPane({
 }: {
   readonly activeExternalSession?: ProjectedActiveSession["externalSessions"][string];
   readonly activeSession?: ProjectedActiveSession;
+  readonly canFollowUpApprovals: boolean;
   readonly agentLanguageOptions: readonly { readonly value: string; readonly label: string }[];
   readonly backendOptions: readonly WorkbenchCatalogOption[];
   readonly bridgeCommand: string;
@@ -92,6 +94,7 @@ export function InspectorPane({
         <InspectorTerminalTab activeSession={activeSession} i18n={i18n} />
         <InspectorApprovalsTab
           activeSession={activeSession}
+          canFollowUpApprovals={canFollowUpApprovals}
           i18n={i18n}
           permissionMode={sessionDefaults.defaultPermissionMode}
           resolveApproval={resolveApproval}

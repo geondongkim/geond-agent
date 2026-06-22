@@ -86,6 +86,7 @@ export interface CreateRunnerRequestOptions {
   readonly prompt: string;
   readonly externalSessionId?: string;
   readonly languageSettings: WorkbenchLanguageSettings;
+  readonly permissionModeOverride?: WorkbenchSessionDefaults["defaultPermissionMode"];
   readonly sessionDefaults: WorkbenchSessionDefaults;
   readonly workspacePath: string;
 }
@@ -247,7 +248,8 @@ function createRunnerRequest(options: CreateRunnerRequestOptions): ClaudeCodeRun
     modelProfileId: options.sessionDefaults.defaultModelAlias,
     backendAdapterId: options.sessionDefaults.defaultBackendAdapterId,
     routingMode: options.sessionDefaults.routingMode,
-    permissionMode: options.sessionDefaults.defaultPermissionMode,
+    permissionMode:
+      options.permissionModeOverride ?? options.sessionDefaults.defaultPermissionMode,
     uiLanguage: options.languageSettings.uiLanguage,
     agentResponseLanguage: normalizeAgentLanguageForRunner(
       options.languageSettings.agentResponseLanguage

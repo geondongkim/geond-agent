@@ -86,7 +86,10 @@ export function App({ document }: AppProps) {
     setIgnoredRecordCount,
     workspacePath
   });
-  const canResumeActiveSession = Boolean(activeSessionListItem?.resumable && activeExternalSession && !runnerBusy);
+  const canResumeActiveSession = Boolean(
+    activeSessionListItem?.resumable && activeExternalSession && !runnerBusy
+  );
+  const canFollowUpApprovals = canResumeActiveSession && runnerMode === "claude-live";
   const {
     chooseWorkspace,
     deleteActiveSession,
@@ -180,6 +183,7 @@ export function App({ document }: AppProps) {
             agentLanguageOptions={agentLanguageOptions}
             backendOptions={backendOptions}
             bridgeCommand={document.bridgeCommand}
+            canFollowUpApprovals={canFollowUpApprovals}
             ignoredRecordCount={ignoredRecordCount}
             i18n={i18n}
             inspectorTab={inspectorTab}

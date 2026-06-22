@@ -1,4 +1,8 @@
-import type { WorkbenchEvent } from "@geond-agent/ui-workbench";
+import type {
+  ApprovalDecision,
+  WorkbenchApprovalSnapshot,
+  WorkbenchEvent
+} from "@geond-agent/ui-workbench";
 
 import type { ExternalCliBoundary } from "./boundary.js";
 import { CLAUDE_CODE_SANITIZED_STREAM_JSON_FIXTURE } from "./stream-json.fixtures.js";
@@ -37,6 +41,14 @@ export interface ClaudeCodeRunnerResult {
   readonly command: ExternalCliBoundary;
   readonly events: readonly WorkbenchEvent[];
   readonly ignoredRecords: readonly ClaudeCodeIgnoredStreamRecord[];
+}
+
+export interface ClaudeCodeApprovalFollowUpOptions {
+  readonly approval: Pick<
+    WorkbenchApprovalSnapshot,
+    "id" | "kind" | "title" | "subject" | "reason"
+  >;
+  readonly decision: ApprovalDecision;
 }
 
 export interface ClaudeCodeProcessExecutionResult {
@@ -101,6 +113,57 @@ export function buildClaudeCodeStreamJsonCommand(
       options.prompt
     ]
   };
+}
+
+export function buildClaudeCodeApprovalFollowUpPrompt({
+  approval,
+  decision
+}: ClaudeCodeApprovalFollowUpOptions): string {
+  const subject = approval.subject ?? approval.reason ?? approval.title;
+  const decisionText =
+    decision === "approved"
+      ? "approved"
+      : decision === "rejected"
+        ? "rejected"
+        : "cancelled";
+  const instruction =
+    decision === "approved"
+      ? "Continue the prior task. If the approved action is still required, perform only that scoped action and then continue normally. Do not assume broader permission than this decision grants."
+      : "Continue the prior task without performing the denied action. Explain the impact and propose a safe alternative plan.";
+
+  return [
+    "Continue the previous Claude Code print-mode session after local approval review.",
+    `Approval decision: ${decisionText}.`,
+    `Approval id: ${approval.id}.`,
+    `Approval kind: ${approval.kind}.`,
+    `Approval title: ${approval.title}.`,
+    subject ? `Approval subject: ${subject}.` : undefined,
+    approval.reason && approval.reason !== subject
+      ? `Approval reason: ${approval.reason}.`
+      : undefined,
+    instruction
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join("\n");
+}
+
+export function selectClaudeCodeApprovalFollowUpPermissionMode(
+  approval: Pick<WorkbenchApprovalSnapshot, "kind">,
+  decision: ApprovalDecision
+): Exclude<ClaudeCodePermissionMode, "bypassPermissions"> {
+  if (decision !== "approved") {
+    return "plan";
+  }
+
+  switch (approval.kind) {
+    case "diff":
+    case "filesystem":
+      return "acceptEdits";
+    case "command":
+    case "network":
+    case "mcp":
+      return "default";
+  }
 }
 
 export function parseClaudeCodeStreamJsonLines(

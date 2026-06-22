@@ -3,6 +3,7 @@ import {
   workbenchEventIdentity,
   type UiI18n,
   type WorkbenchEvent,
+  type WorkbenchPermissionMode,
   type WorkbenchRuntimeSnapshot,
   type WorkbenchSessionControllerSnapshot,
   type WorkbenchSessionDefaults,
@@ -25,6 +26,8 @@ import { listenToClaudeCodeStream } from "./stream-listener.js";
 export interface StartSessionOptions {
   readonly resumeSessionId?: string;
   readonly externalSessionId?: string;
+  readonly promptOverride?: string;
+  readonly permissionModeOverride?: WorkbenchPermissionMode;
 }
 
 export type StartWorkbenchSession = (
@@ -80,13 +83,15 @@ export function useWorkbenchRunner({
     const selectedWorkspacePath =
       existingSession?.workspacePath ??
       (workspacePath === "__all__" ? document.activeWorkspace.path : workspacePath);
-    const prompt = createRunnerPrompt(mode, composerPrompt, i18n);
+    const prompt =
+      options.promptOverride ?? createRunnerPrompt(mode, composerPrompt, i18n);
     const request = document.createRunnerRequest({
       sessionId,
       title,
       prompt,
       externalSessionId: options.externalSessionId,
       languageSettings: runtimeSnapshot.languageSettings,
+      permissionModeOverride: options.permissionModeOverride,
       sessionDefaults,
       workspacePath: selectedWorkspacePath
     });
