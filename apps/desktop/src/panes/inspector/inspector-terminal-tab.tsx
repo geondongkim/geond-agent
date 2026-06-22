@@ -3,20 +3,25 @@ import type { UiI18n } from "@geond-agent/ui-workbench";
 import { TabsContent } from "../../components/ui/tabs.js";
 import { EmptyState } from "../../components/workbench/empty-state.js";
 import { formatStatusLabel } from "../../lib/workbench-format.js";
+import type { InspectorSessionReadModel } from "../../lib/inspector-read-model.js";
 import type { ProjectedActiveSession } from "../../lib/workbench-types.js";
 
 export function InspectorTerminalTab({
   activeSession,
+  commandOutputs,
   i18n
 }: {
   readonly activeSession?: ProjectedActiveSession;
+  readonly commandOutputs?: InspectorSessionReadModel["commandOutputs"];
   readonly i18n: UiI18n;
 }) {
+  const outputs = commandOutputs ?? activeSession?.commandOutputs ?? [];
+
   return (
     <TabsContent value="terminal" className="border-0 bg-transparent p-0">
-      {activeSession?.commandOutputs.length ? (
+      {outputs.length ? (
         <div className="space-y-2">
-          {activeSession.commandOutputs.map((output) => (
+          {outputs.map((output) => (
             <div key={output.id} className="terminal-card">
               <div className="flex items-center justify-between gap-2">
                 <p className="font-mono text-xs uppercase text-[color:var(--shell-soft)]">

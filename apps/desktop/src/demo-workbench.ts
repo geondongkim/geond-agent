@@ -36,6 +36,8 @@ import { createTauriClaudeCodeExecutor } from "./claude-runner.js";
 import { createDesktopWorkbench } from "./index.js";
 import type { DesktopWorkbenchEventStore } from "./persistence/event-store.js";
 import { createDesktopWorkbenchEventStore } from "./persistence/event-store.js";
+import type { DesktopMaterializedEventStore } from "./persistence/materialized-event-store.js";
+import { createDesktopMaterializedEventStore } from "./persistence/materialized-event-store.js";
 import type { DesktopWorkbenchSessionIndexStore } from "./persistence/session-index.js";
 import { createDesktopWorkbenchSessionIndexStore } from "./persistence/session-index.js";
 import {
@@ -57,6 +59,7 @@ export interface DesktopDemoDocument {
   readonly runner: ClaudeCodeFixtureReplayRunner;
   readonly liveRunner: ClaudeCodeProcessRunner;
   readonly eventStore: DesktopWorkbenchEventStore;
+  readonly materializedEventStore: DesktopMaterializedEventStore;
   readonly sessionIndexStore: DesktopWorkbenchSessionIndexStore;
   readonly workspaces: readonly DesktopWorkspaceDescriptor[];
   readonly activeWorkspace: DesktopWorkspaceDescriptor;
@@ -125,6 +128,7 @@ export async function createDesktopDemoDocument(
   const runner = createClaudeCodeFixtureReplayRunner();
   const liveRunner = createClaudeCodeProcessRunner(createTauriClaudeCodeExecutor());
   const eventStore = createDesktopWorkbenchEventStore();
+  const materializedEventStore = createDesktopMaterializedEventStore();
   const sessionIndexStore = createDesktopWorkbenchSessionIndexStore();
   const initialSessionId = "local-session-1";
   const persistedSessions = await sessionIndexStore.list();
@@ -163,6 +167,7 @@ export async function createDesktopDemoDocument(
     runner,
     liveRunner,
     eventStore,
+    materializedEventStore,
     sessionIndexStore,
     workspaces,
     activeWorkspace,

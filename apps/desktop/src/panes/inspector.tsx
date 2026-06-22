@@ -23,6 +23,7 @@ import { InspectorSettingsTab } from "./inspector/inspector-settings-tab.js";
 import { InspectorTerminalTab } from "./inspector/inspector-terminal-tab.js";
 import { InspectorReviewTab } from "./inspector/inspector-review-tab.js";
 import type { DesktopRunnerMode } from "../demo-workbench.js";
+import type { InspectorSessionReadModel } from "../lib/inspector-read-model.js";
 
 export function InspectorPane({
   activeExternalSession,
@@ -36,6 +37,7 @@ export function InspectorPane({
   ignoredRecordCount,
   i18n,
   inspectorTab,
+  inspectorData,
   modelAliasOptions,
   permissionModeOptions,
   persistenceNotes,
@@ -65,6 +67,7 @@ export function InspectorPane({
   readonly followUpPolicyOptions: readonly { readonly value: string; readonly label: string }[];
   readonly i18n: UiI18n;
   readonly inspectorTab: string;
+  readonly inspectorData?: InspectorSessionReadModel;
   readonly modelAliasOptions: readonly WorkbenchCatalogOption[];
   readonly permissionModeOptions: readonly { readonly value: string; readonly label: string }[];
   readonly persistenceNotes: readonly string[];
@@ -151,17 +154,26 @@ export function InspectorPane({
           canFollowUpApprovals={canFollowUpApprovals}
           i18n={i18n}
           ignoredRecordCount={ignoredRecordCount}
+          inspectorData={inspectorData}
           resolveApproval={resolveApproval}
           runtimeSnapshot={runtimeSnapshot}
           setInspectorTab={setInspectorTab}
         />
-        <InspectorTerminalTab activeSession={activeSession} i18n={i18n} />
+        <InspectorTerminalTab
+          activeSession={activeSession}
+          commandOutputs={inspectorData?.commandOutputs}
+          i18n={i18n}
+        />
         <WorkspacePlaceholderTab
           value="browser"
           title={i18n.t("workbench.workspacePanel.browserTitle")}
           detail={i18n.t("workbench.workspacePanel.browserDetail")}
         />
-        <InspectorFilesTab activeSession={activeSession} i18n={i18n} />
+        <InspectorFilesTab
+          activeSession={activeSession}
+          contextAttachments={inspectorData?.contextAttachments}
+          i18n={i18n}
+        />
         <WorkspacePlaceholderTab
           value="chat"
           title={i18n.t("workbench.workspacePanel.chatTitle")}
@@ -195,12 +207,14 @@ export function InspectorPane({
 
 function InspectorFilesTab({
   activeSession,
+  contextAttachments,
   i18n
 }: {
   readonly activeSession?: ProjectedActiveSession;
+  readonly contextAttachments?: InspectorSessionReadModel["contextAttachments"];
   readonly i18n: UiI18n;
 }) {
-  const attachments = activeSession?.contextAttachments ?? [];
+  const attachments = contextAttachments ?? activeSession?.contextAttachments ?? [];
 
   return (
     <TabsContent value="files" className="border-0 bg-transparent p-0">
