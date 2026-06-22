@@ -141,6 +141,7 @@ export type UiMessageKey =
   | "workbench.liveWarning.localOnly"
   | "workbench.liveWarning.selectionLocalOnly"
   | "workbench.liveWarning.parseFailed"
+  | "workbench.liveWarning.listenerFailed"
   | "workbench.runner.fixtureReady"
   | "workbench.runner.startingFixture"
   | "workbench.runner.startingClaude"
@@ -366,6 +367,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.liveWarning.localOnly": "Live execution keeps provider credentials and raw Claude logs outside committed workbench state.",
     "workbench.liveWarning.selectionLocalOnly": "Live runner selection is a local snapshot; provider credentials are not stored in UI state.",
     "workbench.liveWarning.parseFailed": "Unable to parse Claude Code stream-json line.",
+    "workbench.liveWarning.listenerFailed": "Unable to attach to Claude Code stream.",
     "workbench.runner.fixtureReady": "Fixture runner ready.",
     "workbench.runner.startingFixture": "Starting local fixture runner...",
     "workbench.runner.startingClaude": "Starting Claude Code stream-json runner...",
@@ -588,6 +590,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.liveWarning.localOnly": "Live 실행은 프로바이더 인증 정보와 원본 Claude 로그를 커밋되는 워크벤치 상태 밖에 둡니다.",
     "workbench.liveWarning.selectionLocalOnly": "Live runner 선택은 로컬 스냅샷이며, 프로바이더 인증 정보는 UI 상태에 저장하지 않습니다.",
     "workbench.liveWarning.parseFailed": "Claude Code stream-json 라인을 파싱하지 못했습니다.",
+    "workbench.liveWarning.listenerFailed": "Claude Code 스트림에 연결하지 못했습니다.",
     "workbench.runner.fixtureReady": "Fixture runner 준비됨.",
     "workbench.runner.startingFixture": "로컬 fixture runner 시작 중...",
     "workbench.runner.startingClaude": "Claude Code stream-json runner 시작 중...",

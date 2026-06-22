@@ -1,6 +1,8 @@
 import { listen } from "@tauri-apps/api/event";
 import {
   createClaudeCodeStreamJsonNormalizer,
+  redactSensitiveTextContent,
+  redactWorkbenchEventsContent,
   type ClaudeCodeStreamJsonNormalizer
 } from "@geond-agent/claude-code-bridge";
 import type { UiI18n, WorkbenchEvent } from "@geond-agent/ui-workbench";
@@ -32,7 +34,22 @@ export async function listenToClaudeCodeStream(
         }
       }
     );
-  } catch {
+  } catch (error) {
+    const warningTitle = i18n.t("workbench.liveWarning.listenerFailed");
+    const warningDetail = error instanceof Error ? redactSensitiveTextContent(error.message) : "";
+    try {
+      await onEvents([
+        {
+          type: "warning",
+          sessionId: request.sessionId,
+          id: "claude-code-stream-listener-failed",
+          message: warningDetail.length > 0 ? `${warningTitle} ${warningDetail}` : warningTitle,
+          at: new Date().toISOString()
+        }
+      ]);
+    } catch {
+      // The listener is best-effort; failed warning persistence should not crash setup.
+    }
     return undefined;
   }
 }
@@ -49,7 +66,7 @@ export function createEventsFromStreamPayload(
 
   const at = new Date().toISOString();
   if (payload.stream === "stderr") {
-    return [
+    return redactWorkbenchEventsContent([
       {
         type: "command.output",
         sessionId: request.sessionId,
@@ -59,14 +76,14 @@ export function createEventsFromStreamPayload(
         status: "running",
         at
       }
-    ];
+    ]);
   }
 
   try {
     const record = JSON.parse(payload.text) as unknown;
-    return normalizer.accept(record).events;
+    return redactWorkbenchEventsContent(normalizer.accept(record).events);
   } catch (error) {
-    return [
+    return redactWorkbenchEventsContent([
       {
         type: "warning",
         sessionId: request.sessionId,
@@ -74,7 +91,7 @@ export function createEventsFromStreamPayload(
         message: error instanceof Error ? error.message : i18n.t("workbench.liveWarning.parseFailed"),
         at
       }
-    ];
+    ]);
   }
 }
 
