@@ -55,6 +55,28 @@ describe("desktop Claude Code stream listener helpers", () => {
     });
   });
 
+  it("redacts secret-like content from stderr chunks", () => {
+    const secretEnvName = ["ANTHROPIC", "API", "KEY"].join("_");
+    const token = ["sk", "d".repeat(28)].join("-");
+    const events = createEventsFromStreamPayload(
+      {
+        channelId: "workbench-session-1",
+        stream: "stderr",
+        text: `diagnostic ${secretEnvName}=${token}\n`,
+        sequence: 1
+      },
+      createRunnerRequest(),
+      createUiI18n("en"),
+      createClaudeCodeStreamJsonNormalizer()
+    );
+
+    expect(events[0]).toMatchObject({
+      type: "command.output",
+      text: `diagnostic ${secretEnvName}=[redacted]`
+    });
+    expect(JSON.stringify(events)).not.toContain(token);
+  });
+
   it("normalizes stdout stream-json records under the workbench session id", () => {
     const request = createRunnerRequest({ externalSessionId: "claude-session-1" });
     const normalizer = createClaudeCodeStreamJsonNormalizer({
@@ -85,6 +107,36 @@ describe("desktop Claude Code stream listener helpers", () => {
       "session.adapter.linked"
     ]);
     expect(events.every((event) => event.sessionId === "workbench-session-1")).toBe(true);
+  });
+
+  it("redacts secret-like content from normalized stdout events", () => {
+    const token = ["sk", "e".repeat(28)].join("-");
+    const request = createRunnerRequest();
+    const events = createEventsFromStreamPayload(
+      {
+        channelId: "workbench-session-1",
+        stream: "stdout",
+        text: JSON.stringify({
+          type: "assistant.message.delta",
+          session_id: "claude-session-1",
+          message_id: "message-1",
+          delta: `never persist ${token}`
+        }),
+        sequence: 2
+      },
+      request,
+      createUiI18n("en"),
+      createClaudeCodeStreamJsonNormalizer({
+        fallbackSessionId: request.sessionId,
+        workbenchSessionId: request.sessionId
+      })
+    );
+
+    expect(events[0]).toMatchObject({
+      type: "assistant.text.delta",
+      text: "never persist [redacted]"
+    });
+    expect(JSON.stringify(events)).not.toContain(token);
   });
 
   it("turns live JSON parse failures into warnings", () => {
