@@ -34,7 +34,7 @@ export function App({ document }: AppProps) {
   const [pinnedSessionIds, setPinnedSessionIds] = useState(document.pinnedSessionIds);
   const [sessionQuery, setSessionQuery] = useState("");
   const [inspectorTab, setInspectorTab] = useState("review");
-  const [runnerMode, setRunnerMode] = useState<DesktopRunnerMode>("fixture");
+  const [runnerMode, setRunnerMode] = useState<DesktopRunnerMode>(document.runnerMode);
   const [ignoredRecordCount, setIgnoredRecordCount] = useState(document.ignoredRecordCount);
   const [composerPrompt, setComposerPrompt] = useState("");
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
@@ -92,6 +92,23 @@ export function App({ document }: AppProps) {
     activeSessionListItem?.resumable && activeExternalSession && !runnerBusy
   );
   const canFollowUpApprovals = canResumeActiveSession && runnerMode === "claude-live";
+  const selectWorkspacePath = (path: string) => {
+    setWorkspacePath(path);
+    if (path !== "__all__") {
+      const workspace = workspaceOptions.find((workspace) => workspace.path === path);
+      if (workspace) {
+        void document.saveWorkspace({
+          id: workspace.path,
+          label: workspace.label,
+          path: workspace.path
+        });
+      }
+    }
+  };
+  const updateRunnerMode = async (mode: DesktopRunnerMode) => {
+    const savedMode = await document.saveRunnerMode(mode);
+    setRunnerMode(savedMode);
+  };
   const {
     chooseWorkspace,
     deleteActiveSession,
@@ -156,7 +173,7 @@ export function App({ document }: AppProps) {
               selectSession={selectSession}
               sessionQuery={sessionQuery}
               setSessionQuery={setSessionQuery}
-              setWorkspacePath={setWorkspacePath}
+              setWorkspacePath={selectWorkspacePath}
               visiblePinnedSessions={visiblePinnedSessions}
               visibleRecentSessions={visibleRecentSessions}
               workspaceOptions={workspaceOptions}
@@ -181,7 +198,6 @@ export function App({ document }: AppProps) {
             sessionDefaults={sessionDefaults}
             setComposerPrompt={setComposerPrompt}
             setInspectorTab={setInspectorTab}
-            setRunnerMode={setRunnerMode}
             startSelectedRunner={startSelectedRunner}
             togglePinnedSession={togglePinnedSession}
           />
@@ -205,10 +221,12 @@ export function App({ document }: AppProps) {
               resolveApproval={resolveApproval}
               routingModeOptions={routingModeOptions}
               runtimeSnapshot={runtimeSnapshot}
+              runnerMode={runnerMode}
               sessionDefaults={sessionDefaults}
               settingsLabels={settingsLabels}
               setInspectorTab={setInspectorTab}
               updateAgentResponseLanguage={updateAgentResponseLanguage}
+              updateRunnerMode={updateRunnerMode}
               updateSessionDefaults={updateSessionDefaults}
               updateUiLanguage={updateUiLanguage}
             />

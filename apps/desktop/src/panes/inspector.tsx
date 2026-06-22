@@ -21,6 +21,7 @@ import { formatProviderSummary } from "../lib/workbench-format.js";
 import { InspectorSettingsTab } from "./inspector/inspector-settings-tab.js";
 import { InspectorTerminalTab } from "./inspector/inspector-terminal-tab.js";
 import { InspectorReviewTab } from "./inspector/inspector-review-tab.js";
+import type { DesktopRunnerMode } from "../demo-workbench.js";
 
 export function InspectorPane({
   activeExternalSession,
@@ -40,10 +41,12 @@ export function InspectorPane({
   resolveApproval,
   routingModeOptions,
   runtimeSnapshot,
+  runnerMode,
   sessionDefaults,
   settingsLabels,
   setInspectorTab,
   updateAgentResponseLanguage,
+  updateRunnerMode,
   updateSessionDefaults,
   updateUiLanguage
 }: {
@@ -64,10 +67,12 @@ export function InspectorPane({
   readonly resolveApproval: (approvalId: string, decision: ApprovalDecision) => void;
   readonly routingModeOptions: readonly { readonly value: string; readonly label: string }[];
   readonly runtimeSnapshot: WorkbenchRuntimeSnapshot;
+  readonly runnerMode: DesktopRunnerMode;
   readonly sessionDefaults: WorkbenchSessionDefaults;
   readonly settingsLabels: WorkbenchSettingsLabels;
   readonly setInspectorTab: (tab: string) => void;
   readonly updateAgentResponseLanguage: (language: string) => void;
+  readonly updateRunnerMode: (mode: DesktopRunnerMode) => void;
   readonly updateSessionDefaults: (patch: Partial<WorkbenchSessionDefaults>) => void;
   readonly updateUiLanguage: (language: string) => void;
 }) {
@@ -169,9 +174,11 @@ export function InspectorPane({
           providerRouteOptions={providerRouteOptions}
           routingModeOptions={routingModeOptions}
           runtimeSnapshot={runtimeSnapshot}
+          runnerMode={runnerMode}
           sessionDefaults={sessionDefaults}
           settingsLabels={settingsLabels}
           updateAgentResponseLanguage={updateAgentResponseLanguage}
+          updateRunnerMode={updateRunnerMode}
           updateSessionDefaults={updateSessionDefaults}
           updateUiLanguage={updateUiLanguage}
         />
