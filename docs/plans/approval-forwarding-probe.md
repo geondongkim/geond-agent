@@ -50,11 +50,18 @@ approval forwarding exists.
 
 ## Current Decision
 
-The first implementation supports **approval detection and review**, not
-interactive forwarding. Users can inspect the denied command/file request and
-record an approve/reject decision in local workbench state. A later slice may
-wire those decisions back into a running backend if Claude Code exposes a stable
-approval-forwarding boundary.
+The implementation supports **approval detection, review, and print-mode
+follow-up**, not interactive forwarding. Users can inspect the denied
+command/file request and record an approve/reject decision in local workbench
+state. When a completed or failed Claude live session has an external session
+link, an approved decision can resume Claude Code with `--resume
+<externalSessionId>` and a scoped follow-up prompt. File/diff approvals use a
+one-run `acceptEdits` override, while command/network/MCP approvals stay in
+`default` permission mode. The stored session defaults are not changed.
+
+Interactive stdin-style forwarding back into a still-running Claude Code
+process remains deferred until Claude Code exposes a stable approval-forwarding
+boundary.
 
 ## Safety Rules
 

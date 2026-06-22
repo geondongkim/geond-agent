@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildClaudeCodeApprovalFollowUpPrompt,
   buildClaudeCodeStreamJsonCommand,
   createClaudeCodeFixtureReplayRunner,
   createClaudeCodeProcessRunner,
-  parseClaudeCodeStreamJsonLines
+  parseClaudeCodeStreamJsonLines,
+  selectClaudeCodeApprovalFollowUpPermissionMode
 } from "./runner.js";
 
 describe("Claude Code runner boundary", () => {
@@ -50,6 +52,46 @@ describe("Claude Code runner boundary", () => {
     expect(command.args).toContain("claude-session-1");
     expect(command.args).not.toContain("--session-id");
     expect(command.args).not.toContain("workbench-session-1");
+  });
+
+  it("builds a scoped print-mode follow-up prompt for approved approvals", () => {
+    const prompt = buildClaudeCodeApprovalFollowUpPrompt({
+      decision: "approved",
+      approval: {
+        id: "approval-command",
+        kind: "command",
+        title: "Run verification",
+        subject: "pnpm verify",
+        reason: "Validate the changed workspace"
+      }
+    });
+
+    expect(prompt).toContain("Approval decision: approved.");
+    expect(prompt).toContain("Approval kind: command.");
+    expect(prompt).toContain("Approval subject: pnpm verify.");
+    expect(prompt).toContain("Do not assume broader permission");
+    expect(prompt).not.toMatch(secretValuePattern);
+  });
+
+  it("selects safe follow-up permission modes without using bypassPermissions", () => {
+    expect(
+      selectClaudeCodeApprovalFollowUpPermissionMode({ kind: "filesystem" }, "approved")
+    ).toBe("acceptEdits");
+    expect(
+      selectClaudeCodeApprovalFollowUpPermissionMode({ kind: "diff" }, "approved")
+    ).toBe("acceptEdits");
+    expect(
+      selectClaudeCodeApprovalFollowUpPermissionMode({ kind: "command" }, "approved")
+    ).toBe("default");
+    expect(
+      selectClaudeCodeApprovalFollowUpPermissionMode({ kind: "network" }, "approved")
+    ).toBe("default");
+    expect(
+      selectClaudeCodeApprovalFollowUpPermissionMode({ kind: "mcp" }, "approved")
+    ).toBe("default");
+    expect(
+      selectClaudeCodeApprovalFollowUpPermissionMode({ kind: "filesystem" }, "rejected")
+    ).toBe("plan");
   });
 
   it("parses newline-delimited stream-json records into normalized events", () => {
@@ -201,3 +243,12 @@ describe("Claude Code runner boundary", () => {
     });
   });
 });
+
+const secretValuePattern = new RegExp(
+  [
+    ["ZAI", "API", "KEY"].join("_") + "=",
+    ["ANTHROPIC", "API", "KEY"].join("_") + "=",
+    "sk-[A-Za-z0-9_-]{20,}",
+    "Bearer [A-Za-z0-9._-]{20,}"
+  ].join("|")
+);

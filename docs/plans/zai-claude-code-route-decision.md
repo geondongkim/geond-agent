@@ -64,14 +64,17 @@ evidence for the adapter and workbench UX foundations.
 | Claude Code as a tool | Pass as the default implementation route, with cost review on small tasks. |
 | geond-agent workbench model | Pass with adapter work needed. Current events can represent Claude concepts, but a normalizer is required. |
 
-## Next Implementation Slice
+## Implemented Claude Route Slices
 
-The next implementation slice should not re-run the same code tasks. It should
-add a Claude Code event-normalization boundary that converts Claude Code
-`stream-json` into the existing workbench event model using sanitized fixtures
-derived from the probe shape, not raw logs or secrets.
+The next implementation slices should not re-run the same code tasks. The
+Claude route now has a real event-normalization boundary that converts Claude
+Code `stream-json` into the existing workbench event model using sanitized
+fixtures derived from the probe shape, not raw logs or secrets.
 
-The approval follow-up for that path is documented in
+Approval follow-up is also implemented as a print-mode resume loop: local
+approval decisions can resume a stored external Claude session with `--resume`
+and a scoped follow-up prompt. This is not interactive stdin forwarding. The
+approval follow-up path is documented in
 `docs/plans/approval-forwarding-probe.md` and
 `docs/adr/0006-approval-review-ux.md`.
 
