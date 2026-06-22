@@ -6,7 +6,7 @@ import {
 } from "@geond-agent/ui-workbench";
 
 import type { DesktopDemoDocument, DesktopRunnerMode } from "./demo-workbench.js";
-import { CommandStrip } from "./panes/command-strip.js";
+import { AppBar } from "./panes/app-bar.js";
 import { InspectorPane } from "./panes/inspector.js";
 import { SessionRailPane } from "./panes/session-rail.js";
 import { TimelinePane } from "./panes/timeline.js";
@@ -33,10 +33,12 @@ export function App({ document }: AppProps) {
   const [selectedWorkspaces, setSelectedWorkspaces] = useState(document.workspaces);
   const [pinnedSessionIds, setPinnedSessionIds] = useState(document.pinnedSessionIds);
   const [sessionQuery, setSessionQuery] = useState("");
-  const [inspectorTab, setInspectorTab] = useState("diff");
+  const [inspectorTab, setInspectorTab] = useState("review");
   const [runnerMode, setRunnerMode] = useState<DesktopRunnerMode>("fixture");
   const [ignoredRecordCount, setIgnoredRecordCount] = useState(document.ignoredRecordCount);
   const [composerPrompt, setComposerPrompt] = useState("");
+  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
 
   const i18n = runtimeSnapshot.i18n;
   const {
@@ -125,46 +127,51 @@ export function App({ document }: AppProps) {
   return (
     <main className="workbench-shell">
       <div className="workbench-frame">
-        <CommandStrip
-          activeRunMode={activeRunMode}
+        <AppBar
           activeSession={activeSession}
-          activeSessionApprovalCount={activeSession?.approvals.length ?? 0}
-          activeSessionPinned={activeSessionPinned}
-          canResumeActiveSession={canResumeActiveSession}
-          cancelActiveRun={cancelActiveRun}
-          deleteActiveSession={deleteActiveSession}
           i18n={i18n}
-          resumeActiveSession={resumeActiveSession}
+          leftPanelOpen={leftPanelOpen}
+          rightPanelOpen={rightPanelOpen}
           runnerBusy={runnerBusy}
           runnerMode={runnerMode}
+          sessionDefaults={sessionDefaults}
           sessionCount={projection.sessions.length}
           setInspectorTab={setInspectorTab}
-          setRunnerMode={setRunnerMode}
-          startSelectedRunner={startSelectedRunner}
-          togglePinnedSession={togglePinnedSession}
+          setLeftPanelOpen={setLeftPanelOpen}
+          setRightPanelOpen={setRightPanelOpen}
         />
 
-        <section className="workbench-grid">
-          <SessionRailPane
-            activeSessionId={activeSession?.id}
-            activeSessionTitle={activeSession?.title}
-            chooseWorkspace={chooseWorkspace}
-            i18n={i18n}
-            projection={projection}
-            selectSession={selectSession}
-            sessionQuery={sessionQuery}
-            setSessionQuery={setSessionQuery}
-            setWorkspacePath={setWorkspacePath}
-            visiblePinnedSessions={visiblePinnedSessions}
-            visibleRecentSessions={visibleRecentSessions}
-            workspaceOptions={workspaceOptions}
-            workspacePath={workspacePath}
-          />
+        <section
+          className="workbench-grid"
+          data-left-open={leftPanelOpen}
+          data-right-open={rightPanelOpen}
+        >
+          {leftPanelOpen ? (
+            <SessionRailPane
+              activeSessionId={activeSession?.id}
+              activeSessionTitle={activeSession?.title}
+              chooseWorkspace={chooseWorkspace}
+              i18n={i18n}
+              projection={projection}
+              selectSession={selectSession}
+              sessionQuery={sessionQuery}
+              setSessionQuery={setSessionQuery}
+              setWorkspacePath={setWorkspacePath}
+              visiblePinnedSessions={visiblePinnedSessions}
+              visibleRecentSessions={visibleRecentSessions}
+              workspaceOptions={workspaceOptions}
+              workspacePath={workspacePath}
+            />
+          ) : null}
 
           <TimelinePane
+            activeRunMode={activeRunMode}
             activeSession={activeSession}
+            activeSessionPinned={activeSessionPinned}
             canResumeActiveSession={canResumeActiveSession}
+            cancelActiveRun={cancelActiveRun}
             composerPrompt={composerPrompt}
+            deleteActiveSession={deleteActiveSession}
             i18n={i18n}
             pendingApprovals={pendingApprovals}
             resumeActiveSession={resumeActiveSession}
@@ -174,34 +181,38 @@ export function App({ document }: AppProps) {
             sessionDefaults={sessionDefaults}
             setComposerPrompt={setComposerPrompt}
             setInspectorTab={setInspectorTab}
+            setRunnerMode={setRunnerMode}
             startSelectedRunner={startSelectedRunner}
+            togglePinnedSession={togglePinnedSession}
           />
 
-          <InspectorPane
-            activeExternalSession={activeExternalSession}
-            activeSession={activeSession}
-            agentLanguageOptions={agentLanguageOptions}
-            backendOptions={backendOptions}
-            bridgeCommand={document.bridgeCommand}
-            canFollowUpApprovals={canFollowUpApprovals}
-            ignoredRecordCount={ignoredRecordCount}
-            i18n={i18n}
-            inspectorTab={inspectorTab}
-            modelAliasOptions={modelAliasOptions}
-            permissionModeOptions={permissionModeOptions}
-            persistenceNotes={document.persistence.notes}
-            providerRouteOptions={providerRouteOptions}
-            providerSummary={document.providerSummary}
-            resolveApproval={resolveApproval}
-            routingModeOptions={routingModeOptions}
-            runtimeSnapshot={runtimeSnapshot}
-            sessionDefaults={sessionDefaults}
-            settingsLabels={settingsLabels}
-            setInspectorTab={setInspectorTab}
-            updateAgentResponseLanguage={updateAgentResponseLanguage}
-            updateSessionDefaults={updateSessionDefaults}
-            updateUiLanguage={updateUiLanguage}
-          />
+          {rightPanelOpen ? (
+            <InspectorPane
+              activeExternalSession={activeExternalSession}
+              activeSession={activeSession}
+              agentLanguageOptions={agentLanguageOptions}
+              backendOptions={backendOptions}
+              bridgeCommand={document.bridgeCommand}
+              canFollowUpApprovals={canFollowUpApprovals}
+              ignoredRecordCount={ignoredRecordCount}
+              i18n={i18n}
+              inspectorTab={inspectorTab}
+              modelAliasOptions={modelAliasOptions}
+              permissionModeOptions={permissionModeOptions}
+              persistenceNotes={document.persistence.notes}
+              providerRouteOptions={providerRouteOptions}
+              providerSummary={document.providerSummary}
+              resolveApproval={resolveApproval}
+              routingModeOptions={routingModeOptions}
+              runtimeSnapshot={runtimeSnapshot}
+              sessionDefaults={sessionDefaults}
+              settingsLabels={settingsLabels}
+              setInspectorTab={setInspectorTab}
+              updateAgentResponseLanguage={updateAgentResponseLanguage}
+              updateSessionDefaults={updateSessionDefaults}
+              updateUiLanguage={updateUiLanguage}
+            />
+          ) : null}
         </section>
       </div>
     </main>

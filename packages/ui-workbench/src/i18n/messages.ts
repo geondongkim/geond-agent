@@ -111,6 +111,10 @@ export type UiMessageKey =
   | "workbench.actions.pinSession"
   | "workbench.actions.unpinSession"
   | "workbench.actions.deleteSession"
+  | "workbench.actions.showSessions"
+  | "workbench.actions.hideSessions"
+  | "workbench.actions.showWorkspacePanel"
+  | "workbench.actions.hideWorkspacePanel"
   | "workbench.composer.label"
   | "workbench.composer.placeholder"
   | "workbench.composer.livePlaceholder"
@@ -139,6 +143,21 @@ export type UiMessageKey =
   | "workbench.status.approvals"
   | "workbench.status.backend"
   | "workbench.status.unknown"
+  | "workbench.workspacePanel.title"
+  | "workbench.workspacePanel.backend"
+  | "workbench.workspacePanel.provider"
+  | "workbench.workspacePanel.review"
+  | "workbench.workspacePanel.terminal"
+  | "workbench.workspacePanel.browser"
+  | "workbench.workspacePanel.files"
+  | "workbench.workspacePanel.chat"
+  | "workbench.workspacePanel.settings"
+  | "workbench.workspacePanel.browserTitle"
+  | "workbench.workspacePanel.browserDetail"
+  | "workbench.workspacePanel.filesTitle"
+  | "workbench.workspacePanel.filesDetail"
+  | "workbench.workspacePanel.chatTitle"
+  | "workbench.workspacePanel.chatDetail"
   | "workbench.empty.diff"
   | "workbench.empty.terminal"
   | "workbench.empty.approvals"
@@ -272,6 +291,10 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.pinSession": "Pin session",
     "workbench.actions.unpinSession": "Unpin session",
     "workbench.actions.deleteSession": "Delete session",
+    "workbench.actions.showSessions": "Show sessions",
+    "workbench.actions.hideSessions": "Hide sessions",
+    "workbench.actions.showWorkspacePanel": "Show workspace panel",
+    "workbench.actions.hideWorkspacePanel": "Hide workspace panel",
     "workbench.composer.label": "Agent command",
     "workbench.composer.placeholder": "Review the current workspace and continue the implementation.",
     "workbench.composer.livePlaceholder": "Run a concise geond-agent workbench smoke session. Do not modify files.",
@@ -300,6 +323,21 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.status.approvals": "approvals",
     "workbench.status.backend": "backend",
     "workbench.status.unknown": "unknown",
+    "workbench.workspacePanel.title": "Workspace panel",
+    "workbench.workspacePanel.backend": "Backend",
+    "workbench.workspacePanel.provider": "Provider",
+    "workbench.workspacePanel.review": "Review",
+    "workbench.workspacePanel.terminal": "Terminal",
+    "workbench.workspacePanel.browser": "Browser",
+    "workbench.workspacePanel.files": "Files",
+    "workbench.workspacePanel.chat": "Side chat",
+    "workbench.workspacePanel.settings": "Settings",
+    "workbench.workspacePanel.browserTitle": "Browser slot",
+    "workbench.workspacePanel.browserDetail": "Reserved for the Tauri webview/browser tool surface. It will stay local-only and session-scoped before live browsing is wired.",
+    "workbench.workspacePanel.filesTitle": "Files slot",
+    "workbench.workspacePanel.filesDetail": "Reserved for workspace file context, changed files, and local evidence attachments. Raw private files are not persisted into normalized workbench events.",
+    "workbench.workspacePanel.chatTitle": "Side chat slot",
+    "workbench.workspacePanel.chatDetail": "Reserved for side-channel notes and follow-up prompts that should not become the primary transcript until explicitly dispatched.",
     "workbench.empty.diff": "No diff events in the active session.",
     "workbench.empty.terminal": "No command output projected yet.",
     "workbench.empty.approvals": "No approval queue for the active session.",
@@ -430,6 +468,10 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.pinSession": "세션 고정",
     "workbench.actions.unpinSession": "고정 해제",
     "workbench.actions.deleteSession": "세션 삭제",
+    "workbench.actions.showSessions": "세션 패널 열기",
+    "workbench.actions.hideSessions": "세션 패널 닫기",
+    "workbench.actions.showWorkspacePanel": "워크스페이스 패널 열기",
+    "workbench.actions.hideWorkspacePanel": "워크스페이스 패널 닫기",
     "workbench.composer.label": "에이전트 명령",
     "workbench.composer.placeholder": "현재 워크스페이스를 검토하고 구현을 이어갑니다.",
     "workbench.composer.livePlaceholder": "간결한 geond-agent 워크벤치 smoke 세션을 실행합니다. 파일은 수정하지 않습니다.",
@@ -458,6 +500,21 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.status.approvals": "승인",
     "workbench.status.backend": "백엔드",
     "workbench.status.unknown": "알 수 없음",
+    "workbench.workspacePanel.title": "워크스페이스 패널",
+    "workbench.workspacePanel.backend": "백엔드",
+    "workbench.workspacePanel.provider": "프로바이더",
+    "workbench.workspacePanel.review": "검토",
+    "workbench.workspacePanel.terminal": "터미널",
+    "workbench.workspacePanel.browser": "브라우저",
+    "workbench.workspacePanel.files": "파일",
+    "workbench.workspacePanel.chat": "사이드 채팅",
+    "workbench.workspacePanel.settings": "설정",
+    "workbench.workspacePanel.browserTitle": "브라우저 슬롯",
+    "workbench.workspacePanel.browserDetail": "Tauri webview/browser 도구 표면을 위한 자리입니다. 실제 연결 전까지 로컬 전용, 세션 단위 경계로 유지합니다.",
+    "workbench.workspacePanel.filesTitle": "파일 슬롯",
+    "workbench.workspacePanel.filesDetail": "워크스페이스 파일 컨텍스트, 변경 파일, 로컬 증거 첨부를 위한 자리입니다. 원본 private 파일은 정규화 이벤트에 저장하지 않습니다.",
+    "workbench.workspacePanel.chatTitle": "사이드 채팅 슬롯",
+    "workbench.workspacePanel.chatDetail": "주 transcript에 바로 섞지 않을 메모와 후속 프롬프트를 위한 자리입니다. 명시적으로 실행할 때만 주 세션에 반영합니다.",
     "workbench.empty.diff": "활성 세션에 변경 이벤트가 없습니다.",
     "workbench.empty.terminal": "아직 표시할 명령 출력이 없습니다.",
     "workbench.empty.approvals": "활성 세션의 승인 대기열이 없습니다.",
