@@ -58,6 +58,10 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(page.getByRole("button", { name: "Resume session" }).first()).toBeDisabled();
   await expect(page.getByRole("button", { name: "Unpin session" })).toBeVisible();
   await expect(page.getByText("Approval required")).toBeVisible();
+  await expect(page.locator(".timeline-message-assistant").first()).toBeVisible();
+  await expect(page.locator(".timeline-message-assistant .timeline-markdown").first()).toBeVisible();
+  await expect(page.locator(".timeline-activity-command").first()).toBeVisible();
+  await expect(page.locator(".timeline-approval-inline").first()).toBeVisible();
 
   const reviewPanel = page.getByRole("tabpanel", { name: "Review" });
   await expect(reviewPanel.getByText("glm-4.7")).toBeVisible();

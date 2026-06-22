@@ -233,6 +233,127 @@ body {
     @apply my-2 rounded-md border border-[rgba(242,189,61,0.45)] bg-[rgba(242,189,61,0.1)] px-3 py-3 text-[color:var(--ink)];
   }
 
+  .timeline-message {
+    @apply my-3 rounded-xl border border-[color:var(--border)] bg-[#151a17] px-4 py-4 shadow-[0_12px_34px_rgba(0,0,0,0.18)];
+  }
+
+  .timeline-message-assistant {
+    @apply border-[rgba(79,208,124,0.22)] bg-[rgba(79,208,124,0.045)];
+  }
+
+  .timeline-card-header {
+    @apply flex min-w-0 items-start gap-3;
+  }
+
+  .timeline-card-meta {
+    @apply flex shrink-0 flex-col items-end gap-1 text-right;
+  }
+
+  .timeline-activity {
+    @apply my-2 rounded-lg border border-[color:var(--border)] bg-[#121715] text-[color:var(--ink)];
+  }
+
+  .timeline-activity[open] {
+    @apply bg-[#151a17];
+  }
+
+  .timeline-activity-summary {
+    @apply flex cursor-pointer list-none items-start gap-3 px-4 py-3 outline-none transition-colors hover:bg-white/[0.035] focus-visible:ring-2 focus-visible:ring-[color:var(--accent)];
+  }
+
+  .timeline-activity-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .timeline-activity-title {
+    @apply mt-1 block truncate text-sm font-semibold;
+  }
+
+  .timeline-activity-icon {
+    @apply grid h-8 w-8 shrink-0 place-items-center rounded-md border border-[color:var(--border)] bg-black/20 text-[color:var(--ink-muted)];
+  }
+
+  .timeline-activity-icon.event-dot-command {
+    @apply border-[rgba(108,166,255,0.28)] bg-[rgba(108,166,255,0.1)] text-[color:var(--info)];
+  }
+
+  .timeline-activity-icon.event-dot-usage,
+  .timeline-activity-icon.event-dot-ok {
+    @apply border-[rgba(79,208,124,0.26)] bg-[rgba(79,208,124,0.08)] text-[color:var(--accent-strong)];
+  }
+
+  .timeline-activity-icon.event-dot-warning {
+    @apply border-[rgba(242,189,61,0.3)] bg-[rgba(242,189,61,0.08)] text-[color:var(--warning)];
+  }
+
+  .timeline-activity-body {
+    @apply border-t border-[color:var(--border)] px-4 py-3;
+  }
+
+  .timeline-activity-command {
+    @apply border-[rgba(108,166,255,0.22)] bg-[#0b1117] text-[color:var(--inverse)];
+  }
+
+  .timeline-command-output {
+    @apply max-h-[280px] overflow-auto whitespace-pre-wrap rounded-md border border-white/10 bg-black/30 p-3 font-mono text-xs leading-5 text-[color:var(--inverse-soft)];
+  }
+
+  .timeline-approval-inline {
+    @apply my-3 rounded-lg border border-[rgba(242,189,61,0.45)] bg-[rgba(242,189,61,0.08)] px-4 py-3;
+  }
+
+  .timeline-alert {
+    @apply my-3 rounded-lg border border-[rgba(242,189,61,0.45)] bg-[rgba(242,189,61,0.1)] px-4 py-3;
+  }
+
+  .timeline-alert-error {
+    @apply border-[rgba(231,95,106,0.42)] bg-[rgba(231,95,106,0.09)];
+  }
+
+  .timeline-markdown {
+    @apply mt-3 space-y-3 text-sm leading-6 text-[color:var(--ink-soft)];
+  }
+
+  .timeline-markdown h3,
+  .timeline-markdown h4,
+  .timeline-markdown h5 {
+    @apply text-[color:var(--ink)] font-semibold;
+  }
+
+  .timeline-markdown h3 {
+    @apply text-base;
+  }
+
+  .timeline-markdown h4,
+  .timeline-markdown h5 {
+    @apply text-sm;
+  }
+
+  .timeline-markdown ul {
+    @apply list-disc space-y-1 pl-5;
+  }
+
+  .timeline-markdown ol {
+    @apply list-decimal space-y-1 pl-5;
+  }
+
+  .timeline-markdown code {
+    @apply rounded border border-white/10 bg-black/25 px-1.5 py-0.5 font-mono text-[12px] text-[color:var(--shell-soft)];
+  }
+
+  .timeline-markdown pre {
+    @apply overflow-auto rounded-md border border-white/10 bg-black/30 p-3;
+  }
+
+  .timeline-markdown pre code {
+    @apply border-0 bg-transparent p-0 text-[12px] leading-5 text-[color:var(--inverse-soft)];
+  }
+
+  .streaming-cursor {
+    @apply mt-3 inline-block h-4 w-2 rounded-sm bg-[color:var(--accent)];
+    animation: geond-cursor-pulse 1s steps(2, start) infinite;
+  }
+
   .event-rail {
     @apply hidden;
   }
@@ -388,5 +509,22 @@ body {
 
   .command-palette-item {
     @apply flex w-full items-center justify-between gap-3 rounded-md px-3 py-2.5 text-left text-[color:var(--ink)] transition-colors hover:bg-white/5 focus:bg-white/10 focus:outline-none disabled:cursor-not-allowed disabled:hover:bg-transparent;
+  }
+}
+
+@keyframes geond-cursor-pulse {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  46%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streaming-cursor {
+    animation: none;
   }
 }
