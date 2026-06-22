@@ -24,7 +24,7 @@ const CLAUDE_DEFAULT_TIMEOUT_MS: u64 = 10 * 60 * 1000;
 const CLAUDE_MAX_TIMEOUT_MS: u64 = 60 * 60 * 1000;
 const PROCESS_OUTPUT_CAP_BYTES: usize = 1024 * 1024;
 const PROCESS_OUTPUT_TRUNCATED_MARKER: &str = "\n... [truncated]\n";
-const EVENT_STORE_SCHEMA_VERSION: i64 = 3;
+const EVENT_STORE_SCHEMA_VERSION: i64 = 4;
 const CLAUDE_ENV_KEYS: &[&str] = &[
     "ANTHROPIC_API_KEY",
     "ANTHROPIC_BASE_URL",
@@ -263,8 +263,13 @@ fn append_events_to_store(
     {
         let mut statement = transaction
             .prepare(
-                "insert into workbench_events (session_id, event_type, event_at, payload_json)
-             values (?1, ?2, ?3, ?4)",
+                "insert into workbench_events (
+                    session_id, event_type, event_at, payload_json, event_identity
+                 )
+                 select ?1, ?2, ?3, ?4, ?5
+                 where not exists (
+                    select 1 from workbench_events where event_identity = ?5
+                 )",
             )
             .map_err(to_string)?;
 
@@ -273,11 +278,21 @@ fn append_events_to_store(
                 read_string(&event, "sessionId").unwrap_or_else(|| "unknown".to_string());
             let event_type = read_string(&event, "type").unwrap_or_else(|| "unknown".to_string());
             let event_at = read_string(&event, "at");
+            let event_identity = workbench_event_identity(&event);
             let payload = serde_json::to_string(&event).map_err(to_string)?;
 
-            statement
-                .execute(params![session_id, event_type, event_at, payload])
+            let inserted_rows = statement
+                .execute(params![
+                    session_id,
+                    event_type,
+                    event_at,
+                    payload,
+                    event_identity
+                ])
                 .map_err(to_string)?;
+            if inserted_rows == 0 {
+                continue;
+            }
             let source_event_id = transaction.last_insert_rowid();
             materialize_approval_for_event(&transaction, &event, source_event_id)?;
             materialize_event_views_for_event(&transaction, &event, source_event_id)?;
@@ -1045,6 +1060,24 @@ fn migrate_event_store(connection: &mut Connection) -> Result<(), String> {
         transaction.commit().map_err(to_string)?;
     }
 
+    if version < 4 {
+        let transaction = connection.transaction().map_err(to_string)?;
+        if !column_exists(&transaction, "workbench_events", "event_identity")? {
+            transaction
+                .execute_batch("alter table workbench_events add column event_identity text;")
+                .map_err(to_string)?;
+        }
+        backfill_event_identities(&transaction)?;
+        transaction
+            .execute_batch(
+                "create index if not exists idx_workbench_events_identity
+                    on workbench_events(event_identity);
+                pragma user_version = 4;",
+            )
+            .map_err(to_string)?;
+        transaction.commit().map_err(to_string)?;
+    }
+
     Ok(())
 }
 
@@ -1127,6 +1160,32 @@ fn backfill_materialized_event_views_from_events(connection: &Connection) -> Res
     for (source_event_id, payload) in rows {
         let event = serde_json::from_str::<Value>(&payload).map_err(to_string)?;
         materialize_event_views_for_event(connection, &event, source_event_id)?;
+    }
+
+    Ok(())
+}
+
+fn backfill_event_identities(connection: &Connection) -> Result<(), String> {
+    let mut statement = connection
+        .prepare("select id, payload_json from workbench_events order by id asc")
+        .map_err(to_string)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+        })
+        .map_err(to_string)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(to_string)?;
+
+    for (event_id, payload) in rows {
+        let event = serde_json::from_str::<Value>(&payload).map_err(to_string)?;
+        let event_identity = workbench_event_identity(&event);
+        connection
+            .execute(
+                "update workbench_events set event_identity = ?2 where id = ?1",
+                params![event_id, event_identity],
+            )
+            .map_err(to_string)?;
     }
 
     Ok(())
@@ -2072,6 +2131,22 @@ fn table_exists(connection: &Connection, table_name: &str) -> Result<bool, Strin
         .map_err(to_string)
 }
 
+fn column_exists(
+    connection: &Connection,
+    table_name: &str,
+    column_name: &str,
+) -> Result<bool, String> {
+    let mut statement = connection
+        .prepare(&format!("pragma table_info({table_name})"))
+        .map_err(to_string)?;
+    let columns = statement
+        .query_map([], |row| row.get::<_, String>(1))
+        .map_err(to_string)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(to_string)?;
+    Ok(columns.iter().any(|column| column == column_name))
+}
+
 fn is_session_index_record_resumable(lifecycle: &str, external_sessions: &Value) -> bool {
     external_sessions
         .as_object()
@@ -2126,6 +2201,184 @@ fn read_f64(value: &Value, key: &str) -> Option<f64> {
 
 fn sum_file_number(files: &[Value], key: &str) -> i64 {
     files.iter().filter_map(|file| read_i64(file, key)).sum()
+}
+
+fn workbench_event_identity(event: &Value) -> String {
+    let event_type = read_string(event, "type").unwrap_or_default();
+    let session_id = read_string(event, "sessionId").unwrap_or_default();
+
+    match event_type.as_str() {
+        "session.lifecycle" => join_identity_parts([
+            event_type,
+            session_id,
+            read_string(event, "lifecycle").unwrap_or_default(),
+            read_string(event, "at").unwrap_or_default(),
+            read_string(event, "title").unwrap_or_default(),
+            read_string(event, "workspacePath").unwrap_or_default(),
+        ]),
+        "selection.snapshot.updated" => {
+            let backend_adapter_id = event
+                .get("selection")
+                .and_then(|selection| read_string(selection, "backendAdapterId"))
+                .unwrap_or_default();
+            join_identity_parts([
+                event_type,
+                session_id,
+                read_string(event, "at").unwrap_or_default(),
+                backend_adapter_id,
+            ])
+        }
+        "session.adapter.linked" => join_identity_parts([
+            event_type,
+            session_id,
+            read_string(event, "adapterId").unwrap_or_default(),
+            read_string(event, "externalSessionId").unwrap_or_default(),
+            read_string(event, "resumedFromExternalSessionId").unwrap_or_default(),
+            read_string(event, "at").unwrap_or_default(),
+        ]),
+        "context.attached" => {
+            let attachment = event.get("attachment");
+            join_identity_parts([
+                event_type,
+                session_id,
+                attachment
+                    .and_then(|value| read_string(value, "id"))
+                    .unwrap_or_default(),
+                attachment
+                    .and_then(|value| read_string(value, "kind"))
+                    .unwrap_or_default(),
+                attachment
+                    .and_then(|value| read_string(value, "path"))
+                    .unwrap_or_default(),
+                read_string(event, "at").unwrap_or_default(),
+            ])
+        }
+        "assistant.text.delta" => join_identity_parts([
+            event_type,
+            session_id,
+            read_string(event, "messageId").unwrap_or_default(),
+            read_string(event, "at").unwrap_or_default(),
+            read_string(event, "text").unwrap_or_default(),
+        ]),
+        "assistant.text.completed" => join_identity_parts([
+            event_type,
+            session_id,
+            read_string(event, "messageId").unwrap_or_default(),
+            read_string(event, "at").unwrap_or_default(),
+            read_string(event, "text").unwrap_or_default(),
+        ]),
+        "plan.updated" => {
+            let item_summary = event
+                .get("items")
+                .and_then(Value::as_array)
+                .map(|items| {
+                    items
+                        .iter()
+                        .map(|item| {
+                            format!(
+                                "{}/{}/{}",
+                                read_string(item, "id").unwrap_or_default(),
+                                read_string(item, "status").unwrap_or_default(),
+                                read_string(item, "title").unwrap_or_default()
+                            )
+                        })
+                        .collect::<Vec<_>>()
+                        .join("|")
+                })
+                .unwrap_or_default();
+            join_identity_parts([
+                event_type,
+                session_id,
+                read_string(event, "at").unwrap_or_default(),
+                item_summary,
+            ])
+        }
+        "tool.call.started" => {
+            let tool_call = event.get("toolCall");
+            join_identity_parts([
+                event_type,
+                session_id,
+                tool_call
+                    .and_then(|value| read_string(value, "id"))
+                    .unwrap_or_default(),
+                read_string(event, "at").unwrap_or_default(),
+            ])
+        }
+        "tool.call.updated" => join_identity_parts([
+            event_type,
+            session_id,
+            read_string(event, "toolCallId").unwrap_or_default(),
+            read_string(event, "status").unwrap_or_default(),
+            read_string(event, "at").unwrap_or_default(),
+        ]),
+        "command.output" => join_identity_parts([
+            event_type,
+            session_id,
+            read_string(event, "commandId").unwrap_or_default(),
+            read_string(event, "stream").unwrap_or_default(),
+            read_string(event, "status").unwrap_or_default(),
+            read_i64(event, "exitCode")
+                .map(|value| value.to_string())
+                .unwrap_or_default(),
+            read_string(event, "at").unwrap_or_default(),
+            read_string(event, "text").unwrap_or_default(),
+        ]),
+        "diff.emitted" => {
+            let diff = event.get("diff");
+            join_identity_parts([
+                event_type,
+                session_id,
+                diff.and_then(|value| read_string(value, "id"))
+                    .unwrap_or_default(),
+                read_string(event, "at").unwrap_or_default(),
+            ])
+        }
+        "usage.reported" => {
+            let usage = event.get("usage");
+            join_identity_parts([
+                event_type,
+                session_id,
+                usage
+                    .and_then(|value| read_string(value, "id"))
+                    .unwrap_or_default(),
+                read_string(event, "at").unwrap_or_default(),
+            ])
+        }
+        "approval.requested" => {
+            let approval = event.get("approval");
+            join_identity_parts([
+                event_type,
+                session_id,
+                approval
+                    .and_then(|value| read_string(value, "id"))
+                    .unwrap_or_default(),
+                read_string(event, "at").unwrap_or_default(),
+            ])
+        }
+        "approval.resolved" => join_identity_parts([
+            event_type,
+            session_id,
+            read_string(event, "approvalId").unwrap_or_default(),
+            read_string(event, "decision").unwrap_or_default(),
+            read_string(event, "at").unwrap_or_default(),
+        ]),
+        "warning" | "error" => join_identity_parts([
+            event_type,
+            session_id,
+            read_string(event, "id").unwrap_or_default(),
+            read_string(event, "at").unwrap_or_default(),
+            read_string(event, "message").unwrap_or_default(),
+        ]),
+        _ => join_identity_parts([
+            event_type,
+            session_id,
+            serde_json::to_string(event).unwrap_or_default(),
+        ]),
+    }
+}
+
+fn join_identity_parts(parts: impl IntoIterator<Item = String>) -> String {
+    parts.into_iter().collect::<Vec<_>>().join(":")
 }
 
 fn path_to_string(path: &Path) -> String {
@@ -2571,6 +2824,38 @@ mod tests {
     }
 
     #[test]
+    fn deduplicates_structurally_identical_events_during_append() {
+        let mut connection = create_index_test_connection();
+        let command_stdout = serde_json::json!({
+            "type": "command.output",
+            "sessionId": "session-dedupe",
+            "commandId": "cmd-verify",
+            "stream": "stdout",
+            "text": "pnpm verify",
+            "status": "running",
+            "at": "2026-06-22T02:00:03.000Z"
+        });
+
+        let inserted = append_events_to_store(
+            &mut connection,
+            vec![command_stdout.clone(), command_stdout],
+        )
+        .expect("append duplicate events");
+        let event_count: i64 = connection
+            .query_row("select count(*) from workbench_events", [], |row| {
+                row.get(0)
+            })
+            .expect("count workbench events");
+        let command_outputs = list_command_output_records(&connection, Some("session-dedupe"))
+            .expect("list command outputs");
+
+        assert_eq!(inserted, 1);
+        assert_eq!(event_count, 1);
+        assert_eq!(command_outputs.len(), 1);
+        assert_eq!(command_outputs[0].chunk_count, 1);
+    }
+
+    #[test]
     fn backfills_session_index_from_existing_events() {
         let connection = create_index_test_connection();
         let start = serde_json::json!({
@@ -2675,8 +2960,16 @@ mod tests {
         let approvals =
             list_approval_records(&connection, Some("legacy-session"), Some("resolved"))
                 .expect("list migrated approvals");
+        let event_identity_count: i64 = connection
+            .query_row(
+                "select count(*) from workbench_events where event_identity is not null",
+                [],
+                |row| row.get(0),
+            )
+            .expect("count migrated event identities");
 
         assert_eq!(version, EVENT_STORE_SCHEMA_VERSION);
+        assert_eq!(event_identity_count, 2);
         assert_eq!(approvals.len(), 1);
         assert_eq!(approvals[0].approval_id, "legacy-approval");
         assert_eq!(approvals[0].kind, "filesystem");

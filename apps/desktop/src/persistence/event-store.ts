@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { WorkbenchEvent } from "@geond-agent/ui-workbench";
+import { workbenchEventIdentity, type WorkbenchEvent } from "@geond-agent/ui-workbench";
 
 export interface DesktopWorkbenchEventStore {
   readonly append: (events: readonly WorkbenchEvent[]) => Promise<number>;
@@ -39,17 +39,31 @@ export function createDesktopWorkbenchEventStore(
 
 export function createMemoryWorkbenchEventStore(): DesktopWorkbenchEventStore {
   let events: WorkbenchEvent[] = [];
+  const eventIdentities = new Set<string>();
 
   return {
     driver: "memory-fallback",
     append: async (nextEvents) => {
-      events.push(...nextEvents);
-      return nextEvents.length;
+      const insertedEvents = nextEvents.filter((event) => {
+        const identity = workbenchEventIdentity(event);
+        if (eventIdentities.has(identity)) {
+          return false;
+        }
+        eventIdentities.add(identity);
+        return true;
+      });
+      events.push(...insertedEvents);
+      return insertedEvents.length;
     },
     list: async (sessionId) =>
       sessionId ? events.filter((event) => event.sessionId === sessionId) : [...events],
     deleteSession: async (sessionId) => {
       const previousLength = events.length;
+      events
+        .filter((event) => event.sessionId === sessionId)
+        .forEach((event) => {
+          eventIdentities.delete(workbenchEventIdentity(event));
+        });
       events = events.filter((event) => event.sessionId !== sessionId);
       return previousLength - events.length;
     }
