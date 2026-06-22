@@ -12,6 +12,9 @@ export interface DesktopWorkspaceResolver {
   readonly chooseWorkspace: (
     options?: ChooseWorkspaceOptions
   ) => Promise<DesktopWorkspaceDescriptor | undefined>;
+  readonly chooseFile: (
+    options?: ChooseWorkspaceOptions
+  ) => Promise<DesktopWorkspaceDescriptor | undefined>;
 }
 
 export interface ChooseWorkspaceOptions {
@@ -41,6 +44,22 @@ export function createDesktopWorkspaceResolver(): DesktopWorkspaceResolver {
           multiple: false,
           defaultPath: options.defaultPath,
           title: "Choose geond-agent workspace"
+        });
+
+        return typeof selected === "string"
+          ? createDesktopWorkspaceDescriptor(selected)
+          : undefined;
+      } catch {
+        return undefined;
+      }
+    },
+    chooseFile: async (options = {}) => {
+      try {
+        const selected = await open({
+          directory: false,
+          multiple: false,
+          defaultPath: options.defaultPath,
+          title: "Attach file evidence"
         });
 
         return typeof selected === "string"

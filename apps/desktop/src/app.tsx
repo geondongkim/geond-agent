@@ -24,6 +24,7 @@ import { useWorkbenchActions } from "./lib/use-workbench-actions.js";
 import { useWorkbenchDerivedState } from "./lib/use-workbench-derived-state.js";
 import { useWorkbenchOptions } from "./lib/use-workbench-options.js";
 import { useWorkbenchRunner } from "./runs/use-workbench-runner.js";
+import { createSideChatDraft, type SideChatDraft } from "./lib/side-chat-drafts.js";
 
 interface AppProps {
   readonly document: DesktopDemoDocument;
@@ -47,6 +48,9 @@ export function App({ document }: AppProps) {
   const [runnerMode, setRunnerMode] = useState<DesktopRunnerMode>(document.runnerMode);
   const [ignoredRecordCount, setIgnoredRecordCount] = useState(document.ignoredRecordCount);
   const [composerPrompt, setComposerPrompt] = useState("");
+  const [sideChatDrafts, setSideChatDrafts] = useState<readonly SideChatDraft[]>(
+    document.sideChatDrafts
+  );
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [materializedInspectorData, setMaterializedInspectorData] = useState<
     InspectorSessionReadModel | undefined
@@ -129,7 +133,27 @@ export function App({ document }: AppProps) {
     const savedMode = await document.saveRunnerMode(mode);
     setRunnerMode(savedMode);
   };
+  const enqueueSideChatDraft = (text: string, sourceLabel?: string) => {
+    const draft = createSideChatDraft(text, sourceLabel);
+    if (!draft) {
+      return;
+    }
+
+    setSideChatDrafts((current) => {
+      const next = [...current, draft];
+      void document.saveSideChatDrafts(next);
+      return next;
+    });
+  };
+  const removeSideChatDraft = (draftId: string) => {
+    setSideChatDrafts((current) => {
+      const next = current.filter((draft) => draft.id !== draftId);
+      void document.saveSideChatDrafts(next);
+      return next;
+    });
+  };
   const {
+    attachFileContext,
     attachWorkspaceContext,
     chooseWorkspace,
     deleteActiveSession,
@@ -190,6 +214,16 @@ export function App({ document }: AppProps) {
         }
       },
       {
+        id: "attach-file-context",
+        label: i18n.t("workbench.commandPalette.attachFileContext"),
+        detail: activeSession?.workspacePath ?? workspacePath,
+        disabled: !activeSession,
+        run: () => {
+          void attachFileContext();
+          openInspectorTab("files");
+        }
+      },
+      {
         id: "show-review",
         label: i18n.t("workbench.commandPalette.showReview"),
         detail: i18n.t("workbench.workspacePanel.review"),
@@ -226,6 +260,7 @@ export function App({ document }: AppProps) {
     ],
     [
       activeSession,
+      attachFileContext,
       attachWorkspaceContext,
       chooseWorkspace,
       i18n,
@@ -383,6 +418,7 @@ export function App({ document }: AppProps) {
             activeRunMode={activeRunMode}
             activeSession={activeSession}
             activeSessionPinned={activeSessionPinned}
+            attachFileContext={attachFileContext}
             attachWorkspaceContext={attachWorkspaceContext}
             canResumeActiveSession={canResumeActiveSession}
             cancelActiveRun={cancelActiveRun}
@@ -404,12 +440,16 @@ export function App({ document }: AppProps) {
           {rightPanelOpen ? (
             <InspectorPane
               activeExternalSession={activeExternalSession}
+              activeRunMode={activeRunMode}
               activeSession={activeSession}
+              attachFileContext={attachFileContext}
               agentLanguageOptions={agentLanguageOptions}
               backendOptions={backendOptions}
               bridgeCommand={document.bridgeCommand}
               canFollowUpApprovals={canFollowUpApprovals}
               composerEnterBehaviorOptions={composerEnterBehaviorOptions}
+              drafts={sideChatDrafts}
+              enqueueSideChatDraft={enqueueSideChatDraft}
               followUpPolicyOptions={followUpPolicyOptions}
               ignoredRecordCount={ignoredRecordCount}
               i18n={i18n}
@@ -420,11 +460,14 @@ export function App({ document }: AppProps) {
               persistenceNotes={document.persistence.notes}
               providerRouteOptions={providerRouteOptions}
               providerSummary={document.providerSummary}
+              removeSideChatDraft={removeSideChatDraft}
               reviewDeliveryOptions={reviewDeliveryOptions}
               resolveApproval={resolveApproval}
               routingModeOptions={routingModeOptions}
               runtimeSnapshot={runtimeSnapshot}
+              runnerBusy={runnerBusy}
               runnerMode={runnerMode}
+              runnerStatus={runnerStatus}
               sessionDefaults={sessionDefaults}
               settingsLabels={settingsLabels}
               setComposerPrompt={setComposerPrompt}

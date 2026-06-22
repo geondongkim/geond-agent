@@ -45,6 +45,11 @@ import {
   RUNNER_MODE_SETTINGS_KEY,
   WORKSPACE_SETTINGS_KEY
 } from "./persistence/tauri-settings.js";
+import {
+  loadSideChatDrafts,
+  saveSideChatDrafts,
+  type SideChatDraft
+} from "./lib/side-chat-drafts.js";
 import type { DesktopWorkspaceDescriptor } from "./workspace.js";
 import {
   FALLBACK_WORKSPACE,
@@ -76,6 +81,7 @@ export interface DesktopDemoDocument {
   readonly sessionDefaults: WorkbenchSessionDefaults;
   readonly runnerMode: DesktopRunnerMode;
   readonly layoutPreference: DesktopWorkbenchLayoutPreference;
+  readonly sideChatDrafts: readonly SideChatDraft[];
   readonly sessionDefaultWarnings: readonly string[];
   readonly selectionCatalog: WorkbenchSelectionCatalog;
   readonly persistence: WorkbenchPersistenceBoundary;
@@ -92,6 +98,9 @@ export interface DesktopDemoDocument {
   readonly chooseWorkspace: (
     defaultPath?: string
   ) => Promise<DesktopWorkspaceDescriptor | undefined>;
+  readonly chooseFile: (
+    defaultPath?: string
+  ) => Promise<DesktopWorkspaceDescriptor | undefined>;
   readonly saveWorkspace: (
     workspace: DesktopWorkspaceDescriptor
   ) => Promise<DesktopWorkspaceDescriptor>;
@@ -99,6 +108,9 @@ export interface DesktopDemoDocument {
   readonly saveLayoutPreference: (
     preference: DesktopWorkbenchLayoutPreference
   ) => Promise<DesktopWorkbenchLayoutPreference>;
+  readonly saveSideChatDrafts: (
+    drafts: readonly SideChatDraft[]
+  ) => Promise<readonly SideChatDraft[]>;
   readonly saveSessionDefaults: (
     settings: WorkbenchSessionDefaults
   ) => Promise<WorkbenchSessionDefaults>;
@@ -137,6 +149,7 @@ export async function createDesktopDemoDocument(
   const runtimeSnapshot = workbench.ui.getSnapshot();
   const savedRunnerMode = await loadSavedRunnerMode(settingsStore);
   const savedLayoutPreference = await loadSavedLayoutPreference(settingsStore);
+  const savedSideChatDrafts = await loadSideChatDrafts(settingsStore);
   const runner = createClaudeCodeFixtureReplayRunner();
   const liveRunner = createClaudeCodeProcessRunner(createTauriClaudeCodeExecutor());
   const eventStore = createDesktopWorkbenchEventStore();
@@ -190,6 +203,7 @@ export async function createDesktopDemoDocument(
     sessionDefaults: workbench.sessionDefaults,
     runnerMode: savedRunnerMode,
     layoutPreference: savedLayoutPreference,
+    sideChatDrafts: savedSideChatDrafts,
     sessionDefaultWarnings: workbench.sessionDefaultWarnings,
     selectionCatalog: workbench.selectionCatalog,
     persistence: workbench.persistence,
@@ -204,6 +218,7 @@ export async function createDesktopDemoDocument(
     runSession: (mode, request) =>
       mode === "claude-live" ? liveRunner.run(request) : runner.run(request),
     chooseWorkspace: (defaultPath) => workspaceResolver.chooseWorkspace({ defaultPath }),
+    chooseFile: (defaultPath) => workspaceResolver.chooseFile({ defaultPath }),
     saveWorkspace: async (workspace) => {
       await settingsStore.setItem(WORKSPACE_SETTINGS_KEY, workspace.path);
       return workspace;
@@ -218,6 +233,7 @@ export async function createDesktopDemoDocument(
       await settingsStore.setItem(LAYOUT_SETTINGS_KEY, JSON.stringify(validated));
       return validated;
     },
+    saveSideChatDrafts: (drafts) => saveSideChatDrafts(settingsStore, drafts),
     saveSessionDefaults: async (settings) => {
       const validated = validateWorkbenchSessionDefaults(
         settings,

@@ -169,6 +169,7 @@ export type UiMessageKey =
   | "workbench.commandPalette.newSession"
   | "workbench.commandPalette.chooseWorkspace"
   | "workbench.commandPalette.attachWorkspaceContext"
+  | "workbench.commandPalette.attachFileContext"
   | "workbench.commandPalette.showReview"
   | "workbench.commandPalette.showTerminal"
   | "workbench.commandPalette.showFiles"
@@ -203,12 +204,14 @@ export type UiMessageKey =
   | "workbench.context.empty"
   | "workbench.context.metadataOnly"
   | "workbench.context.attachWorkspace"
+  | "workbench.context.attachFile"
   | "workbench.context.more"
   | "workbench.context.path"
   | "workbench.context.provenance"
   | "workbench.context.range"
   | "workbench.context.summary"
   | "workbench.context.workspaceSummary"
+  | "workbench.context.fileSummary"
   | "workbench.context.attachedStatus"
   | "workbench.context.kind.workspace"
   | "workbench.context.kind.file"
@@ -238,6 +241,8 @@ export type UiMessageKey =
   | "workbench.sideChat.removeDraft"
   | "workbench.sideChat.useInComposer"
   | "workbench.sideChat.followUpPolicy"
+  | "workbench.followUp.queueReview"
+  | "workbench.followUp.queueTerminal"
   | "workbench.settings.languageSection"
   | "workbench.settings.routingSection"
   | "workbench.settings.inputSection"
@@ -433,6 +438,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.commandPalette.newSession": "Start selected runner",
     "workbench.commandPalette.chooseWorkspace": "Choose workspace",
     "workbench.commandPalette.attachWorkspaceContext": "Attach workspace context",
+    "workbench.commandPalette.attachFileContext": "Attach file evidence",
     "workbench.commandPalette.showReview": "Open review inspector",
     "workbench.commandPalette.showTerminal": "Open terminal inspector",
     "workbench.commandPalette.showFiles": "Open files inspector",
@@ -467,12 +473,14 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.context.empty": "No context attachments on this session yet.",
     "workbench.context.metadataOnly": "Metadata only",
     "workbench.context.attachWorkspace": "Attach workspace",
+    "workbench.context.attachFile": "Attach file",
     "workbench.context.more": "+{count} more",
     "workbench.context.path": "Path",
     "workbench.context.provenance": "Source",
     "workbench.context.range": "Range",
     "workbench.context.summary": "Summary",
     "workbench.context.workspaceSummary": "Workspace path attached as metadata only; raw file contents stay outside normalized events.",
+    "workbench.context.fileSummary": "File path attached as metadata only; raw file contents stay outside normalized events.",
     "workbench.context.attachedStatus": "Attached {title} as metadata-only context.",
     "workbench.context.kind.workspace": "Workspace",
     "workbench.context.kind.file": "File",
@@ -502,6 +510,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.sideChat.removeDraft": "Remove",
     "workbench.sideChat.useInComposer": "Use in composer",
     "workbench.sideChat.followUpPolicy": "Follow-up policy",
+    "workbench.followUp.queueReview": "Queue follow-up",
+    "workbench.followUp.queueTerminal": "Queue terminal follow-up",
     "workbench.settings.languageSection": "Language",
     "workbench.settings.routingSection": "Backend and model route",
     "workbench.settings.inputSection": "Composer and review",
@@ -694,6 +704,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.commandPalette.newSession": "선택된 실행기 시작",
     "workbench.commandPalette.chooseWorkspace": "워크스페이스 선택",
     "workbench.commandPalette.attachWorkspaceContext": "워크스페이스 컨텍스트 첨부",
+    "workbench.commandPalette.attachFileContext": "파일 증거 첨부",
     "workbench.commandPalette.showReview": "검토 인스펙터 열기",
     "workbench.commandPalette.showTerminal": "터미널 인스펙터 열기",
     "workbench.commandPalette.showFiles": "파일 인스펙터 열기",
@@ -728,12 +739,14 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.context.empty": "이 세션에는 아직 첨부된 컨텍스트가 없습니다.",
     "workbench.context.metadataOnly": "메타데이터만",
     "workbench.context.attachWorkspace": "워크스페이스 첨부",
+    "workbench.context.attachFile": "파일 첨부",
     "workbench.context.more": "추가 {count}개",
     "workbench.context.path": "경로",
     "workbench.context.provenance": "출처",
     "workbench.context.range": "범위",
     "workbench.context.summary": "요약",
     "workbench.context.workspaceSummary": "워크스페이스 경로만 메타데이터로 첨부했습니다. 원본 파일 내용은 정규화 이벤트 밖에 둡니다.",
+    "workbench.context.fileSummary": "파일 경로만 메타데이터로 첨부했습니다. 원본 파일 내용은 정규화 이벤트 밖에 둡니다.",
     "workbench.context.attachedStatus": "{title} 컨텍스트를 메타데이터 전용으로 첨부했습니다.",
     "workbench.context.kind.workspace": "워크스페이스",
     "workbench.context.kind.file": "파일",
@@ -763,6 +776,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.sideChat.removeDraft": "제거",
     "workbench.sideChat.useInComposer": "Composer로 옮기기",
     "workbench.sideChat.followUpPolicy": "후속 요청 정책",
+    "workbench.followUp.queueReview": "후속 초안 추가",
+    "workbench.followUp.queueTerminal": "터미널 후속 초안 추가",
     "workbench.settings.languageSection": "언어",
     "workbench.settings.routingSection": "백엔드와 모델 라우트",
     "workbench.settings.inputSection": "입력과 검토",

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import {
   FileDiff,
+  FilePlus,
   FileText,
   FolderOpen,
   MessageSquarePlus,
@@ -30,11 +31,13 @@ import type { ProjectedActiveSession } from "../../lib/workbench-types.js";
 
 export function InspectorFilesTab({
   activeSession,
+  attachFileContext,
   enqueueSideChatDraft,
   inspectorData,
   i18n
 }: {
   readonly activeSession?: ProjectedActiveSession;
+  readonly attachFileContext: () => void;
   readonly enqueueSideChatDraft: (text: string, sourceLabel?: string) => void;
   readonly inspectorData?: InspectorSessionReadModel;
   readonly i18n: UiI18n;
@@ -84,6 +87,17 @@ export function InspectorFilesTab({
             label={i18n.t("workbench.files.privacyBoundary")}
             value={i18n.t("workbench.context.metadataOnly")}
           />
+        </div>
+        <div className="mt-3 flex justify-end">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => void attachFileContext()}
+            disabled={!activeSession}
+          >
+            <FilePlus size={14} />
+            {i18n.t("workbench.context.attachFile")}
+          </Button>
         </div>
       </div>
 
