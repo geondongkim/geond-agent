@@ -43,11 +43,36 @@ body {
 
 @layer components {
   .workbench-shell {
-    @apply h-screen overflow-hidden bg-[color:var(--shell)] p-3 text-[color:var(--ink)] md:p-4;
+    @apply h-screen overflow-hidden bg-[color:var(--shell)] text-[color:var(--ink)];
   }
 
   .workbench-frame {
-    @apply mx-auto grid h-[calc(100vh-2rem)] max-w-[1780px] grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-lg border border-white/10 bg-[color:var(--shell-raised)] shadow-[0_28px_70px_rgba(0,0,0,0.42)];
+    @apply grid h-screen grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-[color:var(--shell-raised)];
+  }
+
+  .app-bar {
+    @apply grid min-h-[56px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-white/10 bg-[#111312]/95 px-3 text-[color:var(--inverse)] lg:grid-cols-[280px_minmax(0,1fr)_auto];
+  }
+
+  .app-bar-left,
+  .app-bar-right {
+    @apply flex min-w-0 items-center gap-2;
+  }
+
+  .app-bar-right {
+    @apply justify-end;
+  }
+
+  .app-bar-center {
+    @apply hidden min-w-0 flex-col items-center text-center lg:flex;
+  }
+
+  .app-bar-meta {
+    @apply mt-1 flex min-w-0 flex-wrap items-center justify-center gap-2;
+  }
+
+  .chrome-button {
+    @apply h-8 w-8 shrink-0 rounded-md p-0 text-[color:var(--inverse-soft)] hover:bg-white/10 hover:text-[color:var(--inverse)];
   }
 
   .command-strip {
@@ -70,32 +95,50 @@ body {
     @apply flex h-10 items-center gap-2 rounded-md border border-white/10 bg-black/20 px-3 text-xs text-[color:var(--inverse)];
   }
 
+  .compact-field {
+    @apply h-8 rounded-md border-[color:var(--border)] bg-[color:var(--panel)] px-2;
+  }
+
   .control-select {
     @apply h-7 rounded border border-white/10 bg-[color:var(--shell)] px-2 text-xs text-[color:var(--inverse)] outline-none;
   }
 
   .run-status-strip {
-    @apply border-t border-white/5 bg-black/20 px-4 py-2 font-mono text-[11px] text-[color:var(--shell-soft)];
+    @apply mx-auto w-full max-w-[860px] rounded-md border border-white/5 bg-black/20 px-4 py-2 font-mono text-[11px] text-[color:var(--shell-soft)];
   }
 
   .approval-banner {
-    @apply mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-[rgba(242,189,61,0.45)] bg-[rgba(242,189,61,0.1)] px-4 py-3 text-[color:var(--ink)];
+    @apply mx-auto mt-3 flex w-full max-w-[860px] flex-wrap items-center justify-between gap-3 rounded-md border border-[rgba(242,189,61,0.45)] bg-[rgba(242,189,61,0.1)] px-4 py-3 text-[color:var(--ink)];
   }
 
   .workbench-grid {
-    @apply grid min-h-0 grid-cols-1 bg-[color:var(--shell-raised)] lg:grid-cols-[278px_minmax(0,1fr)] xl:grid-cols-[282px_minmax(0,1fr)_390px];
+    @apply grid min-h-0 grid-cols-1 bg-[color:var(--shell-raised)];
+  }
+
+  @media (min-width: 1024px) {
+    .workbench-grid[data-left-open="true"][data-right-open="false"] {
+      grid-template-columns: 268px minmax(0, 1fr);
+    }
+
+    .workbench-grid[data-left-open="false"][data-right-open="true"] {
+      grid-template-columns: minmax(0, 1fr) 392px;
+    }
+
+    .workbench-grid[data-left-open="true"][data-right-open="true"] {
+      grid-template-columns: 268px minmax(0, 1fr) 392px;
+    }
   }
 
   .session-rail {
-    @apply flex min-h-0 flex-col gap-4 overflow-auto border-r border-white/10 bg-[color:var(--rail)] p-3 text-[color:var(--inverse)];
+    @apply flex min-h-0 flex-col gap-3 overflow-auto border-r border-white/10 bg-[#171918] p-2 text-[color:var(--inverse)];
   }
 
   .timeline-surface {
-    @apply flex min-h-0 flex-col border-r border-[color:var(--border)] bg-[color:var(--panel)] px-5 py-4 text-[color:var(--ink)];
+    @apply flex min-h-0 flex-col bg-[#121413] px-4 py-4 text-[color:var(--ink)];
   }
 
   .inspector-surface {
-    @apply flex min-h-0 flex-col overflow-auto bg-[color:var(--shell-raised)] p-3 text-[color:var(--ink)];
+    @apply flex min-h-0 flex-col gap-3 overflow-auto border-l border-white/10 bg-[#1f211f] p-3 text-[color:var(--ink)];
   }
 
   .panel-surface {
@@ -116,6 +159,10 @@ body {
 
   .metric-pill {
     @apply inline-flex h-7 items-center gap-1 rounded-md border border-white/10 bg-black/20 px-2.5 font-mono text-[11px] text-[color:var(--inverse-soft)];
+  }
+
+  .model-chip {
+    @apply hidden max-w-[220px] truncate rounded-md border border-white/10 bg-black/20 px-2.5 py-1.5 font-mono text-[11px] text-[color:var(--inverse-soft)] md:inline-flex;
   }
 
   .status-pill {
@@ -139,7 +186,7 @@ body {
   }
 
   .rail-card {
-    @apply rounded-md border border-white/10 bg-[color:var(--rail-raised)] p-3 text-[color:var(--inverse)];
+    @apply rounded-md border border-white/10 bg-[#202321] p-3 text-[color:var(--inverse)];
   }
 
   .session-card {
@@ -155,7 +202,7 @@ body {
   }
 
   .plan-strip {
-    @apply grid gap-2 border-y border-[color:var(--border)] py-3 md:grid-cols-3;
+    @apply mx-auto grid w-full max-w-[860px] gap-2 border-y border-[color:var(--border)] py-3 md:grid-cols-3;
   }
 
   .plan-step {
@@ -163,11 +210,11 @@ body {
   }
 
   .event-stream {
-    @apply min-h-0 flex-1 overflow-auto pr-1;
+    @apply mx-auto min-h-0 w-full max-w-[860px] flex-1 overflow-auto px-1;
   }
 
   .event-card {
-    @apply grid grid-cols-[22px_minmax(0,1fr)] gap-3 border-b border-[color:var(--border)] bg-transparent px-1 py-4;
+    @apply grid grid-cols-1 gap-3 border-b border-white/5 bg-transparent px-1 py-4;
   }
 
   .event-card-command {
@@ -183,7 +230,7 @@ body {
   }
 
   .event-rail {
-    @apply relative flex justify-center pt-1;
+    @apply hidden;
   }
 
   .event-dot {
@@ -208,6 +255,34 @@ body {
 
   .inspector-card {
     @apply rounded-md border border-[color:var(--border)] bg-[color:var(--panel)] p-3;
+  }
+
+  .environment-card {
+    @apply rounded-lg border border-white/10 bg-[#2b2d2b] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.28)];
+  }
+
+  .environment-grid {
+    @apply mt-3 grid grid-cols-2 gap-2;
+  }
+
+  .workspace-tabs {
+    @apply grid grid-cols-2 gap-1 p-1;
+  }
+
+  .workspace-tab {
+    @apply flex items-center justify-start gap-2 rounded-md px-2 py-1.5;
+  }
+
+  .review-section {
+    @apply rounded-lg border border-white/10 bg-[#232624] p-3;
+  }
+
+  .review-section-heading {
+    @apply mb-2 flex items-center justify-between gap-3;
+  }
+
+  .review-section-heading h3 {
+    @apply text-[11px] font-bold uppercase text-[color:var(--ink-muted)];
   }
 
   .terminal-card {
@@ -244,14 +319,18 @@ body {
   }
 
   .composer-dock {
-    @apply mt-3 rounded-lg border border-[color:var(--border-strong)] bg-[color:var(--panel-raised)] p-3 shadow-[0_-18px_42px_rgba(0,0,0,0.28)];
+    @apply sticky bottom-0 mx-auto mt-3 w-full max-w-[860px] rounded-2xl border border-[color:var(--border-strong)] bg-[#2a2c2a] p-3 shadow-[0_-18px_42px_rgba(0,0,0,0.28)];
   }
 
   .composer-input {
-    @apply min-h-[64px] w-full resize-none rounded-md border border-[color:var(--border)] bg-[color:var(--panel-muted)] px-3 py-2 text-sm leading-6 text-[color:var(--ink)] outline-none;
+    @apply min-h-[74px] w-full resize-none rounded-xl border border-white/10 bg-[#303330] px-3 py-2 text-sm leading-6 text-[color:var(--ink)] outline-none;
+  }
+
+  .composer-options {
+    @apply flex min-w-0 flex-wrap items-center gap-2;
   }
 
   .transcript-heading {
-    @apply flex flex-wrap items-start justify-between gap-3 border-b border-[color:var(--border)] pb-3;
+    @apply mx-auto flex w-full max-w-[860px] flex-wrap items-start justify-between gap-3 border-b border-[color:var(--border)] pb-3;
   }
 }

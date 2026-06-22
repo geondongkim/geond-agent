@@ -1,4 +1,5 @@
 import type { UiI18n, WorkbenchSessionDefaults } from "@geond-agent/ui-workbench";
+import { Pin, PinOff, RotateCcw, Square, Trash2 } from "lucide-react";
 
 import { Button } from "../components/ui/button.js";
 import { EmptyState } from "../components/workbench/empty-state.js";
@@ -19,8 +20,12 @@ import { createRunnerPrompt } from "../runs/runner-prompt.js";
 
 export function TimelinePane({
   activeSession,
+  activeRunMode,
+  activeSessionPinned,
   canResumeActiveSession,
+  cancelActiveRun,
   composerPrompt,
+  deleteActiveSession,
   i18n,
   pendingApprovals,
   resumeActiveSession,
@@ -30,11 +35,17 @@ export function TimelinePane({
   sessionDefaults,
   setComposerPrompt,
   setInspectorTab,
-  startSelectedRunner
+  setRunnerMode,
+  startSelectedRunner,
+  togglePinnedSession
 }: {
   readonly activeSession?: ProjectedActiveSession;
+  readonly activeRunMode?: DesktopRunnerMode;
+  readonly activeSessionPinned: boolean;
   readonly canResumeActiveSession: boolean;
+  readonly cancelActiveRun: () => void;
   readonly composerPrompt: string;
+  readonly deleteActiveSession: () => void;
   readonly i18n: UiI18n;
   readonly pendingApprovals: readonly ProjectedActiveSession["approvals"][number][];
   readonly resumeActiveSession: () => void;
@@ -44,7 +55,9 @@ export function TimelinePane({
   readonly sessionDefaults: WorkbenchSessionDefaults;
   readonly setComposerPrompt: (prompt: string) => void;
   readonly setInspectorTab: (tab: string) => void;
+  readonly setRunnerMode: (mode: DesktopRunnerMode) => void;
   readonly startSelectedRunner: () => void;
+  readonly togglePinnedSession: () => void;
 }) {
   return (
     <section className="timeline-surface">
@@ -76,7 +89,7 @@ export function TimelinePane({
               })}
             </p>
           </div>
-          <Button variant="outline" onClick={() => setInspectorTab("approvals")}>
+          <Button variant="outline" onClick={() => setInspectorTab("review")}>
             {i18n.t("workbench.approvals.review")}
           </Button>
         </div>
@@ -155,19 +168,76 @@ export function TimelinePane({
             }
           }}
         />
-        <div className="mt-2 flex justify-end gap-2">
-          <Button
-            variant="outline"
-            onClick={resumeActiveSession}
-            disabled={!canResumeActiveSession}
-          >
-            {i18n.t("workbench.actions.resumeSession")}
-          </Button>
-          <Button onClick={startSelectedRunner} disabled={runnerBusy}>
-            {runnerBusy
-              ? i18n.t("workbench.runner.running")
-              : i18n.t("workbench.composer.dispatch")}
-          </Button>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="composer-options">
+            <label className="inline-field compact-field">
+              <span className="text-[10px] font-bold uppercase text-[color:var(--ink-muted)]">
+                {i18n.t("workbench.runner.mode")}
+              </span>
+              <select
+                aria-label={i18n.t("workbench.runner.mode")}
+                value={runnerMode}
+                onChange={(event) => setRunnerMode(event.target.value as DesktopRunnerMode)}
+                className="control-select"
+              >
+                <option value="fixture">{i18n.t("workbench.runner.fixture")}</option>
+                <option value="claude-live">{i18n.t("workbench.runner.claudeLive")}</option>
+              </select>
+            </label>
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              variant="ghost"
+              aria-label={
+                activeSessionPinned
+                  ? i18n.t("workbench.actions.unpinSession")
+                  : i18n.t("workbench.actions.pinSession")
+              }
+              title={
+                activeSessionPinned
+                  ? i18n.t("workbench.actions.unpinSession")
+                  : i18n.t("workbench.actions.pinSession")
+              }
+              onClick={() => void togglePinnedSession()}
+              disabled={!activeSession}
+            >
+              {activeSessionPinned ? <PinOff size={15} /> : <Pin size={15} />}
+            </Button>
+            <Button
+              variant="ghost"
+              aria-label={i18n.t("workbench.actions.deleteSession")}
+              title={i18n.t("workbench.actions.deleteSession")}
+              onClick={() => void deleteActiveSession()}
+              disabled={!activeSession || runnerBusy}
+            >
+              <Trash2 size={15} />
+            </Button>
+            {runnerBusy ? (
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => void cancelActiveRun()}
+                disabled={activeRunMode !== "claude-live"}
+              >
+                <Square size={14} />
+                {i18n.t("workbench.actions.cancelRun")}
+              </Button>
+            ) : null}
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={resumeActiveSession}
+              disabled={!canResumeActiveSession}
+            >
+              <RotateCcw size={14} />
+              {i18n.t("workbench.actions.resumeSession")}
+            </Button>
+            <Button onClick={startSelectedRunner} disabled={runnerBusy}>
+              {runnerBusy
+                ? i18n.t("workbench.runner.running")
+                : i18n.t("workbench.composer.dispatch")}
+            </Button>
+          </div>
         </div>
       </div>
     </section>

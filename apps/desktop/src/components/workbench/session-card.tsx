@@ -31,7 +31,7 @@ export function SessionCard({
             {session.workspacePath ?? i18n.t("workbench.status.unknown")}
           </p>
         </div>
-        <span className={cn("status-pill", lifecycleTone[session.lifecycle])}>
+        <span className={cn("status-pill shrink-0", lifecycleTone[session.lifecycle])}>
           {formatStatusLabel(i18n, session.lifecycle)}
         </span>
       </div>
@@ -42,12 +42,12 @@ export function SessionCard({
           </span>
         </div>
       ) : null}
-      <div className="mt-3 grid grid-cols-[minmax(0,1fr)_48px] gap-2 text-[11px] text-[color:var(--ink-soft)]">
+      <div className="mt-3 grid grid-cols-[minmax(0,1fr)_minmax(46px,auto)] gap-2 text-[11px] text-[color:var(--ink-soft)]">
         <div className="min-w-0">
           <p className="muted-meta">{i18n.t("workbench.status.backend")}</p>
           <p className="mt-1 truncate">{session.backendLabel ?? i18n.t("workbench.status.unknown")}</p>
         </div>
-        <div>
+        <div className="min-w-[46px] text-right">
           <p className="muted-meta">{i18n.t("workbench.status.approvals")}</p>
           <p className="mt-1">{session.pendingApprovalCount}</p>
         </div>
