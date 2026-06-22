@@ -8,6 +8,16 @@ export interface FileEvidencePreviewModel {
   readonly changedFileItems: readonly FileEvidenceChangedFileItem[];
 }
 
+export type FileEvidenceSelection =
+  | {
+      readonly type: "changed-file";
+      readonly item: FileEvidenceChangedFileItem;
+    }
+  | {
+      readonly type: "context";
+      readonly item: FileEvidenceContextItem;
+    };
+
 export interface FileEvidenceContextItem {
   readonly id: string;
   readonly kind: ProjectedActiveSession["contextAttachments"][number]["kind"];
@@ -94,4 +104,58 @@ export function formatDiffStat({
   readonly deletions: number;
 }): string {
   return `+${additions} / -${deletions}`;
+}
+
+export function findFileEvidenceSelection(
+  model: FileEvidencePreviewModel,
+  selectionId: string | undefined
+): FileEvidenceSelection | undefined {
+  const changedFile = model.changedFileItems.find((item) => item.id === selectionId);
+  if (changedFile) {
+    return { type: "changed-file", item: changedFile };
+  }
+
+  const contextItem = model.contextItems.find((item) => item.id === selectionId);
+  if (contextItem) {
+    return { type: "context", item: contextItem };
+  }
+
+  if (model.changedFileItems[0]) {
+    return { type: "changed-file", item: model.changedFileItems[0] };
+  }
+
+  if (model.contextItems[0]) {
+    return { type: "context", item: model.contextItems[0] };
+  }
+
+  return undefined;
+}
+
+export function getFileEvidenceSelectionId(
+  selection: FileEvidenceSelection | undefined
+): string | undefined {
+  return selection?.item.id;
+}
+
+export function createEvidenceFollowUpDraft(selection: FileEvidenceSelection): string {
+  if (selection.type === "changed-file") {
+    const item = selection.item;
+    return [
+      `Review the changed file evidence for ${item.path}.`,
+      `Change: ${item.changeKind} ${formatDiffStat(item)}.`,
+      item.diffSummary ? `Summary: ${item.diffSummary}` : undefined
+    ]
+      .filter((line): line is string => Boolean(line))
+      .join("\n");
+  }
+
+  const item = selection.item;
+  return [
+    `Review the attached context evidence for ${item.title}.`,
+    item.path ? `Path: ${item.path}` : undefined,
+    item.range ? `Range: ${formatEvidenceRange(item.range)}` : undefined,
+    item.summary ? `Summary: ${item.summary}` : undefined
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join("\n");
 }

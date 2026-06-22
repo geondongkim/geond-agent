@@ -52,9 +52,17 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   const filesPanel = page.getByRole("tabpanel", { name: "Files" });
   await expect(filesPanel).toBeVisible();
   await expect(filesPanel.getByText("Evidence preview")).toBeVisible();
+  await expect(filesPanel.getByText("Evidence detail")).toBeVisible();
   await expect(filesPanel.getByRole("heading", { name: "Changed files" })).toBeVisible();
-  await expect(filesPanel.getByText("Privacy boundary")).toBeVisible();
-  await expect(filesPanel.getByText("apps/desktop/src/app.tsx")).toBeVisible();
+  await expect(filesPanel.getByText("Privacy boundary").first()).toBeVisible();
+  await expect(
+    filesPanel.getByRole("button", { name: /apps\/desktop\/src\/app\.tsx/ })
+  ).toBeVisible();
+  await filesPanel.getByRole("button", { name: /apps\/desktop\/src\/app\.tsx/ }).click();
+  await expect(filesPanel.getByLabel("Evidence detail")).toContainText(
+    "apps/desktop/src/app.tsx"
+  );
+  await filesPanel.getByRole("button", { name: "Queue evidence follow-up" }).click();
   await expect(filesPanel.getByRole("heading", { name: "Attached context" })).toBeVisible();
   await expect(filesPanel.getByText("Metadata only", { exact: true }).first()).toBeVisible();
   await expect(filesPanel.getByText("Workspace path attached as metadata only")).toBeVisible();
@@ -62,6 +70,16 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await page.getByRole("tab", { name: "Side chat" }).click();
   const sideChatPanel = page.getByRole("tabpanel", { name: "Side chat" });
   await expect(sideChatPanel.getByText("Side chat draft queue")).toBeVisible();
+  await expect(sideChatPanel.getByText("Follow-up policy: Queue follow-ups")).toBeVisible();
+  await expect(sideChatPanel.getByText("Review the changed file evidence")).toBeVisible();
+  await sideChatPanel
+    .locator(".side-chat-draft-card")
+    .filter({ hasText: "apps/desktop/src/app.tsx" })
+    .getByRole("button", { name: "Use in composer" })
+    .click();
+  await expect(page.getByLabel("Agent command")).toHaveValue(
+    /Review the changed file evidence for apps\/desktop\/src\/app\.tsx/
+  );
   await sideChatPanel.getByLabel("Draft").fill("Check the evidence preview before dispatching.");
   await sideChatPanel.getByRole("button", { name: "Queue draft" }).click();
   await expect(sideChatPanel.getByText("Queued drafts")).toBeVisible();

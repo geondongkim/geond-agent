@@ -1,15 +1,28 @@
 import type { UiI18n } from "@geond-agent/ui-workbench";
 import type { ReactNode } from "react";
-import { FileDiff, FileText, FolderOpen, ShieldCheck } from "lucide-react";
+import { useState } from "react";
+import {
+  FileDiff,
+  FileText,
+  FolderOpen,
+  MessageSquarePlus,
+  ShieldCheck
+} from "lucide-react";
 
+import { Button } from "../../components/ui/button.js";
 import { TabsContent } from "../../components/ui/tabs.js";
 import { EmptyState } from "../../components/workbench/empty-state.js";
+import { cn } from "../../lib/cn.js";
 import {
+  createEvidenceFollowUpDraft,
   createFileEvidencePreviewModel,
+  findFileEvidenceSelection,
   formatDiffStat,
   formatEvidenceRange,
+  getFileEvidenceSelectionId,
   type FileEvidenceChangedFileItem,
-  type FileEvidenceContextItem
+  type FileEvidenceContextItem,
+  type FileEvidenceSelection
 } from "../../lib/file-evidence.js";
 import type { InspectorSessionReadModel } from "../../lib/inspector-read-model.js";
 import { formatContextKindLabel } from "../../lib/workbench-format.js";
@@ -17,15 +30,32 @@ import type { ProjectedActiveSession } from "../../lib/workbench-types.js";
 
 export function InspectorFilesTab({
   activeSession,
+  enqueueSideChatDraft,
   inspectorData,
   i18n
 }: {
   readonly activeSession?: ProjectedActiveSession;
+  readonly enqueueSideChatDraft: (text: string, sourceLabel?: string) => void;
   readonly inspectorData?: InspectorSessionReadModel;
   readonly i18n: UiI18n;
 }) {
+  const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | undefined>();
   const model = createFileEvidencePreviewModel({ activeSession, inspectorData });
   const hasEvidence = model.contextCount > 0 || model.changedFileCount > 0;
+  const selectedEvidence = findFileEvidenceSelection(model, selectedEvidenceId);
+  const resolvedSelectedEvidenceId = getFileEvidenceSelectionId(selectedEvidence);
+
+  function queueSelectedEvidenceFollowUp() {
+    if (!selectedEvidence) {
+      return;
+    }
+
+    const sourceLabel =
+      selectedEvidence.type === "changed-file"
+        ? selectedEvidence.item.path
+        : selectedEvidence.item.title;
+    enqueueSideChatDraft(createEvidenceFollowUpDraft(selectedEvidence), sourceLabel);
+  }
 
   return (
     <TabsContent value="files" className="border-0 bg-transparent p-0">
@@ -59,6 +89,12 @@ export function InspectorFilesTab({
 
       {hasEvidence ? (
         <div className="mt-3 space-y-3">
+          <EvidencePreviewCard
+            i18n={i18n}
+            onQueueFollowUp={queueSelectedEvidenceFollowUp}
+            selection={selectedEvidence}
+          />
+
           <EvidenceSection
             count={model.changedFileCount}
             title={i18n.t("workbench.files.changedFiles")}
@@ -66,7 +102,13 @@ export function InspectorFilesTab({
             {model.changedFileItems.length ? (
               <div className="space-y-2">
                 {model.changedFileItems.map((item) => (
-                  <ChangedFileCard key={item.id} i18n={i18n} item={item} />
+                  <ChangedFileCard
+                    key={item.id}
+                    i18n={i18n}
+                    item={item}
+                    onSelect={() => setSelectedEvidenceId(item.id)}
+                    selected={resolvedSelectedEvidenceId === item.id}
+                  />
                 ))}
               </div>
             ) : (
@@ -81,7 +123,13 @@ export function InspectorFilesTab({
             {model.contextItems.length ? (
               <div className="space-y-2">
                 {model.contextItems.map((item) => (
-                  <ContextEvidenceCard key={item.id} i18n={i18n} item={item} />
+                  <ContextEvidenceCard
+                    key={item.id}
+                    i18n={i18n}
+                    item={item}
+                    onSelect={() => setSelectedEvidenceId(item.id)}
+                    selected={resolvedSelectedEvidenceId === item.id}
+                  />
                 ))}
               </div>
             ) : (
@@ -95,6 +143,110 @@ export function InspectorFilesTab({
         </div>
       )}
     </TabsContent>
+  );
+}
+
+function EvidencePreviewCard({
+  i18n,
+  onQueueFollowUp,
+  selection
+}: {
+  readonly i18n: UiI18n;
+  readonly onQueueFollowUp: () => void;
+  readonly selection?: FileEvidenceSelection;
+}) {
+  if (!selection) {
+    return (
+      <section className="file-evidence-preview-card">
+        <div className="review-section-heading">
+          <h3>{i18n.t("workbench.files.previewTitle")}</h3>
+        </div>
+        <EmptyState text={i18n.t("workbench.files.noEvidence")} />
+      </section>
+    );
+  }
+
+  const title =
+    selection.type === "changed-file" ? selection.item.path : selection.item.title;
+  const eyebrow =
+    selection.type === "changed-file"
+      ? selection.item.changeKind
+      : formatContextKindLabel(i18n, selection.item.kind);
+
+  return (
+    <section
+      className="file-evidence-preview-card"
+      aria-label={i18n.t("workbench.files.previewTitle")}
+    >
+      <div className="review-section-heading">
+        <h3>{i18n.t("workbench.files.previewTitle")}</h3>
+      </div>
+      <div className="file-evidence-preview-header">
+        <div className="min-w-0">
+          <p className="muted-meta">{eyebrow}</p>
+          <h3 className="truncate text-sm font-semibold text-[color:var(--ink)]">{title}</h3>
+        </div>
+        <span className="status-pill status-neutral">
+          {selection.type === "changed-file"
+            ? formatDiffStat(selection.item)
+            : formatContentState(i18n, selection.item.contentState)}
+        </span>
+      </div>
+      <p className="mt-3 text-xs leading-5 text-[color:var(--ink-soft)]">
+        {i18n.t("workbench.files.previewDetail")}
+      </p>
+      <dl className="file-evidence-details">
+        {selection.type === "changed-file" ? (
+          <>
+            <EvidenceDetail
+              label={i18n.t("workbench.files.diffSource")}
+              value={selection.item.diffTitle ?? selection.item.diffId}
+            />
+            {selection.item.diffSummary ? (
+              <EvidenceDetail
+                label={i18n.t("workbench.context.summary")}
+                value={selection.item.diffSummary}
+              />
+            ) : null}
+          </>
+        ) : (
+          <>
+            {selection.item.path ? (
+              <EvidenceDetail
+                label={i18n.t("workbench.context.path")}
+                value={selection.item.path}
+              />
+            ) : null}
+            {selection.item.range ? (
+              <EvidenceDetail
+                label={i18n.t("workbench.context.range")}
+                value={formatEvidenceRange(selection.item.range)}
+              />
+            ) : null}
+            <EvidenceDetail
+              label={i18n.t("workbench.context.provenance")}
+              value={selection.item.provenance}
+            />
+            {selection.item.summary ? (
+              <EvidenceDetail
+                label={i18n.t("workbench.context.summary")}
+                value={selection.item.summary}
+              />
+            ) : null}
+          </>
+        )}
+        <EvidenceDetail
+          label={i18n.t("workbench.files.privacyBoundary")}
+          value={i18n.t("workbench.files.rawContentBoundary")}
+        />
+      </dl>
+      <div className="mt-3 flex justify-end">
+        <Button className="gap-2" onClick={onQueueFollowUp}>
+          <MessageSquarePlus size={14} />
+          {i18n.t("workbench.files.queueFollowUp")}
+        </Button>
+      </div>
+    </section>
   );
 }
 
@@ -120,13 +272,22 @@ function EvidenceSection({
 
 function ChangedFileCard({
   i18n,
-  item
+  item,
+  onSelect,
+  selected
 }: {
   readonly i18n: UiI18n;
   readonly item: FileEvidenceChangedFileItem;
+  readonly onSelect: () => void;
+  readonly selected: boolean;
 }) {
   return (
-    <article className="file-evidence-card">
+    <button
+      type="button"
+      className={cn("file-evidence-card", selected && "file-evidence-card-selected")}
+      aria-pressed={selected}
+      onClick={onSelect}
+    >
       <div className="file-evidence-card-header">
         <span className="file-evidence-icon file-evidence-icon-diff">
           <FileDiff size={15} />
@@ -140,24 +301,36 @@ function ChangedFileCard({
         </span>
       </div>
       <dl className="file-evidence-details">
-        <EvidenceDetail label={i18n.t("workbench.files.diffSource")} value={item.diffTitle ?? item.diffId} />
+        <EvidenceDetail
+          label={i18n.t("workbench.files.diffSource")}
+          value={item.diffTitle ?? item.diffId}
+        />
         {item.diffSummary ? (
           <EvidenceDetail label={i18n.t("workbench.context.summary")} value={item.diffSummary} />
         ) : null}
       </dl>
-    </article>
+    </button>
   );
 }
 
 function ContextEvidenceCard({
   i18n,
-  item
+  item,
+  onSelect,
+  selected
 }: {
   readonly i18n: UiI18n;
   readonly item: FileEvidenceContextItem;
+  readonly onSelect: () => void;
+  readonly selected: boolean;
 }) {
   return (
-    <article className="file-evidence-card">
+    <button
+      type="button"
+      className={cn("file-evidence-card", selected && "file-evidence-card-selected")}
+      aria-pressed={selected}
+      onClick={onSelect}
+    >
       <div className="file-evidence-card-header">
         <span className="file-evidence-icon">
           <FileText size={15} />
@@ -181,7 +354,7 @@ function ContextEvidenceCard({
           <EvidenceDetail label={i18n.t("workbench.context.summary")} value={item.summary} />
         ) : null}
       </dl>
-    </article>
+    </button>
   );
 }
 

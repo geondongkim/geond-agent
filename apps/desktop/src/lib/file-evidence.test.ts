@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createEvidenceFollowUpDraft,
   createFileEvidencePreviewModel,
+  findFileEvidenceSelection,
   formatDiffStat,
   formatEvidenceRange
 } from "./file-evidence.js";
@@ -98,5 +100,44 @@ describe("file evidence preview model", () => {
       "L10:2-L12"
     );
     expect(formatDiffStat({ additions: 3, deletions: 1 })).toBe("+3 / -1");
+  });
+
+  it("selects evidence items and creates follow-up drafts", () => {
+    const model = createFileEvidencePreviewModel({
+      activeSession: {
+        contextAttachments: [
+          {
+            id: "context-workspace",
+            kind: "workspace",
+            title: "geond-agent",
+            provenance: "desktop",
+            contentState: "metadata-only",
+            path: "/workspace/geond-agent"
+          }
+        ],
+        diffs: [
+          {
+            id: "diff-1",
+            files: [
+              {
+                path: "apps/desktop/src/app.tsx",
+                changeKind: "modified",
+                additions: 12,
+                deletions: 3
+              }
+            ],
+            summary: "Updated the app shell"
+          }
+        ]
+      } as unknown as ProjectedActiveSession
+    });
+
+    const defaultSelection = findFileEvidenceSelection(model, undefined);
+    expect(defaultSelection?.type).toBe("changed-file");
+    expect(createEvidenceFollowUpDraft(defaultSelection!)).toContain("apps/desktop/src/app.tsx");
+
+    const contextSelection = findFileEvidenceSelection(model, "context-workspace");
+    expect(contextSelection?.type).toBe("context");
+    expect(createEvidenceFollowUpDraft(contextSelection!)).toContain("/workspace/geond-agent");
   });
 });

@@ -16,6 +16,7 @@ import {
   Terminal,
   Zap
 } from "lucide-react";
+import { useCallback, useState } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.js";
 import type { ProjectedActiveSession } from "../lib/workbench-types.js";
@@ -27,6 +28,12 @@ import { InspectorTerminalTab } from "./inspector/inspector-terminal-tab.js";
 import { InspectorReviewTab } from "./inspector/inspector-review-tab.js";
 import type { DesktopRunnerMode } from "../demo-workbench.js";
 import type { InspectorSessionReadModel } from "../lib/inspector-read-model.js";
+
+export interface SideChatDraft {
+  readonly id: string;
+  readonly text: string;
+  readonly sourceLabel?: string;
+}
 
 export function InspectorPane({
   activeExternalSession,
@@ -91,6 +98,26 @@ export function InspectorPane({
   readonly updateSessionDefaults: (patch: Partial<WorkbenchSessionDefaults>) => void;
   readonly updateUiLanguage: (language: string) => void;
 }) {
+  const [sideChatDrafts, setSideChatDrafts] = useState<readonly SideChatDraft[]>([]);
+  const enqueueSideChatDraft = useCallback((text: string, sourceLabel?: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    setSideChatDrafts((current) => [
+      ...current,
+      {
+        id: `side-chat-draft-${Date.now()}-${current.length + 1}`,
+        text: trimmed,
+        sourceLabel
+      }
+    ]);
+  }, []);
+  const removeSideChatDraft = useCallback((draftId: string) => {
+    setSideChatDrafts((current) => current.filter((draft) => draft.id !== draftId));
+  }, []);
+
   return (
     <aside className="inspector-surface">
       <div className="environment-card">
@@ -185,10 +212,18 @@ export function InspectorPane({
         />
         <InspectorFilesTab
           activeSession={activeSession}
+          enqueueSideChatDraft={enqueueSideChatDraft}
           inspectorData={inspectorData}
           i18n={i18n}
         />
-        <InspectorSideChatTab i18n={i18n} setComposerPrompt={setComposerPrompt} />
+        <InspectorSideChatTab
+          drafts={sideChatDrafts}
+          enqueueSideChatDraft={enqueueSideChatDraft}
+          followUpPolicy={sessionDefaults.followUpPolicy}
+          i18n={i18n}
+          removeSideChatDraft={removeSideChatDraft}
+          setComposerPrompt={setComposerPrompt}
+        />
         <InspectorSettingsTab
           agentLanguageOptions={agentLanguageOptions}
           backendOptions={backendOptions}
