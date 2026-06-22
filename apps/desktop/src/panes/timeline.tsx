@@ -1,5 +1,5 @@
 import type { UiI18n, WorkbenchSessionDefaults } from "@geond-agent/ui-workbench";
-import { Pin, PinOff, RotateCcw, Send, Square, Trash2 } from "lucide-react";
+import { Paperclip, Pin, PinOff, RotateCcw, Send, Square, Trash2 } from "lucide-react";
 
 import { Button } from "../components/ui/button.js";
 import { EmptyState } from "../components/workbench/empty-state.js";
@@ -9,6 +9,7 @@ import {
   eventBodyTone,
   eventCardTone,
   eventDotTone,
+  formatContextKindLabel,
   formatEventTime,
   formatMessage,
   formatStatusLabel,
@@ -22,6 +23,7 @@ export function TimelinePane({
   activeSession,
   activeRunMode,
   activeSessionPinned,
+  attachWorkspaceContext,
   canResumeActiveSession,
   cancelActiveRun,
   composerPrompt,
@@ -41,6 +43,7 @@ export function TimelinePane({
   readonly activeSession?: ProjectedActiveSession;
   readonly activeRunMode?: DesktopRunnerMode;
   readonly activeSessionPinned: boolean;
+  readonly attachWorkspaceContext: () => void;
   readonly canResumeActiveSession: boolean;
   readonly cancelActiveRun: () => void;
   readonly composerPrompt: string;
@@ -57,6 +60,13 @@ export function TimelinePane({
   readonly startSelectedRunner: () => void;
   readonly togglePinnedSession: () => void;
 }) {
+  const contextAttachments = activeSession?.contextAttachments ?? [];
+  const visibleContextAttachments = contextAttachments.slice(-3);
+  const hiddenContextAttachmentCount = Math.max(
+    contextAttachments.length - visibleContextAttachments.length,
+    0
+  );
+
   return (
     <section className="timeline-surface">
       <div className="transcript-heading">
@@ -159,6 +169,51 @@ export function TimelinePane({
               : i18n.t("workbench.runner.fixture")}{" "}
             / {sessionDefaults.defaultModelAlias}
           </button>
+        </div>
+        <div className="context-strip">
+          <div className="min-w-0">
+            <p className="muted-meta">{i18n.t("workbench.context.composerTitle")}</p>
+            {visibleContextAttachments.length ? (
+              <div className="context-chip-row">
+                {visibleContextAttachments.map((attachment) => (
+                  <button
+                    key={attachment.id}
+                    type="button"
+                    className="context-chip"
+                    onClick={() => setInspectorTab("files")}
+                    title={attachment.path ?? attachment.title}
+                  >
+                    <span>{formatContextKindLabel(i18n, attachment.kind)}</span>
+                    {attachment.title}
+                  </button>
+                ))}
+                {hiddenContextAttachmentCount > 0 ? (
+                  <button
+                    type="button"
+                    className="context-chip context-chip-more"
+                    onClick={() => setInspectorTab("files")}
+                  >
+                    {formatMessage(i18n.t("workbench.context.more"), {
+                      count: hiddenContextAttachmentCount
+                    })}
+                  </button>
+                ) : null}
+              </div>
+            ) : (
+              <p className="mt-1 text-xs text-[color:var(--ink-muted)]">
+                {i18n.t("workbench.context.empty")}
+              </p>
+            )}
+          </div>
+          <Button
+            variant="ghost"
+            className="gap-2"
+            onClick={() => void attachWorkspaceContext()}
+            disabled={!activeSession}
+          >
+            <Paperclip size={14} />
+            {i18n.t("workbench.context.attachWorkspace")}
+          </Button>
         </div>
         <textarea
           id="agent-command"

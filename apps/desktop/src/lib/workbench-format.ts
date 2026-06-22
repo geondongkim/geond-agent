@@ -92,6 +92,11 @@ export function formatStatusLabel(i18n: UiI18n, status: string): string {
     case "failed":
     case "rejected":
       return i18n.t("workbench.status.failed");
+    case "workspace":
+    case "file":
+    case "selection":
+    case "note":
+      return formatContextKindLabel(i18n, status);
     default:
       return status;
   }

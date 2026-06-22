@@ -183,8 +183,11 @@ export type UiMessageKey =
   | "workbench.workspacePanel.chatTitle"
   | "workbench.workspacePanel.chatDetail"
   | "workbench.context.title"
+  | "workbench.context.composerTitle"
   | "workbench.context.empty"
   | "workbench.context.metadataOnly"
+  | "workbench.context.attachWorkspace"
+  | "workbench.context.more"
   | "workbench.context.path"
   | "workbench.context.provenance"
   | "workbench.context.range"
@@ -400,8 +403,11 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.workspacePanel.chatTitle": "Side chat slot",
     "workbench.workspacePanel.chatDetail": "Reserved for side-channel notes and follow-up prompts that should not become the primary transcript until explicitly dispatched.",
     "workbench.context.title": "Attached context",
+    "workbench.context.composerTitle": "Context",
     "workbench.context.empty": "No context attachments on this session yet.",
     "workbench.context.metadataOnly": "Metadata only",
+    "workbench.context.attachWorkspace": "Attach workspace",
+    "workbench.context.more": "+{count} more",
     "workbench.context.path": "Path",
     "workbench.context.provenance": "Source",
     "workbench.context.range": "Range",
@@ -614,8 +620,11 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.workspacePanel.chatTitle": "사이드 채팅 슬롯",
     "workbench.workspacePanel.chatDetail": "주 transcript에 바로 섞지 않을 메모와 후속 프롬프트를 위한 자리입니다. 명시적으로 실행할 때만 주 세션에 반영합니다.",
     "workbench.context.title": "첨부된 컨텍스트",
+    "workbench.context.composerTitle": "컨텍스트",
     "workbench.context.empty": "이 세션에는 아직 첨부된 컨텍스트가 없습니다.",
     "workbench.context.metadataOnly": "메타데이터만",
+    "workbench.context.attachWorkspace": "워크스페이스 첨부",
+    "workbench.context.more": "추가 {count}개",
     "workbench.context.path": "경로",
     "workbench.context.provenance": "출처",
     "workbench.context.range": "범위",

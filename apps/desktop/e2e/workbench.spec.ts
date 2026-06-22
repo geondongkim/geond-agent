@@ -27,6 +27,7 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(page.locator(".workbench-shell")).toHaveCSS("background-color", "rgb(8, 10, 9)");
   await expect(page.locator(".workbench-frame")).toHaveCSS("background-color", "rgb(13, 17, 16)");
   await expect(page.locator(".session-rail, .timeline-surface")).toHaveCount(2);
+  await expect(page.getByRole("button", { name: "Attach workspace" })).toBeVisible();
   await expect(page.locator(".inspector-surface")).toHaveCount(0);
   await page.getByRole("button", { name: "Hide sessions" }).click();
   await expect(page.locator(".session-rail")).toHaveCount(0);
@@ -48,6 +49,7 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(filesPanel.getByText("Attached context")).toBeVisible();
   await expect(filesPanel.getByText("Metadata only", { exact: true })).toBeVisible();
   await expect(filesPanel.getByText("Workspace path attached as metadata only")).toBeVisible();
+  await expect(page.locator(".context-chip").filter({ hasText: "geond-agent" }).first()).toBeVisible();
   await page.screenshot({ path: "test-results/workbench-right-panel.png" });
   await page.getByRole("button", { name: "Hide workspace panel" }).click();
   await expect(page.locator(".inspector-surface")).toHaveCount(0);
