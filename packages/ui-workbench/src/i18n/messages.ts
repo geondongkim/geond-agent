@@ -53,6 +53,7 @@ export type UiMessageKey =
   | "workbench.timeline.kind.session"
   | "workbench.timeline.kind.adapter"
   | "workbench.timeline.kind.selection"
+  | "workbench.timeline.kind.context"
   | "workbench.timeline.kind.assistant"
   | "workbench.timeline.kind.plan"
   | "workbench.timeline.kind.tool"
@@ -153,6 +154,7 @@ export type UiMessageKey =
   | "workbench.commandPalette.noResults"
   | "workbench.commandPalette.newSession"
   | "workbench.commandPalette.chooseWorkspace"
+  | "workbench.commandPalette.attachWorkspaceContext"
   | "workbench.commandPalette.showReview"
   | "workbench.commandPalette.showTerminal"
   | "workbench.commandPalette.showFiles"
@@ -180,6 +182,19 @@ export type UiMessageKey =
   | "workbench.workspacePanel.filesDetail"
   | "workbench.workspacePanel.chatTitle"
   | "workbench.workspacePanel.chatDetail"
+  | "workbench.context.title"
+  | "workbench.context.empty"
+  | "workbench.context.metadataOnly"
+  | "workbench.context.path"
+  | "workbench.context.provenance"
+  | "workbench.context.range"
+  | "workbench.context.summary"
+  | "workbench.context.workspaceSummary"
+  | "workbench.context.attachedStatus"
+  | "workbench.context.kind.workspace"
+  | "workbench.context.kind.file"
+  | "workbench.context.kind.selection"
+  | "workbench.context.kind.note"
   | "workbench.empty.diff"
   | "workbench.empty.terminal"
   | "workbench.empty.approvals"
@@ -255,6 +270,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.timeline.kind.session": "Session",
     "workbench.timeline.kind.adapter": "Adapter",
     "workbench.timeline.kind.selection": "Selection",
+    "workbench.timeline.kind.context": "Context",
     "workbench.timeline.kind.assistant": "Assistant",
     "workbench.timeline.kind.plan": "Plan",
     "workbench.timeline.kind.tool": "Tool",
@@ -355,6 +371,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.commandPalette.noResults": "No matching actions.",
     "workbench.commandPalette.newSession": "Start selected runner",
     "workbench.commandPalette.chooseWorkspace": "Choose workspace",
+    "workbench.commandPalette.attachWorkspaceContext": "Attach workspace context",
     "workbench.commandPalette.showReview": "Open review inspector",
     "workbench.commandPalette.showTerminal": "Open terminal inspector",
     "workbench.commandPalette.showFiles": "Open files inspector",
@@ -382,6 +399,19 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.workspacePanel.filesDetail": "Reserved for workspace file context, changed files, and local evidence attachments. Raw private files are not persisted into normalized workbench events.",
     "workbench.workspacePanel.chatTitle": "Side chat slot",
     "workbench.workspacePanel.chatDetail": "Reserved for side-channel notes and follow-up prompts that should not become the primary transcript until explicitly dispatched.",
+    "workbench.context.title": "Attached context",
+    "workbench.context.empty": "No context attachments on this session yet.",
+    "workbench.context.metadataOnly": "Metadata only",
+    "workbench.context.path": "Path",
+    "workbench.context.provenance": "Source",
+    "workbench.context.range": "Range",
+    "workbench.context.summary": "Summary",
+    "workbench.context.workspaceSummary": "Workspace path attached as metadata only; raw file contents stay outside normalized events.",
+    "workbench.context.attachedStatus": "Attached {title} as metadata-only context.",
+    "workbench.context.kind.workspace": "Workspace",
+    "workbench.context.kind.file": "File",
+    "workbench.context.kind.selection": "Selection",
+    "workbench.context.kind.note": "Note",
     "workbench.empty.diff": "No diff events in the active session.",
     "workbench.empty.terminal": "No command output projected yet.",
     "workbench.empty.approvals": "No approval queue for the active session.",
@@ -454,6 +484,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.timeline.kind.session": "세션",
     "workbench.timeline.kind.adapter": "어댑터",
     "workbench.timeline.kind.selection": "선택",
+    "workbench.timeline.kind.context": "컨텍스트",
     "workbench.timeline.kind.assistant": "어시스턴트",
     "workbench.timeline.kind.plan": "계획",
     "workbench.timeline.kind.tool": "도구",
@@ -554,6 +585,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.commandPalette.noResults": "일치하는 작업이 없습니다.",
     "workbench.commandPalette.newSession": "선택된 실행기 시작",
     "workbench.commandPalette.chooseWorkspace": "워크스페이스 선택",
+    "workbench.commandPalette.attachWorkspaceContext": "워크스페이스 컨텍스트 첨부",
     "workbench.commandPalette.showReview": "검토 인스펙터 열기",
     "workbench.commandPalette.showTerminal": "터미널 인스펙터 열기",
     "workbench.commandPalette.showFiles": "파일 인스펙터 열기",
@@ -581,6 +613,19 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.workspacePanel.filesDetail": "워크스페이스 파일 컨텍스트, 변경 파일, 로컬 증거 첨부를 위한 자리입니다. 원본 private 파일은 정규화 이벤트에 저장하지 않습니다.",
     "workbench.workspacePanel.chatTitle": "사이드 채팅 슬롯",
     "workbench.workspacePanel.chatDetail": "주 transcript에 바로 섞지 않을 메모와 후속 프롬프트를 위한 자리입니다. 명시적으로 실행할 때만 주 세션에 반영합니다.",
+    "workbench.context.title": "첨부된 컨텍스트",
+    "workbench.context.empty": "이 세션에는 아직 첨부된 컨텍스트가 없습니다.",
+    "workbench.context.metadataOnly": "메타데이터만",
+    "workbench.context.path": "경로",
+    "workbench.context.provenance": "출처",
+    "workbench.context.range": "범위",
+    "workbench.context.summary": "요약",
+    "workbench.context.workspaceSummary": "워크스페이스 경로만 메타데이터로 첨부했습니다. 원본 파일 내용은 정규화 이벤트 밖에 둡니다.",
+    "workbench.context.attachedStatus": "{title} 컨텍스트를 메타데이터 전용으로 첨부했습니다.",
+    "workbench.context.kind.workspace": "워크스페이스",
+    "workbench.context.kind.file": "파일",
+    "workbench.context.kind.selection": "선택",
+    "workbench.context.kind.note": "메모",
     "workbench.empty.diff": "활성 세션에 변경 이벤트가 없습니다.",
     "workbench.empty.terminal": "아직 표시할 명령 출력이 없습니다.",
     "workbench.empty.approvals": "활성 세션의 승인 대기열이 없습니다.",

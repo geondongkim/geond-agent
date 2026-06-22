@@ -22,6 +22,7 @@ export type WorkbenchTimelineEntryKind =
   | "session"
   | "adapter"
   | "selection"
+  | "context"
   | "assistant"
   | "plan"
   | "tool"
@@ -86,6 +87,7 @@ export interface ProjectedWorkbenchSession {
   readonly workspacePath?: string;
   readonly selection?: WorkbenchSelectionSnapshot;
   readonly externalSessions: WorkbenchSessionSnapshot["externalSessions"];
+  readonly contextAttachments: readonly WorkbenchSessionSnapshot["contextAttachments"][string][];
   readonly assistantMessages: readonly WorkbenchSessionSnapshot["assistantMessages"][string][];
   readonly plan: WorkbenchSessionSnapshot["plan"];
   readonly toolCalls: readonly WorkbenchSessionSnapshot["toolCalls"][string][];
@@ -243,6 +245,7 @@ function projectActiveSession(
     workspacePath: session.workspacePath,
     selection: session.selection,
     externalSessions: session.externalSessions,
+    contextAttachments: Object.values(session.contextAttachments),
     assistantMessages: Object.values(session.assistantMessages),
     plan: session.plan,
     toolCalls: Object.values(session.toolCalls),
@@ -307,6 +310,15 @@ function projectTimelineEntry(event: WorkbenchEvent): WorkbenchTimelineEntry | u
         title: "Adapter session linked",
         body: `${event.adapterId} / ${event.externalSessionId}`,
         status: event.resumedFromExternalSessionId ? "resumed" : "linked"
+      };
+    case "context.attached":
+      return {
+        id: `${event.type}:${event.attachment.id}:${event.at ?? "unknown"}`,
+        kind: "context",
+        at: event.at,
+        title: event.attachment.title,
+        body: describeContextAttachment(event.attachment),
+        status: event.attachment.kind
       };
     case "assistant.text.delta":
       return {
@@ -452,6 +464,29 @@ function projectWorkspaceSummaries(
   return Array.from(byPath.values()).sort((left, right) =>
     compareMaybeIso(right.updatedAt, left.updatedAt) || left.label.localeCompare(right.label)
   );
+}
+
+function describeContextAttachment(
+  attachment: WorkbenchSessionSnapshot["contextAttachments"][string]
+): string {
+  return [
+    attachment.path,
+    attachment.range ? describeContextRange(attachment.range) : undefined,
+    attachment.summary
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join(" | ");
+}
+
+function describeContextRange(
+  range: NonNullable<WorkbenchSessionSnapshot["contextAttachments"][string]["range"]>
+): string {
+  const start = `${range.startLine}${range.startColumn ? `:${range.startColumn}` : ""}`;
+  const end = range.endLine
+    ? `${range.endLine}${range.endColumn ? `:${range.endColumn}` : ""}`
+    : undefined;
+
+  return end ? `L${start}-L${end}` : `L${start}`;
 }
 
 function projectWorkspaceSummariesFromIndex(

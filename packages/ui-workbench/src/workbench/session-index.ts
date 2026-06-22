@@ -84,6 +84,11 @@ export function applyWorkbenchSessionIndexEvent(
         },
         updatedAt
       });
+    case "context.attached":
+      return putSessionIndexEntry(index, {
+        ...session,
+        updatedAt
+      });
     case "approval.requested": {
       const pendingApprovalIds = appendUnique(
         session.pendingApprovalIds,

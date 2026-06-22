@@ -200,6 +200,46 @@ export function useWorkbenchActions({
     setWorkspacePath(selected.path);
   };
 
+  const attachWorkspaceContext = async () => {
+    if (!activeSession) {
+      return;
+    }
+
+    const attachedAt = new Date().toISOString();
+    const contextPath =
+      workspacePath === "__all__"
+        ? activeSession.workspacePath ?? document.activeWorkspace.path
+        : workspacePath;
+    const title = basename(contextPath);
+    const events: readonly WorkbenchEvent[] = [
+      {
+        type: "context.attached",
+        sessionId: activeSession.id,
+        attachment: {
+          id: `context-workspace-${slugify(contextPath)}-${Date.now()}`,
+          kind: "workspace",
+          title,
+          provenance: "desktop",
+          contentState: "metadata-only",
+          path: contextPath,
+          summary: i18n.t("workbench.context.workspaceSummary"),
+          attachedAt
+        },
+        at: attachedAt
+      }
+    ];
+
+    await document.eventStore.append(events);
+    setControllerSnapshot(
+      document.controller.appendEvents(events, { activateSessionId: activeSession.id })
+    );
+    setRunnerStatus(
+      formatMessage(i18n.t("workbench.context.attachedStatus"), {
+        title
+      })
+    );
+  };
+
   const updateUiLanguage = async (language: string) => {
     const nextSnapshot = await document.runtime.setUiLanguage(language);
     setRuntimeSnapshot(nextSnapshot);
@@ -219,6 +259,7 @@ export function useWorkbenchActions({
   };
 
   return {
+    attachWorkspaceContext,
     chooseWorkspace,
     deleteActiveSession,
     resolveApproval,
@@ -230,6 +271,19 @@ export function useWorkbenchActions({
     updateSessionDefaults,
     updateUiLanguage
   };
+}
+
+function basename(path: string): string {
+  const pieces = path.split("/").filter((piece) => piece.length > 0);
+  return pieces[pieces.length - 1] ?? path;
+}
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "workspace";
 }
 
 function shouldRunApprovalFollowUp(

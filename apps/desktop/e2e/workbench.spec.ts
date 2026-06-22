@@ -40,6 +40,14 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(page.getByRole("tab", { name: "Files" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Side chat" })).toBeVisible();
   await expect(page.locator(".session-rail, .timeline-surface, .inspector-surface")).toHaveCount(3);
+  await page.keyboard.press("Control+K");
+  await page.getByLabel("Search actions").fill("context");
+  await page.getByRole("button", { name: /Attach workspace context/ }).click();
+  const filesPanel = page.getByRole("tabpanel", { name: "Files" });
+  await expect(filesPanel).toBeVisible();
+  await expect(filesPanel.getByText("Attached context")).toBeVisible();
+  await expect(filesPanel.getByText("Metadata only", { exact: true })).toBeVisible();
+  await expect(filesPanel.getByText("Workspace path attached as metadata only")).toBeVisible();
   await page.screenshot({ path: "test-results/workbench-right-panel.png" });
   await page.getByRole("button", { name: "Hide workspace panel" }).click();
   await expect(page.locator(".inspector-surface")).toHaveCount(0);

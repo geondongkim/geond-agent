@@ -89,4 +89,28 @@ describe("workbenchEventIdentity", () => {
 
     expect(workbenchEventIdentity(first)).not.toBe(workbenchEventIdentity(second));
   });
+
+  it("distinguishes context attachments by attachment id and referenced path", () => {
+    const first: WorkbenchEvent = {
+      type: "context.attached",
+      sessionId: "session-1",
+      attachment: {
+        id: "context-1",
+        kind: "file",
+        title: "architecture.md",
+        provenance: "desktop",
+        contentState: "metadata-only",
+        path: "docs/architecture.md"
+      }
+    };
+    const second: WorkbenchEvent = {
+      ...first,
+      attachment: {
+        ...first.attachment,
+        path: "docs/roadmap.md"
+      }
+    };
+
+    expect(workbenchEventIdentity(first)).not.toBe(workbenchEventIdentity(second));
+  });
 });

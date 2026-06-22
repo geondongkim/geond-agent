@@ -1590,10 +1590,23 @@ mod tests {
             "lifecycle": "completed",
             "at": "2026-06-22T01:00:04.000Z"
         });
+        let context = serde_json::json!({
+            "type": "context.attached",
+            "sessionId": "session-a",
+            "attachment": {
+                "id": "context-workspace",
+                "kind": "workspace",
+                "title": "geond-agent",
+                "provenance": "desktop",
+                "contentState": "metadata-only",
+                "path": "/workspace/geond-agent"
+            },
+            "at": "2026-06-22T01:00:05.000Z"
+        });
 
         append_events_to_store(
             &mut connection,
-            vec![start, linked, approval, resolved, completed],
+            vec![start, linked, approval, resolved, completed, context],
         )
         .expect("append events");
 
@@ -1609,6 +1622,7 @@ mod tests {
         );
         assert!(record.provider_key_missing);
         assert_eq!(record.pending_approval_count, 0);
+        assert_eq!(record.updated_at.as_deref(), Some("2026-06-22T01:00:05.000Z"));
         assert!(record.resumable);
     }
 
