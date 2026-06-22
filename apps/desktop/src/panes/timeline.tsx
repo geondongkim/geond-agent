@@ -14,17 +14,13 @@ import {
 
 import { Button } from "../components/ui/button.js";
 import { EmptyState } from "../components/workbench/empty-state.js";
+import { TimelineEventCard } from "../components/workbench/timeline-event-card.js";
 import { cn } from "../lib/cn.js";
 import type { ProjectedActiveSession } from "../lib/workbench-types.js";
 import {
-  eventBodyTone,
-  eventCardTone,
-  eventDotTone,
   formatContextKindLabel,
-  formatEventTime,
   formatMessage,
   formatStatusLabel,
-  formatTimelineKindLabel,
   lifecycleTone
 } from "../lib/workbench-format.js";
 import type { DesktopRunnerMode } from "../demo-workbench.js";
@@ -161,37 +157,7 @@ export function TimelinePane({
       <div className="event-stream pt-3">
         {activeSession?.timeline.length ? (
           activeSession.timeline.map((entry) => (
-            <article
-              key={entry.id}
-              className={cn("event-card", eventCardTone(entry.kind))}
-            >
-              <div className="event-rail">
-                <span className={cn("event-dot", eventDotTone(entry.kind, entry.status))} />
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="muted-meta">{formatTimelineKindLabel(i18n, entry.kind)}</p>
-                    <h3 className="truncate text-sm font-semibold">{entry.title}</h3>
-                  </div>
-                  <div className="text-right">
-                    {entry.status ? (
-                      <p className="muted-meta">{formatStatusLabel(i18n, entry.status)}</p>
-                    ) : null}
-                    {entry.at ? (
-                      <p className="font-mono text-[11px] text-[color:var(--ink-muted)]">
-                        {formatEventTime(entry.at)}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-                {entry.body ? (
-                  <p className={cn("mt-2 whitespace-pre-wrap text-sm leading-6", eventBodyTone(entry.kind))}>
-                    {entry.body}
-                  </p>
-                ) : null}
-              </div>
-            </article>
+            <TimelineEventCard key={entry.id} entry={entry} i18n={i18n} />
           ))
         ) : (
           <EmptyState text={i18n.t("workbench.timeline.empty")} />
