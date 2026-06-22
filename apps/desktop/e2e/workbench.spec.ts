@@ -123,10 +123,13 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect.poll(async () =>
     page.evaluate(() => window.localStorage.getItem("geond-agent.workbench.session-defaults"))
   ).toContain("\"reviewDelivery\":\"detached\"");
+  await expect.poll(async () =>
+    page.evaluate(() => window.localStorage.getItem("geond-agent.workbench.layout"))
+  ).toContain("\"inspectorTab\":\"settings\"");
 
   await page.reload();
-  await page.getByRole("button", { name: "Show workspace panel" }).click();
-  await page.getByRole("tab", { name: "Settings" }).click();
+  await expect(page.getByRole("heading", { name: "Workspace panel", exact: true })).toBeVisible();
+  await expect(page.getByRole("tabpanel", { name: "Settings" })).toBeVisible();
   await expect(page.getByLabel("Model profile")).toHaveValue("opus");
   await expect(page.getByLabel("Routing mode")).toHaveValue("auto");
   await expect(page.getByLabel("Permission mode")).toHaveValue("default");

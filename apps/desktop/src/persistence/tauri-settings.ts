@@ -5,6 +5,7 @@ import { createBrowserLocalSettingsStore } from "./local-storage.js";
 
 export const WORKSPACE_SETTINGS_KEY = "geond-agent.workbench.workspace";
 export const RUNNER_MODE_SETTINGS_KEY = "geond-agent.workbench.runner-mode";
+export const LAYOUT_SETTINGS_KEY = "geond-agent.workbench.layout";
 
 export function createDesktopLocalSettingsStore(
   fallback: LocalSettingsStore = createBrowserLocalSettingsStore()

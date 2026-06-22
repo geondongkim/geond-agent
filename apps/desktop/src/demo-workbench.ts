@@ -41,6 +41,7 @@ import { createDesktopMaterializedEventStore } from "./persistence/materialized-
 import type { DesktopWorkbenchSessionIndexStore } from "./persistence/session-index.js";
 import { createDesktopWorkbenchSessionIndexStore } from "./persistence/session-index.js";
 import {
+  LAYOUT_SETTINGS_KEY,
   RUNNER_MODE_SETTINGS_KEY,
   WORKSPACE_SETTINGS_KEY
 } from "./persistence/tauri-settings.js";
@@ -52,6 +53,12 @@ import {
 } from "./workspace.js";
 
 export type DesktopRunnerMode = "fixture" | "claude-live";
+
+export interface DesktopWorkbenchLayoutPreference {
+  readonly leftPanelOpen: boolean;
+  readonly rightPanelOpen: boolean;
+  readonly inspectorTab: string;
+}
 
 export interface DesktopDemoDocument {
   readonly runtime: WorkbenchRuntime;
@@ -68,6 +75,7 @@ export interface DesktopDemoDocument {
   readonly languageSettings: WorkbenchLanguageSettings;
   readonly sessionDefaults: WorkbenchSessionDefaults;
   readonly runnerMode: DesktopRunnerMode;
+  readonly layoutPreference: DesktopWorkbenchLayoutPreference;
   readonly sessionDefaultWarnings: readonly string[];
   readonly selectionCatalog: WorkbenchSelectionCatalog;
   readonly persistence: WorkbenchPersistenceBoundary;
@@ -88,6 +96,9 @@ export interface DesktopDemoDocument {
     workspace: DesktopWorkspaceDescriptor
   ) => Promise<DesktopWorkspaceDescriptor>;
   readonly saveRunnerMode: (mode: DesktopRunnerMode) => Promise<DesktopRunnerMode>;
+  readonly saveLayoutPreference: (
+    preference: DesktopWorkbenchLayoutPreference
+  ) => Promise<DesktopWorkbenchLayoutPreference>;
   readonly saveSessionDefaults: (
     settings: WorkbenchSessionDefaults
   ) => Promise<WorkbenchSessionDefaults>;
@@ -125,6 +136,7 @@ export async function createDesktopDemoDocument(
   });
   const runtimeSnapshot = workbench.ui.getSnapshot();
   const savedRunnerMode = await loadSavedRunnerMode(settingsStore);
+  const savedLayoutPreference = await loadSavedLayoutPreference(settingsStore);
   const runner = createClaudeCodeFixtureReplayRunner();
   const liveRunner = createClaudeCodeProcessRunner(createTauriClaudeCodeExecutor());
   const eventStore = createDesktopWorkbenchEventStore();
@@ -177,6 +189,7 @@ export async function createDesktopDemoDocument(
     languageSettings: runtimeSnapshot.languageSettings,
     sessionDefaults: workbench.sessionDefaults,
     runnerMode: savedRunnerMode,
+    layoutPreference: savedLayoutPreference,
     sessionDefaultWarnings: workbench.sessionDefaultWarnings,
     selectionCatalog: workbench.selectionCatalog,
     persistence: workbench.persistence,
@@ -200,6 +213,11 @@ export async function createDesktopDemoDocument(
       await settingsStore.setItem(RUNNER_MODE_SETTINGS_KEY, validated);
       return validated;
     },
+    saveLayoutPreference: async (preference) => {
+      const validated = validateLayoutPreference(preference);
+      await settingsStore.setItem(LAYOUT_SETTINGS_KEY, JSON.stringify(validated));
+      return validated;
+    },
     saveSessionDefaults: async (settings) => {
       const validated = validateWorkbenchSessionDefaults(
         settings,
@@ -211,6 +229,21 @@ export async function createDesktopDemoDocument(
     savePinnedSessionIds: (sessionIds) =>
       saveWorkbenchPinnedSessionIds(settingsStore, sessionIds)
   };
+}
+
+async function loadSavedLayoutPreference(
+  settingsStore: LocalSettingsStore
+): Promise<DesktopWorkbenchLayoutPreference> {
+  const saved = await settingsStore.getItem(LAYOUT_SETTINGS_KEY);
+  if (!saved) {
+    return defaultLayoutPreference();
+  }
+
+  try {
+    return validateLayoutPreference(JSON.parse(saved) as Partial<DesktopWorkbenchLayoutPreference>);
+  } catch {
+    return defaultLayoutPreference();
+  }
 }
 
 async function loadSavedWorkspace(
@@ -241,6 +274,39 @@ function isTauriRuntime(): boolean {
 
 function validateRunnerMode(mode: DesktopRunnerMode): DesktopRunnerMode {
   return mode === "claude-live" ? "claude-live" : "fixture";
+}
+
+function validateLayoutPreference(
+  preference: Partial<DesktopWorkbenchLayoutPreference>
+): DesktopWorkbenchLayoutPreference {
+  const defaults = defaultLayoutPreference();
+  const inspectorTab =
+    typeof preference.inspectorTab === "string" &&
+    ["review", "terminal", "browser", "files", "chat", "settings"].includes(
+      preference.inspectorTab
+    )
+      ? preference.inspectorTab
+      : defaults.inspectorTab;
+
+  return {
+    leftPanelOpen:
+      typeof preference.leftPanelOpen === "boolean"
+        ? preference.leftPanelOpen
+        : defaults.leftPanelOpen,
+    rightPanelOpen:
+      typeof preference.rightPanelOpen === "boolean"
+        ? preference.rightPanelOpen
+        : defaults.rightPanelOpen,
+    inspectorTab
+  };
+}
+
+function defaultLayoutPreference(): DesktopWorkbenchLayoutPreference {
+  return {
+    leftPanelOpen: true,
+    rightPanelOpen: false,
+    inspectorTab: "review"
+  };
 }
 
 function mergeWorkspaces(
