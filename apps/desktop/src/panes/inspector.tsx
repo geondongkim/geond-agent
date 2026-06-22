@@ -11,8 +11,10 @@ import {
   Files,
   Globe2,
   MessageSquare,
+  Server,
   Settings,
-  Terminal
+  Terminal,
+  Zap
 } from "lucide-react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.js";
@@ -101,17 +103,23 @@ export function InspectorPane({
           </span>
         </div>
         <div className="environment-grid">
-          <div>
-            <p className="muted-meta">{i18n.t("workbench.workspacePanel.backend")}</p>
-            <p className="truncate text-xs text-[color:var(--ink-soft)]">
-              {sessionDefaults.defaultBackendAdapterId}
-            </p>
+          <div className="environment-metric">
+            <Server size={14} />
+            <div className="min-w-0">
+              <p className="muted-meta">{i18n.t("workbench.workspacePanel.backend")}</p>
+              <p className="truncate text-xs text-[color:var(--ink-soft)]">
+                {sessionDefaults.defaultBackendAdapterId}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="muted-meta">{i18n.t("workbench.workspacePanel.provider")}</p>
-            <p className="truncate text-xs text-[color:var(--ink-soft)]">
-              {sessionDefaults.defaultProviderRouteId}
-            </p>
+          <div className="environment-metric">
+            <Zap size={14} />
+            <div className="min-w-0">
+              <p className="muted-meta">{i18n.t("workbench.workspacePanel.provider")}</p>
+              <p className="truncate text-xs text-[color:var(--ink-soft)]">
+                {sessionDefaults.defaultProviderRouteId}
+              </p>
+            </div>
           </div>
         </div>
         <p className="mt-3 rounded-md border border-[color:var(--border)] bg-[color:var(--panel)] px-3 py-2 font-mono text-[11px] leading-5 text-[color:var(--ink-soft)]">
@@ -120,32 +128,35 @@ export function InspectorPane({
       </div>
 
       <Tabs value={inspectorTab} onValueChange={setInspectorTab}>
-        <TabsList className="workspace-tabs border-[color:var(--border)] bg-[color:var(--panel)]">
-          <TabsTrigger value="review" className="workspace-tab">
-            <ClipboardCheck size={14} />
-            {i18n.t("workbench.workspacePanel.review")}
-          </TabsTrigger>
-          <TabsTrigger value="terminal" className="workspace-tab">
-            <Terminal size={14} />
-            {i18n.t("workbench.workspacePanel.terminal")}
-          </TabsTrigger>
-          <TabsTrigger value="browser" className="workspace-tab">
-            <Globe2 size={14} />
-            {i18n.t("workbench.workspacePanel.browser")}
-          </TabsTrigger>
-          <TabsTrigger value="files" className="workspace-tab">
-            <Files size={14} />
-            {i18n.t("workbench.workspacePanel.files")}
-          </TabsTrigger>
-          <TabsTrigger value="chat" className="workspace-tab">
-            <MessageSquare size={14} />
-            {i18n.t("workbench.workspacePanel.chat")}
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="workspace-tab">
-            <Settings size={14} />
-            {i18n.t("workbench.workspacePanel.settings")}
-          </TabsTrigger>
-        </TabsList>
+        <div className="tool-tabs-shell">
+          <p className="muted-meta">{i18n.t("workbench.workspacePanel.tools")}</p>
+          <TabsList className="workspace-tabs tool-tab-grid border-[color:var(--border)] bg-[color:var(--panel)]">
+            <TabsTrigger value="review" className="workspace-tab">
+              <ClipboardCheck size={14} />
+              {i18n.t("workbench.workspacePanel.review")}
+            </TabsTrigger>
+            <TabsTrigger value="terminal" className="workspace-tab">
+              <Terminal size={14} />
+              {i18n.t("workbench.workspacePanel.terminal")}
+            </TabsTrigger>
+            <TabsTrigger value="browser" className="workspace-tab">
+              <Globe2 size={14} />
+              {i18n.t("workbench.workspacePanel.browser")}
+            </TabsTrigger>
+            <TabsTrigger value="files" className="workspace-tab">
+              <Files size={14} />
+              {i18n.t("workbench.workspacePanel.files")}
+            </TabsTrigger>
+            <TabsTrigger value="chat" className="workspace-tab">
+              <MessageSquare size={14} />
+              {i18n.t("workbench.workspacePanel.chat")}
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="workspace-tab">
+              <Settings size={14} />
+              {i18n.t("workbench.workspacePanel.settings")}
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <InspectorReviewTab
           activeExternalSession={activeExternalSession}

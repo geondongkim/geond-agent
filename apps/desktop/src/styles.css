@@ -142,7 +142,7 @@ body {
   }
 
   .inspector-surface {
-    @apply flex min-h-0 flex-col gap-3 overflow-auto border-l border-white/10 bg-[#202321] p-3 text-[color:var(--ink)];
+    @apply flex min-h-0 flex-col gap-3 overflow-auto border-l border-white/10 bg-[#1d201f] p-3 text-[color:var(--ink)];
   }
 
   .panel-surface {
@@ -383,19 +383,35 @@ body {
   }
 
   .environment-card {
-    @apply rounded-lg border border-white/10 bg-[#2b2d2b] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.28)];
+    @apply rounded-xl border border-white/10 bg-[#272a28] p-4 shadow-[0_18px_48px_rgba(0,0,0,0.24)];
   }
 
   .environment-grid {
     @apply mt-3 grid grid-cols-2 gap-2;
   }
 
+  .environment-metric {
+    @apply flex min-w-0 items-start gap-2 rounded-lg border border-white/10 bg-black/15 px-3 py-2;
+  }
+
+  .environment-metric svg {
+    @apply mt-0.5 shrink-0 text-[color:var(--ink-muted)];
+  }
+
+  .tool-tabs-shell {
+    @apply rounded-xl border border-white/10 bg-[#252826] p-2;
+  }
+
   .workspace-tabs {
     @apply grid grid-cols-2 gap-1 p-1;
   }
 
+  .tool-tab-grid {
+    @apply mt-2 grid-cols-3 rounded-lg border bg-black/15;
+  }
+
   .workspace-tab {
-    @apply flex items-center justify-start gap-2 rounded-md px-2 py-1.5;
+    @apply flex min-h-10 items-center justify-center gap-2 rounded-md px-2 py-1.5 text-xs;
   }
 
   .review-section {
@@ -426,6 +442,18 @@ body {
     @apply block rounded-md border border-[color:var(--border)] bg-[color:var(--panel)] p-3;
   }
 
+  .settings-sections {
+    @apply space-y-3;
+  }
+
+  .settings-section {
+    @apply rounded-xl border border-white/10 bg-[#232624] p-3;
+  }
+
+  .settings-section-heading {
+    @apply mb-2 text-[11px] font-bold uppercase text-[color:var(--ink-muted)];
+  }
+
   .session-rail .panel-title,
   .session-rail .muted-meta {
     @apply text-[color:var(--inverse-soft)];
@@ -444,11 +472,23 @@ body {
   }
 
   .composer-dock {
-    @apply sticky bottom-0 mx-auto mt-3 w-full max-w-[980px] rounded-2xl border border-[color:var(--border-strong)] bg-[#2b2e2c] p-3 shadow-[0_-18px_42px_rgba(0,0,0,0.28)];
+    @apply sticky bottom-0 mx-auto mt-3 w-full max-w-[980px] rounded-2xl border border-[color:var(--border-strong)] bg-[#2d302e] p-3 shadow-[0_-18px_42px_rgba(0,0,0,0.3)];
+  }
+
+  .composer-header {
+    @apply mb-2 flex min-w-0 items-start justify-between gap-3;
+  }
+
+  .composer-route-line {
+    @apply mt-1 truncate font-mono text-[11px] text-[color:var(--ink-muted)];
+  }
+
+  .composer-settings-button {
+    @apply inline-flex h-8 shrink-0 items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-2.5 text-xs text-[color:var(--ink-soft)] transition-colors hover:border-[color:var(--accent)] hover:text-[color:var(--accent-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--accent)];
   }
 
   .composer-input {
-    @apply min-h-[74px] w-full resize-none rounded-xl border border-white/10 bg-[#303431] px-3 py-2 text-sm leading-6 text-[color:var(--ink)] outline-none placeholder:text-[color:var(--ink-muted)];
+    @apply min-h-[90px] w-full resize-none rounded-xl border border-white/10 bg-[#151918] px-3 py-3 text-sm leading-6 text-[color:var(--ink)] outline-none placeholder:text-[color:var(--ink-muted)] focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[rgba(79,208,124,0.12)];
   }
 
   .context-strip {
@@ -456,7 +496,7 @@ body {
   }
 
   .context-chip-row {
-    @apply mt-1 flex min-w-0 flex-wrap items-center gap-2;
+    @apply flex min-w-0 flex-wrap items-center gap-2;
   }
 
   .context-chip {
@@ -473,6 +513,42 @@ body {
 
   .composer-options {
     @apply flex min-w-0 flex-wrap items-center gap-2;
+  }
+
+  .composer-context-row {
+    @apply mt-2 flex min-w-0 flex-wrap items-center gap-2 border-b border-white/10 pb-2;
+  }
+
+  .composer-context-summary {
+    @apply inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-white/10 bg-black/20 px-2.5 text-[11px] text-[color:var(--ink-soft)];
+  }
+
+  .context-empty-button {
+    @apply min-w-0 truncate rounded-md border border-dashed border-white/10 bg-transparent px-2.5 py-1 text-xs text-[color:var(--ink-muted)] hover:border-[color:var(--accent)] hover:text-[color:var(--accent-strong)];
+  }
+
+  .composer-toolbar {
+    @apply mt-3 flex flex-wrap items-center justify-between gap-2;
+  }
+
+  .composer-tools {
+    @apply flex min-w-0 flex-wrap items-center gap-2;
+  }
+
+  .composer-actions {
+    @apply flex flex-wrap justify-end gap-2;
+  }
+
+  .composer-icon-action {
+    @apply h-8 w-8 rounded-md p-0;
+  }
+
+  .composer-tool-pill {
+    @apply inline-flex h-8 max-w-[220px] items-center gap-2 truncate rounded-md border border-white/10 bg-black/20 px-2.5 font-mono text-[11px] text-[color:var(--ink-soft)] transition-colors hover:border-[color:var(--accent)] hover:text-[color:var(--accent-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--accent)];
+  }
+
+  .composer-tool-pill .muted-meta {
+    @apply text-[9px];
   }
 
   .transcript-heading {

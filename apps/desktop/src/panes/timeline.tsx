@@ -1,11 +1,13 @@
 import type { UiI18n, WorkbenchSessionDefaults } from "@geond-agent/ui-workbench";
 import {
   AlertTriangle,
+  Bot,
   Paperclip,
   Pin,
   PinOff,
   RotateCcw,
   Send,
+  ShieldCheck,
   Settings,
   Square,
   Terminal,
@@ -165,65 +167,26 @@ export function TimelinePane({
       </div>
 
       <div className="composer-dock">
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <label className="muted-meta" htmlFor="agent-command">
-            {i18n.t("workbench.composer.label")}
-          </label>
+        <div className="composer-header">
+          <div className="min-w-0">
+            <label className="muted-meta" htmlFor="agent-command">
+              {i18n.t("workbench.composer.label")}
+            </label>
+            <p className="composer-route-line">
+              {runnerMode === "claude-live"
+                ? i18n.t("workbench.runner.claudeLive")
+                : i18n.t("workbench.runner.fixture")}{" "}
+              / {sessionDefaults.defaultBackendAdapterId} / {sessionDefaults.defaultProviderRouteId}
+            </p>
+          </div>
           <button
             type="button"
-            className="route-summary-chip"
+            className="composer-settings-button"
             onClick={() => setInspectorTab("settings")}
           >
-            {runnerMode === "claude-live"
-              ? i18n.t("workbench.runner.claudeLive")
-              : i18n.t("workbench.runner.fixture")}{" "}
-            / {sessionDefaults.defaultModelAlias}
+            <Settings size={14} />
+            {i18n.t("workbench.composer.routeSettings")}
           </button>
-        </div>
-        <div className="context-strip">
-          <div className="min-w-0">
-            <p className="muted-meta">{i18n.t("workbench.context.composerTitle")}</p>
-            {visibleContextAttachments.length ? (
-              <div className="context-chip-row">
-                {visibleContextAttachments.map((attachment) => (
-                  <button
-                    key={attachment.id}
-                    type="button"
-                    className="context-chip"
-                    onClick={() => setInspectorTab("files")}
-                    title={attachment.path ?? attachment.title}
-                  >
-                    <span>{formatContextKindLabel(i18n, attachment.kind)}</span>
-                    {attachment.title}
-                  </button>
-                ))}
-                {hiddenContextAttachmentCount > 0 ? (
-                  <button
-                    type="button"
-                    className="context-chip context-chip-more"
-                    onClick={() => setInspectorTab("files")}
-                  >
-                    {formatMessage(i18n.t("workbench.context.more"), {
-                      count: hiddenContextAttachmentCount
-                    })}
-                  </button>
-                ) : null}
-              </div>
-            ) : (
-              <p className="mt-1 text-xs text-[color:var(--ink-muted)]">
-                {i18n.t("workbench.context.empty")}
-              </p>
-            )}
-          </div>
-          <Button
-            variant="ghost"
-            className="gap-2"
-            onClick={() => void attachWorkspaceContext()}
-            disabled={!activeSession}
-          >
-            <Paperclip size={14} />
-            {i18n.t("workbench.context.attachWorkspace")}
-          </Button>
         </div>
         <textarea
           id="agent-command"
@@ -247,13 +210,83 @@ export function TimelinePane({
             }
           }}
         />
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="composer-options">
-            <span className="composer-chip">{sessionDefaults.defaultBackendAdapterId}</span>
-            <span className="composer-chip">{sessionDefaults.defaultProviderRouteId}</span>
-            <span className="composer-chip">{sessionDefaults.defaultPermissionMode}</span>
+        <div className="composer-context-row">
+          <div className="composer-context-summary">
+            <Paperclip size={14} />
+            <span>
+              {formatMessage(i18n.t("workbench.composer.contextCount"), {
+                count: contextAttachments.length
+              })}
+            </span>
           </div>
-          <div className="flex flex-wrap justify-end gap-2">
+          {visibleContextAttachments.length ? (
+            <div className="context-chip-row">
+              {visibleContextAttachments.map((attachment) => (
+                <button
+                  key={attachment.id}
+                  type="button"
+                  className="context-chip"
+                  onClick={() => setInspectorTab("files")}
+                  title={attachment.path ?? attachment.title}
+                >
+                  <span>{formatContextKindLabel(i18n, attachment.kind)}</span>
+                  {attachment.title}
+                </button>
+              ))}
+              {hiddenContextAttachmentCount > 0 ? (
+                <button
+                  type="button"
+                  className="context-chip context-chip-more"
+                  onClick={() => setInspectorTab("files")}
+                >
+                  {formatMessage(i18n.t("workbench.context.more"), {
+                    count: hiddenContextAttachmentCount
+                  })}
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="context-empty-button"
+              onClick={() => setInspectorTab("files")}
+            >
+              {i18n.t("workbench.context.empty")}
+            </button>
+          )}
+        </div>
+        <div className="composer-toolbar">
+          <div className="composer-tools">
+            <Button
+              variant="ghost"
+              className="composer-icon-action"
+              onClick={() => void attachWorkspaceContext()}
+              disabled={!activeSession}
+              aria-label={i18n.t("workbench.context.attachWorkspace")}
+              title={i18n.t("workbench.context.attachWorkspace")}
+            >
+              <Paperclip size={15} />
+            </Button>
+            <button
+              type="button"
+              className="composer-tool-pill"
+              onClick={() => setInspectorTab("settings")}
+            >
+              <Bot size={14} />
+              <span className="muted-meta">{i18n.t("workbench.composer.model")}</span>
+              {sessionDefaults.defaultModelAlias}
+            </button>
+            <button
+              type="button"
+              className="composer-tool-pill"
+              onClick={() => setInspectorTab("settings")}
+            >
+              <ShieldCheck size={14} />
+              <span className="muted-meta">{i18n.t("workbench.composer.permission")}</span>
+              {sessionDefaults.defaultPermissionMode}
+            </button>
+          </div>
+          <div className="composer-actions">
             <Button
               variant="ghost"
               aria-label={
