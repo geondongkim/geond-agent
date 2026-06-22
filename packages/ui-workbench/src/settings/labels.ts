@@ -12,6 +12,9 @@ export interface WorkbenchSettingsLabels {
     readonly modelProfile: string;
     readonly routingMode: string;
     readonly permissionMode: string;
+    readonly followUpPolicy: string;
+    readonly composerEnterBehavior: string;
+    readonly reviewDelivery: string;
     readonly approvalPolicy: string;
     readonly persistenceBoundary: string;
   };
@@ -21,6 +24,13 @@ export interface WorkbenchSettingsLabels {
     readonly permissionModePlan: string;
     readonly permissionModeDefault: string;
     readonly permissionModeAcceptEdits: string;
+    readonly followUpQueue: string;
+    readonly followUpSteer: string;
+    readonly followUpInterrupt: string;
+    readonly composerEnterModEnter: string;
+    readonly composerEnterEnter: string;
+    readonly reviewDeliveryInline: string;
+    readonly reviewDeliveryDetached: string;
     readonly approvalPolicyAskFirst: string;
     readonly persistenceBoundaryLocalOnly: string;
   };
@@ -37,6 +47,9 @@ export function createWorkbenchSettingsLabels(i18n: UiI18n): WorkbenchSettingsLa
       modelProfile: i18n.t("settings.selection.model"),
       routingMode: i18n.t("settings.selection.routingMode"),
       permissionMode: i18n.t("settings.selection.permissionMode"),
+      followUpPolicy: i18n.t("settings.selection.followUpPolicy"),
+      composerEnterBehavior: i18n.t("settings.selection.composerEnterBehavior"),
+      reviewDelivery: i18n.t("settings.selection.reviewDelivery"),
       approvalPolicy: i18n.t("settings.selection.approvalPolicy"),
       persistenceBoundary: i18n.t("settings.selection.persistence")
     },
@@ -46,6 +59,13 @@ export function createWorkbenchSettingsLabels(i18n: UiI18n): WorkbenchSettingsLa
       permissionModePlan: i18n.t("settings.selection.permissionMode.plan"),
       permissionModeDefault: i18n.t("settings.selection.permissionMode.default"),
       permissionModeAcceptEdits: i18n.t("settings.selection.permissionMode.acceptEdits"),
+      followUpQueue: i18n.t("settings.selection.followUpPolicy.queue"),
+      followUpSteer: i18n.t("settings.selection.followUpPolicy.steer"),
+      followUpInterrupt: i18n.t("settings.selection.followUpPolicy.interrupt"),
+      composerEnterModEnter: i18n.t("settings.selection.composerEnterBehavior.modEnter"),
+      composerEnterEnter: i18n.t("settings.selection.composerEnterBehavior.enter"),
+      reviewDeliveryInline: i18n.t("settings.selection.reviewDelivery.inline"),
+      reviewDeliveryDetached: i18n.t("settings.selection.reviewDelivery.detached"),
       approvalPolicyAskFirst: i18n.t("settings.selection.approvalPolicy.askFirst"),
       persistenceBoundaryLocalOnly: i18n.t("settings.selection.persistence.localOnly")
     }

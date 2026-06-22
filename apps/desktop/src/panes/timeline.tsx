@@ -168,7 +168,16 @@ export function TimelinePane({
           value={composerPrompt}
           onChange={(event) => setComposerPrompt(event.target.value)}
           onKeyDown={(event) => {
-            if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+            const shouldDispatch =
+              event.key === "Enter" &&
+              !event.shiftKey &&
+              !event.nativeEvent.isComposing &&
+              (sessionDefaults.composerEnterBehavior === "enter" ||
+                event.metaKey ||
+                event.ctrlKey);
+
+            if (shouldDispatch) {
+              event.preventDefault();
               startSelectedRunner();
             }
           }}

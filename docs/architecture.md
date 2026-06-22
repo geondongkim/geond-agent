@@ -323,6 +323,29 @@ variables to the child process. This makes the native runner usable after a
 local provider setup while keeping API key values, raw provider account state,
 and raw Claude output out of renderer settings and SQLite persistence.
 
+## Command and Preference UX Boundary
+
+The desktop workbench has a command-menu surface for common actions such as
+starting the selected runner, choosing a workspace, opening inspector tabs, and
+toggling side panels. This is a product pattern borrowed from IDE/plugin
+mediated agent surfaces, but it remains local to the desktop shell until a
+future IDE adapter exists.
+
+User interaction preferences are explicit local settings. Follow-up behavior,
+composer Enter behavior, and review delivery are separate from backend/model
+selection and language settings. The initial implementation records these
+preferences as non-secret session defaults:
+
+- follow-up policy: `queue`, `steer`, or `interrupt`,
+- composer Enter behavior: modifier-Enter send or Enter-to-send,
+- review delivery: inline thread review or a future detached review session.
+
+Only the safe local preference values are persisted. The command menu does not
+persist selected files, private editor selections, raw transcripts, or IDE
+session state. Future file/selection-to-thread features should enter the
+workbench through normalized context events with provenance, not through hidden
+backend state.
+
 Do not persist API key values, tokens, provider account state, raw Claude Code
 logs by default, raw private transcripts, or local user session files in tracked
 source or portable app exports.

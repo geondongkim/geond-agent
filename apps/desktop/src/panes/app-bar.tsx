@@ -1,5 +1,6 @@
 import type { UiI18n, WorkbenchSessionDefaults } from "@geond-agent/ui-workbench";
 import {
+  Command,
   PanelLeftClose,
   PanelLeftOpen,
   PanelRightClose,
@@ -21,6 +22,7 @@ export function AppBar({
   runnerMode,
   sessionDefaults,
   sessionCount,
+  setCommandPaletteOpen,
   setInspectorTab,
   setLeftPanelOpen,
   setRightPanelOpen
@@ -33,6 +35,7 @@ export function AppBar({
   readonly runnerMode: DesktopRunnerMode;
   readonly sessionDefaults: WorkbenchSessionDefaults;
   readonly sessionCount: number;
+  readonly setCommandPaletteOpen: (open: boolean) => void;
   readonly setInspectorTab: (tab: string) => void;
   readonly setLeftPanelOpen: (open: boolean) => void;
   readonly setRightPanelOpen: (open: boolean) => void;
@@ -96,6 +99,15 @@ export function AppBar({
         {runnerBusy ? (
           <span className="status-pill status-warn">{i18n.t("workbench.runner.running")}</span>
         ) : null}
+        <Button
+          variant="ghost"
+          className="chrome-button"
+          onClick={() => setCommandPaletteOpen(true)}
+          aria-label={i18n.t("workbench.actions.openCommandMenu")}
+          title={i18n.t("workbench.actions.openCommandMenu")}
+        >
+          <Command size={16} />
+        </Button>
         <Button
           variant="ghost"
           className="chrome-button"

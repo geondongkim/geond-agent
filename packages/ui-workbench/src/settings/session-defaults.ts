@@ -11,6 +11,9 @@ export const SESSION_DEFAULTS_SETTINGS_KEY = "geond-agent.workbench.session-defa
 
 export type WorkbenchApprovalPolicy = "ask-first";
 export type WorkbenchPermissionMode = "plan" | "default" | "acceptEdits";
+export type WorkbenchFollowUpPolicy = "queue" | "steer" | "interrupt";
+export type WorkbenchComposerEnterBehavior = "modEnter" | "enter";
+export type WorkbenchReviewDelivery = "inline" | "detached";
 
 export interface WorkbenchPersistenceBoundary {
   readonly preferencesDriver: "tauri-app-data-json";
@@ -27,6 +30,9 @@ export interface WorkbenchSessionDefaults {
   readonly routingMode: RoutingMode;
   readonly defaultPermissionMode: WorkbenchPermissionMode;
   readonly approvalPolicy: WorkbenchApprovalPolicy;
+  readonly followUpPolicy: WorkbenchFollowUpPolicy;
+  readonly composerEnterBehavior: WorkbenchComposerEnterBehavior;
+  readonly reviewDelivery: WorkbenchReviewDelivery;
 }
 
 export interface WorkbenchSessionDefaultsValidationResult {
@@ -41,6 +47,9 @@ interface WorkbenchSessionDefaultsInput {
   readonly routingMode?: unknown;
   readonly defaultPermissionMode?: unknown;
   readonly approvalPolicy?: unknown;
+  readonly followUpPolicy?: unknown;
+  readonly composerEnterBehavior?: unknown;
+  readonly reviewDelivery?: unknown;
 }
 
 export const DEFAULT_WORKBENCH_PERSISTENCE_BOUNDARY: WorkbenchPersistenceBoundary = {
@@ -60,7 +69,10 @@ export const DEFAULT_WORKBENCH_SESSION_DEFAULTS: WorkbenchSessionDefaults = {
   defaultModelAlias: "sonnet",
   routingMode: "manual",
   defaultPermissionMode: "plan",
-  approvalPolicy: "ask-first"
+  approvalPolicy: "ask-first",
+  followUpPolicy: "queue",
+  composerEnterBehavior: "modEnter",
+  reviewDelivery: "inline"
 };
 
 export function normalizeWorkbenchSessionDefaults(
@@ -78,7 +90,10 @@ export function normalizeWorkbenchSessionDefaults(
       DEFAULT_WORKBENCH_SESSION_DEFAULTS.defaultModelAlias,
     routingMode: normalizeRoutingMode(value?.routingMode),
     defaultPermissionMode: normalizePermissionMode(value?.defaultPermissionMode),
-    approvalPolicy: normalizeApprovalPolicy(value?.approvalPolicy)
+    approvalPolicy: normalizeApprovalPolicy(value?.approvalPolicy),
+    followUpPolicy: normalizeFollowUpPolicy(value?.followUpPolicy),
+    composerEnterBehavior: normalizeComposerEnterBehavior(value?.composerEnterBehavior),
+    reviewDelivery: normalizeReviewDelivery(value?.reviewDelivery)
   };
 }
 
@@ -175,6 +190,28 @@ function normalizePermissionMode(value: unknown): WorkbenchPermissionMode {
     default:
       return DEFAULT_WORKBENCH_SESSION_DEFAULTS.defaultPermissionMode;
   }
+}
+
+function normalizeFollowUpPolicy(value: unknown): WorkbenchFollowUpPolicy {
+  switch (value) {
+    case "steer":
+    case "interrupt":
+      return value;
+    default:
+      return DEFAULT_WORKBENCH_SESSION_DEFAULTS.followUpPolicy;
+  }
+}
+
+function normalizeComposerEnterBehavior(value: unknown): WorkbenchComposerEnterBehavior {
+  return value === "enter"
+    ? value
+    : DEFAULT_WORKBENCH_SESSION_DEFAULTS.composerEnterBehavior;
+}
+
+function normalizeReviewDelivery(value: unknown): WorkbenchReviewDelivery {
+  return value === "detached"
+    ? value
+    : DEFAULT_WORKBENCH_SESSION_DEFAULTS.reviewDelivery;
 }
 
 function readNonEmptyString(value: unknown): string | undefined {
