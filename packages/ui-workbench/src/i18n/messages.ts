@@ -219,6 +219,10 @@ export type UiMessageKey =
   | "workbench.files.attachedContext"
   | "workbench.files.changedFiles"
   | "workbench.files.privacyBoundary"
+  | "workbench.files.previewTitle"
+  | "workbench.files.previewDetail"
+  | "workbench.files.queueFollowUp"
+  | "workbench.files.rawContentBoundary"
   | "workbench.files.diffSource"
   | "workbench.files.noChangedFiles"
   | "workbench.files.noEvidence"
@@ -233,6 +237,7 @@ export type UiMessageKey =
   | "workbench.sideChat.empty"
   | "workbench.sideChat.removeDraft"
   | "workbench.sideChat.useInComposer"
+  | "workbench.sideChat.followUpPolicy"
   | "workbench.settings.languageSection"
   | "workbench.settings.routingSection"
   | "workbench.settings.inputSection"
@@ -478,6 +483,10 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.attachedContext": "Attached context",
     "workbench.files.changedFiles": "Changed files",
     "workbench.files.privacyBoundary": "Privacy boundary",
+    "workbench.files.previewTitle": "Evidence detail",
+    "workbench.files.previewDetail": "Selected evidence can be queued as a side-chat follow-up without copying raw file content into the transcript.",
+    "workbench.files.queueFollowUp": "Queue evidence follow-up",
+    "workbench.files.rawContentBoundary": "Metadata and summaries only; raw private file content is not persisted here.",
     "workbench.files.diffSource": "Diff source",
     "workbench.files.noChangedFiles": "No changed files projected yet.",
     "workbench.files.noEvidence": "No file evidence is available for this session yet.",
@@ -492,6 +501,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.sideChat.empty": "No side chat drafts queued yet.",
     "workbench.sideChat.removeDraft": "Remove",
     "workbench.sideChat.useInComposer": "Use in composer",
+    "workbench.sideChat.followUpPolicy": "Follow-up policy",
     "workbench.settings.languageSection": "Language",
     "workbench.settings.routingSection": "Backend and model route",
     "workbench.settings.inputSection": "Composer and review",
@@ -734,6 +744,10 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.attachedContext": "첨부된 컨텍스트",
     "workbench.files.changedFiles": "변경 파일",
     "workbench.files.privacyBoundary": "프라이버시 경계",
+    "workbench.files.previewTitle": "증거 세부 정보",
+    "workbench.files.previewDetail": "선택한 증거를 원본 파일 내용 없이 사이드 채팅 후속 초안으로 보낼 수 있습니다.",
+    "workbench.files.queueFollowUp": "증거 후속 초안 추가",
+    "workbench.files.rawContentBoundary": "메타데이터와 요약만 사용하며, 원본 private 파일 내용은 여기에 저장하지 않습니다.",
     "workbench.files.diffSource": "Diff 출처",
     "workbench.files.noChangedFiles": "아직 투영된 변경 파일이 없습니다.",
     "workbench.files.noEvidence": "이 세션에는 아직 파일 증거가 없습니다.",
@@ -748,6 +762,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.sideChat.empty": "아직 대기 중인 사이드 채팅 초안이 없습니다.",
     "workbench.sideChat.removeDraft": "제거",
     "workbench.sideChat.useInComposer": "Composer로 옮기기",
+    "workbench.sideChat.followUpPolicy": "후속 요청 정책",
     "workbench.settings.languageSection": "언어",
     "workbench.settings.routingSection": "백엔드와 모델 라우트",
     "workbench.settings.inputSection": "입력과 검토",
