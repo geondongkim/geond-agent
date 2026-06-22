@@ -41,6 +41,8 @@
 - Tauri app data JSON for small non-secret preferences.
 - Command menu for common workbench actions such as starting a session,
   choosing a workspace, opening inspector tabs, and toggling panels.
+- Metadata-only context attachment events for workspace/file/selection
+  references, with visible Files inspector projection and explicit provenance.
 - Explicit local preferences for follow-up policy, composer Enter behavior, and
   review delivery, kept separate from backend/model/language settings.
 - SQLite-backed local sessions, events, snapshots, approvals, tool calls,
@@ -117,7 +119,8 @@
 - Extension/MCP management.
 - IDE/plugin mediated entry-point research:
   - command menu actions,
-  - current file and selected text context attachment,
+  - current file and selected text context attachment using the existing
+    metadata-only `context.attached` event boundary,
   - task/review virtual document export,
   - explicit provenance for any context imported from an IDE surface.
 - Provider-aware agent language preferences that remain separate from UI

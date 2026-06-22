@@ -115,6 +115,7 @@ export function App({ document }: AppProps) {
     setRunnerMode(savedMode);
   };
   const {
+    attachWorkspaceContext,
     chooseWorkspace,
     deleteActiveSession,
     resolveApproval,
@@ -164,6 +165,16 @@ export function App({ document }: AppProps) {
         run: chooseWorkspace
       },
       {
+        id: "attach-workspace-context",
+        label: i18n.t("workbench.commandPalette.attachWorkspaceContext"),
+        detail: activeSession?.workspacePath ?? workspacePath,
+        disabled: !activeSession,
+        run: () => {
+          void attachWorkspaceContext();
+          openInspectorTab("files");
+        }
+      },
+      {
         id: "show-review",
         label: i18n.t("workbench.commandPalette.showReview"),
         detail: i18n.t("workbench.workspacePanel.review"),
@@ -198,7 +209,16 @@ export function App({ document }: AppProps) {
         run: () => setRightPanelOpen((open) => !open)
       }
     ],
-    [chooseWorkspace, i18n, runnerBusy, runnerMode, startSelectedRunner, workspacePath]
+    [
+      activeSession,
+      attachWorkspaceContext,
+      chooseWorkspace,
+      i18n,
+      runnerBusy,
+      runnerMode,
+      startSelectedRunner,
+      workspacePath
+    ]
   );
 
   useEffect(() => {

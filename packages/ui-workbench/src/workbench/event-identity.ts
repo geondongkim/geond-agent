@@ -22,6 +22,15 @@ export function workbenchEventIdentity(event: WorkbenchEvent): string {
         event.resumedFromExternalSessionId ?? "",
         event.at ?? ""
       ].join(":");
+    case "context.attached":
+      return [
+        event.type,
+        event.sessionId,
+        event.attachment.id,
+        event.attachment.kind,
+        event.attachment.path ?? "",
+        event.at ?? ""
+      ].join(":");
     case "assistant.text.delta":
       return [event.type, event.sessionId, event.messageId, event.at ?? "", event.text].join(":");
     case "assistant.text.completed":

@@ -61,11 +61,17 @@ const state = replayWorkbenchEvents(ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS);
 ```
 
 The replay state includes session lifecycle, assistant text, plan updates, tool
-calls, command output, diffs, usage/cost/context metadata, approvals,
-warning/error notices, external adapter session links, and the per-session
-backend/model selection snapshot. Projection helpers mark completed, failed, or
-paused adapter-linked sessions as resumable without making the UI
-Claude-specific.
+calls, command output, diffs, usage/cost metadata, metadata-only context
+attachments, approvals, warning/error notices, external adapter session links,
+and the per-session backend/model selection snapshot. Projection helpers mark
+completed, failed, or paused adapter-linked sessions as resumable without making
+the UI Claude-specific.
+
+Context attachments use normalized `context.attached` events. They are designed
+for workspace, file, selected-text, and note references imported from desktop,
+IDE/plugin, manual, or backend surfaces. The event shape stores provenance,
+path/range/language metadata, summary, and content state; raw private file
+contents stay outside the replay stream by default.
 
 For desktop-scale session lists, the package also exposes a durable session
 index reducer. The index is rebuilt from `WorkbenchEvent`s and stores compact

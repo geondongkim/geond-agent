@@ -65,6 +65,33 @@ export interface WorkbenchAdapterSessionLinkSnapshot {
   readonly linkedAt?: string;
 }
 
+export type WorkbenchContextAttachmentKind = "workspace" | "file" | "selection" | "note";
+export type WorkbenchContextAttachmentProvenance = "desktop" | "ide-plugin" | "manual" | "backend";
+export type WorkbenchContextAttachmentContentState =
+  | "metadata-only"
+  | "redacted"
+  | "external-reference";
+
+export interface WorkbenchContextAttachmentRange {
+  readonly startLine: number;
+  readonly startColumn?: number;
+  readonly endLine?: number;
+  readonly endColumn?: number;
+}
+
+export interface WorkbenchContextAttachmentSnapshot {
+  readonly id: string;
+  readonly kind: WorkbenchContextAttachmentKind;
+  readonly title: string;
+  readonly provenance: WorkbenchContextAttachmentProvenance;
+  readonly contentState: WorkbenchContextAttachmentContentState;
+  readonly path?: string;
+  readonly language?: string;
+  readonly range?: WorkbenchContextAttachmentRange;
+  readonly summary?: string;
+  readonly attachedAt?: string;
+}
+
 export type ApprovalKind = "command" | "diff" | "filesystem" | "network" | "mcp";
 export type ApprovalDecision = "approved" | "rejected" | "cancelled";
 
@@ -102,6 +129,12 @@ export type WorkbenchEvent =
       readonly adapterId: string;
       readonly externalSessionId: string;
       readonly resumedFromExternalSessionId?: string;
+      readonly at?: string;
+    }
+  | {
+      readonly type: "context.attached";
+      readonly sessionId: string;
+      readonly attachment: WorkbenchContextAttachmentSnapshot;
       readonly at?: string;
     }
   | {

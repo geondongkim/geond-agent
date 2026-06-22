@@ -39,7 +39,8 @@ The desktop shell is Tauri v2 with a React + Vite renderer. Native commands own:
 - workspace discovery for the active local checkout,
 - opt-in Claude Code `stream-json` process execution.
 - command-menu actions for starting the selected runner, choosing workspaces,
-  opening inspector tabs, and toggling workbench panels.
+  attaching metadata-only workspace context, opening inspector tabs, and
+  toggling workbench panels.
 - non-secret interaction preferences such as runner mode, follow-up policy,
   composer Enter behavior, and review delivery.
 
@@ -51,4 +52,5 @@ renderer, written to the SQLite event store, or committed to the repository.
 
 The renderer keeps a browser `localStorage` and in-memory event-store fallback
 for Vite-only development. It must not persist provider secrets, raw Claude
-logs, account state, or private local tool session files.
+logs, account state, private local tool session files, or raw private file
+contents from context attachments.

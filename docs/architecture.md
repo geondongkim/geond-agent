@@ -250,6 +250,7 @@ evidence/export target, not the live UI state owner.
 The workbench reducer owns the visible state:
 
 - current session and selection snapshot,
+- metadata-only context attachments,
 - chat timeline,
 - plan/checklist state,
 - tool call and terminal output state,
@@ -272,6 +273,21 @@ fixture replay tests, layout snapshots, keyboard/pointer flow coverage,
 English/Korean label coverage, and explicit failure states before it is treated
 as complete. The detailed bar lives in
 `docs/plans/workbench-ux-quality-bar.md`.
+
+## Context Attachment Boundary
+
+Context imported from a desktop workspace, IDE extension, plugin surface, or
+backend adapter enters the workbench through normalized `context.attached`
+events. These events store attachment metadata such as kind, title, path,
+optional file range, language, summary, provenance, and content state. They do
+not store raw private file contents by default.
+
+The first desktop slice can attach the selected workspace path from the command
+menu as `metadata-only` context and render it in the Files inspector. Future IDE
+surfaces can use the same event shape for current-file and selected-text
+references, but must keep editor credentials, raw selections, private buffers,
+and plugin session state outside portable workbench events unless the user
+explicitly exports sanitized evidence.
 
 ## Session Continuity Boundary
 

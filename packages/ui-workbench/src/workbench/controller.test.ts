@@ -155,6 +155,49 @@ describe("createWorkbenchSessionController", () => {
     expect(resolved.events).toHaveLength(3);
   });
 
+  it("tracks metadata-only context attachments through replayed projection state", () => {
+    const controller = createWorkbenchSessionController();
+    const sessionEvents = createWorkbenchSessionStartEvents({
+      sessionId: "session-context",
+      title: "Context session",
+      workspacePath: "/workspace/geond-agent",
+      at: "2026-06-21T02:00:00.000Z"
+    });
+    const contextAttached: WorkbenchEvent = {
+      type: "context.attached",
+      sessionId: "session-context",
+      attachment: {
+        id: "context-file-architecture",
+        kind: "file",
+        title: "architecture.md",
+        provenance: "ide-plugin",
+        contentState: "metadata-only",
+        path: "docs/architecture.md",
+        language: "markdown",
+        range: {
+          startLine: 1,
+          endLine: 12
+        },
+        summary: "Current file attached by an IDE surface without raw content."
+      },
+      at: "2026-06-21T02:01:00.000Z"
+    };
+
+    const snapshot = controller.appendEvents([...sessionEvents, contextAttached], {
+      activateSessionId: "session-context"
+    });
+
+    expect(snapshot.projection.activeSession?.contextAttachments[0]).toMatchObject({
+      id: "context-file-architecture",
+      contentState: "metadata-only",
+      provenance: "ide-plugin",
+      path: "docs/architecture.md"
+    });
+    expect(snapshot.projection.activeSession?.timeline.map((entry) => entry.kind)).toContain(
+      "context"
+    );
+  });
+
   it("creates a resumable adapter-linked session prelude", () => {
     const controller = createWorkbenchSessionController({
       initialEvents: createWorkbenchSessionStartEvents({

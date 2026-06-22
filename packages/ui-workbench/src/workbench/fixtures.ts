@@ -72,6 +72,20 @@ export const ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS: readonly WorkbenchEvent[] = [
     at: "2026-06-21T00:00:00.500Z"
   },
   {
+    type: "context.attached",
+    sessionId: "eval-task-1",
+    attachment: {
+      id: "context-workspace-geond-agent",
+      kind: "workspace",
+      title: "geond-agent workspace",
+      provenance: "desktop",
+      contentState: "metadata-only",
+      path: "/workspace/geond-agent",
+      summary: "Workspace path attached as metadata only; raw file contents stay outside the normalized event stream."
+    },
+    at: "2026-06-21T00:00:00.750Z"
+  },
+  {
     type: "assistant.text.delta",
     sessionId: "eval-task-1",
     messageId: "assistant-1",

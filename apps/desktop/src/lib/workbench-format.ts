@@ -1,4 +1,4 @@
-import type { UiI18n } from "@geond-agent/ui-workbench";
+import type { UiI18n, WorkbenchContextAttachmentKind } from "@geond-agent/ui-workbench";
 
 export const lifecycleTone = {
   started: "status-ok",
@@ -105,6 +105,8 @@ export function formatTimelineKindLabel(i18n: UiI18n, kind: string): string {
       return i18n.t("workbench.timeline.kind.adapter");
     case "selection":
       return i18n.t("workbench.timeline.kind.selection");
+    case "context":
+      return i18n.t("workbench.timeline.kind.context");
     case "assistant":
       return i18n.t("workbench.timeline.kind.assistant");
     case "plan":
@@ -125,6 +127,22 @@ export function formatTimelineKindLabel(i18n: UiI18n, kind: string): string {
       return i18n.t("workbench.timeline.kind.error");
     default:
       return kind;
+  }
+}
+
+export function formatContextKindLabel(
+  i18n: UiI18n,
+  kind: WorkbenchContextAttachmentKind
+): string {
+  switch (kind) {
+    case "workspace":
+      return i18n.t("workbench.context.kind.workspace");
+    case "file":
+      return i18n.t("workbench.context.kind.file");
+    case "selection":
+      return i18n.t("workbench.context.kind.selection");
+    case "note":
+      return i18n.t("workbench.context.kind.note");
   }
 }
 
