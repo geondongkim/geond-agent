@@ -341,4 +341,28 @@ body {
   .composer-chip {
     @apply inline-flex h-8 max-w-[190px] items-center truncate rounded-md border border-white/10 bg-black/20 px-2.5 font-mono text-[11px] text-[color:var(--ink-soft)];
   }
+
+  .command-palette-backdrop {
+    @apply fixed inset-0 z-50 bg-black/45 p-4 backdrop-blur-sm;
+  }
+
+  .command-palette {
+    @apply mx-auto mt-[8vh] w-full max-w-[680px] rounded-xl border border-white/15 bg-[#171b19] p-3 text-[color:var(--ink)] shadow-[0_28px_90px_rgba(0,0,0,0.55)];
+  }
+
+  .command-palette-header {
+    @apply flex items-start justify-between gap-3 px-2 pb-3;
+  }
+
+  .command-palette-input {
+    @apply h-11 w-full rounded-lg border border-white/10 bg-[#0d1110] px-3 text-sm text-[color:var(--ink)] outline-none placeholder:text-[color:var(--ink-muted)];
+  }
+
+  .command-palette-list {
+    @apply mt-2 max-h-[420px] overflow-auto rounded-lg border border-white/10 bg-[#101412] p-1;
+  }
+
+  .command-palette-item {
+    @apply flex w-full items-center justify-between gap-3 rounded-md px-3 py-2.5 text-left text-[color:var(--ink)] transition-colors hover:bg-white/5 focus:bg-white/10 focus:outline-none disabled:cursor-not-allowed disabled:hover:bg-transparent;
+  }
 }

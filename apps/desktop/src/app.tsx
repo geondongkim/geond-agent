@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   type WorkbenchRuntimeSnapshot,
@@ -6,6 +6,7 @@ import {
 } from "@geond-agent/ui-workbench";
 
 import type { DesktopDemoDocument, DesktopRunnerMode } from "./demo-workbench.js";
+import { CommandPalette, type CommandPaletteAction } from "./components/workbench/command-palette.js";
 import { AppBar } from "./panes/app-bar.js";
 import { InspectorPane } from "./panes/inspector.js";
 import { SessionRailPane } from "./panes/session-rail.js";
@@ -39,14 +40,18 @@ export function App({ document }: AppProps) {
   const [composerPrompt, setComposerPrompt] = useState("");
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   const i18n = runtimeSnapshot.i18n;
   const {
     agentLanguageOptions,
     backendOptions,
+    composerEnterBehaviorOptions,
+    followUpPolicyOptions,
     modelAliasOptions,
     permissionModeOptions,
     providerRouteOptions,
+    reviewDeliveryOptions,
     routingModeOptions,
     settingsLabels
   } = useWorkbenchOptions(i18n, document.selectionCatalog);
@@ -140,6 +145,78 @@ export function App({ document }: AppProps) {
     startSession,
     workspacePath
   });
+  const commandPaletteActions = useMemo<readonly CommandPaletteAction[]>(
+    () => [
+      {
+        id: "start-session",
+        label: i18n.t("workbench.commandPalette.newSession"),
+        detail:
+          runnerMode === "claude-live"
+            ? i18n.t("workbench.runner.claudeLive")
+            : i18n.t("workbench.runner.fixture"),
+        disabled: runnerBusy,
+        run: startSelectedRunner
+      },
+      {
+        id: "choose-workspace",
+        label: i18n.t("workbench.commandPalette.chooseWorkspace"),
+        detail: workspacePath,
+        run: chooseWorkspace
+      },
+      {
+        id: "show-review",
+        label: i18n.t("workbench.commandPalette.showReview"),
+        detail: i18n.t("workbench.workspacePanel.review"),
+        run: () => openInspectorTab("review")
+      },
+      {
+        id: "show-terminal",
+        label: i18n.t("workbench.commandPalette.showTerminal"),
+        detail: i18n.t("workbench.workspacePanel.terminal"),
+        run: () => openInspectorTab("terminal")
+      },
+      {
+        id: "show-files",
+        label: i18n.t("workbench.commandPalette.showFiles"),
+        detail: i18n.t("workbench.workspacePanel.files"),
+        run: () => openInspectorTab("files")
+      },
+      {
+        id: "show-settings",
+        label: i18n.t("workbench.commandPalette.showSettings"),
+        detail: i18n.t("workbench.workspacePanel.settings"),
+        run: () => openInspectorTab("settings")
+      },
+      {
+        id: "toggle-left",
+        label: i18n.t("workbench.commandPalette.toggleLeft"),
+        run: () => setLeftPanelOpen((open) => !open)
+      },
+      {
+        id: "toggle-right",
+        label: i18n.t("workbench.commandPalette.toggleRight"),
+        run: () => setRightPanelOpen((open) => !open)
+      }
+    ],
+    [chooseWorkspace, i18n, runnerBusy, runnerMode, startSelectedRunner, workspacePath]
+  );
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setCommandPaletteOpen(true);
+      }
+    };
+
+    globalThis.document.addEventListener("keydown", onKeyDown);
+    return () => globalThis.document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  function openInspectorTab(tab: string) {
+    setInspectorTab(tab);
+    setRightPanelOpen(true);
+  }
 
   return (
     <main className="workbench-shell">
@@ -153,6 +230,7 @@ export function App({ document }: AppProps) {
           runnerMode={runnerMode}
           sessionDefaults={sessionDefaults}
           sessionCount={projection.sessions.length}
+          setCommandPaletteOpen={setCommandPaletteOpen}
           setInspectorTab={setInspectorTab}
           setLeftPanelOpen={setLeftPanelOpen}
           setRightPanelOpen={setRightPanelOpen}
@@ -210,6 +288,8 @@ export function App({ document }: AppProps) {
               backendOptions={backendOptions}
               bridgeCommand={document.bridgeCommand}
               canFollowUpApprovals={canFollowUpApprovals}
+              composerEnterBehaviorOptions={composerEnterBehaviorOptions}
+              followUpPolicyOptions={followUpPolicyOptions}
               ignoredRecordCount={ignoredRecordCount}
               i18n={i18n}
               inspectorTab={inspectorTab}
@@ -218,6 +298,7 @@ export function App({ document }: AppProps) {
               persistenceNotes={document.persistence.notes}
               providerRouteOptions={providerRouteOptions}
               providerSummary={document.providerSummary}
+              reviewDeliveryOptions={reviewDeliveryOptions}
               resolveApproval={resolveApproval}
               routingModeOptions={routingModeOptions}
               runtimeSnapshot={runtimeSnapshot}
@@ -233,6 +314,12 @@ export function App({ document }: AppProps) {
           ) : null}
         </section>
       </div>
+      <CommandPalette
+        actions={commandPaletteActions}
+        i18n={i18n}
+        onClose={() => setCommandPaletteOpen(false)}
+        open={commandPaletteOpen}
+      />
     </main>
   );
 }

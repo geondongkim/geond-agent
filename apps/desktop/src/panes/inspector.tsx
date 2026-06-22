@@ -30,6 +30,8 @@ export function InspectorPane({
   agentLanguageOptions,
   backendOptions,
   bridgeCommand,
+  composerEnterBehaviorOptions,
+  followUpPolicyOptions,
   ignoredRecordCount,
   i18n,
   inspectorTab,
@@ -38,6 +40,7 @@ export function InspectorPane({
   persistenceNotes,
   providerRouteOptions,
   providerSummary,
+  reviewDeliveryOptions,
   resolveApproval,
   routingModeOptions,
   runtimeSnapshot,
@@ -57,6 +60,8 @@ export function InspectorPane({
   readonly backendOptions: readonly WorkbenchCatalogOption[];
   readonly bridgeCommand: string;
   readonly ignoredRecordCount: number;
+  readonly composerEnterBehaviorOptions: readonly { readonly value: string; readonly label: string }[];
+  readonly followUpPolicyOptions: readonly { readonly value: string; readonly label: string }[];
   readonly i18n: UiI18n;
   readonly inspectorTab: string;
   readonly modelAliasOptions: readonly WorkbenchCatalogOption[];
@@ -64,6 +69,7 @@ export function InspectorPane({
   readonly persistenceNotes: readonly string[];
   readonly providerRouteOptions: readonly WorkbenchCatalogOption[];
   readonly providerSummary: string;
+  readonly reviewDeliveryOptions: readonly { readonly value: string; readonly label: string }[];
   readonly resolveApproval: (approvalId: string, decision: ApprovalDecision) => void;
   readonly routingModeOptions: readonly { readonly value: string; readonly label: string }[];
   readonly runtimeSnapshot: WorkbenchRuntimeSnapshot;
@@ -167,11 +173,14 @@ export function InspectorPane({
         <InspectorSettingsTab
           agentLanguageOptions={agentLanguageOptions}
           backendOptions={backendOptions}
+          composerEnterBehaviorOptions={composerEnterBehaviorOptions}
+          followUpPolicyOptions={followUpPolicyOptions}
           i18n={i18n}
           modelAliasOptions={modelAliasOptions}
           permissionModeOptions={permissionModeOptions}
           persistenceNotes={persistenceNotes}
           providerRouteOptions={providerRouteOptions}
+          reviewDeliveryOptions={reviewDeliveryOptions}
           routingModeOptions={routingModeOptions}
           runtimeSnapshot={runtimeSnapshot}
           runnerMode={runnerMode}

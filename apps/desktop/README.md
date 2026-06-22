@@ -38,6 +38,10 @@ The desktop shell is Tauri v2 with a React + Vite renderer. Native commands own:
 - a durable SQLite session index for startup/session-rail metadata,
 - workspace discovery for the active local checkout,
 - opt-in Claude Code `stream-json` process execution.
+- command-menu actions for starting the selected runner, choosing workspaces,
+  opening inspector tabs, and toggling workbench panels.
+- non-secret interaction preferences such as runner mode, follow-up policy,
+  composer Enter behavior, and review delivery.
 
 The Claude Code process runner may read a local `.env.local` file from the
 selected workspace and pass only the allowed Claude/Z.ai routing variables to

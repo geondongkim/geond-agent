@@ -24,7 +24,10 @@ describe("normalizeWorkbenchSessionDefaults", () => {
         defaultModelAlias: null,
         routingMode: "unsupported",
         defaultPermissionMode: "bypassPermissions",
-        approvalPolicy: "nope"
+        approvalPolicy: "nope",
+        followUpPolicy: "replace",
+        composerEnterBehavior: "space",
+        reviewDelivery: "external"
       })
     ).toEqual(DEFAULT_WORKBENCH_SESSION_DEFAULTS);
   });
@@ -37,7 +40,10 @@ describe("normalizeWorkbenchSessionDefaults", () => {
         defaultModelAlias: "opus",
         routingMode: "auto",
         defaultPermissionMode: "acceptEdits",
-        approvalPolicy: "ask-first"
+        approvalPolicy: "ask-first",
+        followUpPolicy: "interrupt",
+        composerEnterBehavior: "enter",
+        reviewDelivery: "detached"
       })
     ).toEqual({
       defaultBackendAdapterId: "claude-code.external-cli-acp",
@@ -45,7 +51,10 @@ describe("normalizeWorkbenchSessionDefaults", () => {
       defaultModelAlias: "opus",
       routingMode: "auto",
       defaultPermissionMode: "acceptEdits",
-      approvalPolicy: "ask-first"
+      approvalPolicy: "ask-first",
+      followUpPolicy: "interrupt",
+      composerEnterBehavior: "enter",
+      reviewDelivery: "detached"
     });
 
     expect(DEFAULT_WORKBENCH_PERSISTENCE_BOUNDARY.storesSecrets).toBe(false);
@@ -63,7 +72,10 @@ describe("Workbench session defaults persistence", () => {
       defaultModelAlias: "opus",
       routingMode: "manual",
       defaultPermissionMode: "default",
-      approvalPolicy: "ask-first"
+      approvalPolicy: "ask-first",
+      followUpPolicy: "steer",
+      composerEnterBehavior: "modEnter",
+      reviewDelivery: "inline"
     });
 
     await expect(loadWorkbenchSessionDefaults(store)).resolves.toEqual({
@@ -72,7 +84,10 @@ describe("Workbench session defaults persistence", () => {
       defaultModelAlias: "opus",
       routingMode: "manual",
       defaultPermissionMode: "default",
-      approvalPolicy: "ask-first"
+      approvalPolicy: "ask-first",
+      followUpPolicy: "steer",
+      composerEnterBehavior: "modEnter",
+      reviewDelivery: "inline"
     });
   });
 });
@@ -86,7 +101,10 @@ describe("validateWorkbenchSessionDefaults", () => {
         defaultModelAlias: "missing-model",
         routingMode: "manual",
         defaultPermissionMode: "plan",
-        approvalPolicy: "ask-first"
+        approvalPolicy: "ask-first",
+        followUpPolicy: "queue",
+        composerEnterBehavior: "modEnter",
+        reviewDelivery: "inline"
       },
       createWorkbenchSelectionCatalog({
         backendAdapters: [

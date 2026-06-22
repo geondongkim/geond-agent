@@ -104,9 +104,13 @@ backend, Z.ai model profiles, and `auto` routing without storing provider
 secrets or account state.
 
 UI language, agent response language, backend selection, provider route, model
-profile, routing mode, and permission mode are separate settings. Normal UI
-defaults expose `plan`, `default`, and `acceptEdits`; bypass-style execution is
-reserved for isolated evaluation runs rather than persisted user defaults.
+profile, routing mode, permission mode, follow-up policy, composer Enter
+behavior, and review delivery are separate settings. Normal UI defaults expose
+`plan`, `default`, and `acceptEdits`; bypass-style execution is reserved for
+isolated evaluation runs rather than persisted user defaults. Follow-up and
+review-delivery preferences describe local workbench behavior first; future
+adapter packages may advertise whether they can support steering, interrupting,
+or detached review sessions.
 
 Reference workbench patterns are tracked in
 `../../docs/research/oss-agent-workbench-reference.md`. The package should learn

@@ -49,13 +49,38 @@ export function useWorkbenchOptions(
     ],
     [i18n]
   );
+  const followUpPolicyOptions = useMemo(
+    () => [
+      { value: "queue", label: settingsLabels.values.followUpQueue },
+      { value: "steer", label: settingsLabels.values.followUpSteer },
+      { value: "interrupt", label: settingsLabels.values.followUpInterrupt }
+    ],
+    [settingsLabels]
+  );
+  const composerEnterBehaviorOptions = useMemo(
+    () => [
+      { value: "modEnter", label: settingsLabels.values.composerEnterModEnter },
+      { value: "enter", label: settingsLabels.values.composerEnterEnter }
+    ],
+    [settingsLabels]
+  );
+  const reviewDeliveryOptions = useMemo(
+    () => [
+      { value: "inline", label: settingsLabels.values.reviewDeliveryInline },
+      { value: "detached", label: settingsLabels.values.reviewDeliveryDetached }
+    ],
+    [settingsLabels]
+  );
 
   return {
     agentLanguageOptions,
     backendOptions,
+    composerEnterBehaviorOptions,
+    followUpPolicyOptions,
     modelAliasOptions,
     permissionModeOptions,
     providerRouteOptions,
+    reviewDeliveryOptions,
     routingModeOptions,
     settingsLabels
   };

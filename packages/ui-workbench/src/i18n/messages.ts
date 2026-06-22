@@ -15,6 +15,16 @@ export type UiMessageKey =
   | "settings.selection.permissionMode.plan"
   | "settings.selection.permissionMode.default"
   | "settings.selection.permissionMode.acceptEdits"
+  | "settings.selection.followUpPolicy"
+  | "settings.selection.followUpPolicy.queue"
+  | "settings.selection.followUpPolicy.steer"
+  | "settings.selection.followUpPolicy.interrupt"
+  | "settings.selection.composerEnterBehavior"
+  | "settings.selection.composerEnterBehavior.modEnter"
+  | "settings.selection.composerEnterBehavior.enter"
+  | "settings.selection.reviewDelivery"
+  | "settings.selection.reviewDelivery.inline"
+  | "settings.selection.reviewDelivery.detached"
   | "settings.selection.approvalPolicy"
   | "settings.selection.persistence"
   | "settings.selection.approvalPolicy.askFirst"
@@ -115,6 +125,7 @@ export type UiMessageKey =
   | "workbench.actions.hideSessions"
   | "workbench.actions.showWorkspacePanel"
   | "workbench.actions.hideWorkspacePanel"
+  | "workbench.actions.openCommandMenu"
   | "workbench.composer.label"
   | "workbench.composer.placeholder"
   | "workbench.composer.livePlaceholder"
@@ -137,6 +148,17 @@ export type UiMessageKey =
   | "workbench.runner.running"
   | "workbench.runner.cancelled"
   | "workbench.runner.cancelFailed"
+  | "workbench.commandPalette.title"
+  | "workbench.commandPalette.search"
+  | "workbench.commandPalette.noResults"
+  | "workbench.commandPalette.newSession"
+  | "workbench.commandPalette.chooseWorkspace"
+  | "workbench.commandPalette.showReview"
+  | "workbench.commandPalette.showTerminal"
+  | "workbench.commandPalette.showFiles"
+  | "workbench.commandPalette.showSettings"
+  | "workbench.commandPalette.toggleLeft"
+  | "workbench.commandPalette.toggleRight"
   | "workbench.session.deleted"
   | "workbench.workspace.all"
   | "workbench.status.total"
@@ -195,6 +217,16 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "settings.selection.permissionMode.plan": "Plan only",
     "settings.selection.permissionMode.default": "Ask before edits",
     "settings.selection.permissionMode.acceptEdits": "Auto-accept edits",
+    "settings.selection.followUpPolicy": "Follow-up policy",
+    "settings.selection.followUpPolicy.queue": "Queue follow-ups",
+    "settings.selection.followUpPolicy.steer": "Steer current run",
+    "settings.selection.followUpPolicy.interrupt": "Interrupt current run",
+    "settings.selection.composerEnterBehavior": "Composer Enter behavior",
+    "settings.selection.composerEnterBehavior.modEnter": "Cmd/Ctrl+Enter sends",
+    "settings.selection.composerEnterBehavior.enter": "Enter sends",
+    "settings.selection.reviewDelivery": "Review delivery",
+    "settings.selection.reviewDelivery.inline": "Inline in thread",
+    "settings.selection.reviewDelivery.detached": "Detached review session",
     "settings.selection.approvalPolicy": "Approval policy",
     "settings.selection.persistence": "Persistence boundary",
     "settings.selection.approvalPolicy.askFirst": "Ask first",
@@ -295,6 +327,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.hideSessions": "Hide sessions",
     "workbench.actions.showWorkspacePanel": "Show workspace panel",
     "workbench.actions.hideWorkspacePanel": "Hide workspace panel",
+    "workbench.actions.openCommandMenu": "Open command menu",
     "workbench.composer.label": "Agent command",
     "workbench.composer.placeholder": "Review the current workspace and continue the implementation.",
     "workbench.composer.livePlaceholder": "Run a concise geond-agent workbench smoke session. Do not modify files.",
@@ -317,6 +350,17 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runner.running": "Running...",
     "workbench.runner.cancelled": "Cancel requested for the live Claude run.",
     "workbench.runner.cancelFailed": "No live Claude process was available to cancel.",
+    "workbench.commandPalette.title": "Command menu",
+    "workbench.commandPalette.search": "Search actions",
+    "workbench.commandPalette.noResults": "No matching actions.",
+    "workbench.commandPalette.newSession": "Start selected runner",
+    "workbench.commandPalette.chooseWorkspace": "Choose workspace",
+    "workbench.commandPalette.showReview": "Open review inspector",
+    "workbench.commandPalette.showTerminal": "Open terminal inspector",
+    "workbench.commandPalette.showFiles": "Open files inspector",
+    "workbench.commandPalette.showSettings": "Open settings inspector",
+    "workbench.commandPalette.toggleLeft": "Toggle session sidebar",
+    "workbench.commandPalette.toggleRight": "Toggle workspace panel",
     "workbench.session.deleted": "Deleted {title}.",
     "workbench.workspace.all": "All workspaces",
     "workbench.status.total": "total",
@@ -372,6 +416,16 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "settings.selection.permissionMode.plan": "계획 전용",
     "settings.selection.permissionMode.default": "수정 전 승인",
     "settings.selection.permissionMode.acceptEdits": "수정 자동 승인",
+    "settings.selection.followUpPolicy": "후속 요청 정책",
+    "settings.selection.followUpPolicy.queue": "후속 요청 대기열",
+    "settings.selection.followUpPolicy.steer": "현재 실행 조정",
+    "settings.selection.followUpPolicy.interrupt": "현재 실행 중단",
+    "settings.selection.composerEnterBehavior": "Composer Enter 동작",
+    "settings.selection.composerEnterBehavior.modEnter": "Cmd/Ctrl+Enter로 실행",
+    "settings.selection.composerEnterBehavior.enter": "Enter로 실행",
+    "settings.selection.reviewDelivery": "검토 전달 방식",
+    "settings.selection.reviewDelivery.inline": "현재 스레드 안에서 검토",
+    "settings.selection.reviewDelivery.detached": "분리된 검토 세션",
     "settings.selection.approvalPolicy": "승인 정책",
     "settings.selection.persistence": "저장 경계",
     "settings.selection.approvalPolicy.askFirst": "먼저 승인 요청",
@@ -472,6 +526,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.hideSessions": "세션 패널 닫기",
     "workbench.actions.showWorkspacePanel": "워크스페이스 패널 열기",
     "workbench.actions.hideWorkspacePanel": "워크스페이스 패널 닫기",
+    "workbench.actions.openCommandMenu": "명령 메뉴 열기",
     "workbench.composer.label": "에이전트 명령",
     "workbench.composer.placeholder": "현재 워크스페이스를 검토하고 구현을 이어갑니다.",
     "workbench.composer.livePlaceholder": "간결한 geond-agent 워크벤치 smoke 세션을 실행합니다. 파일은 수정하지 않습니다.",
@@ -494,6 +549,17 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runner.running": "실행 중...",
     "workbench.runner.cancelled": "Live Claude 실행 취소를 요청했습니다.",
     "workbench.runner.cancelFailed": "취소할 수 있는 Live Claude 프로세스가 없습니다.",
+    "workbench.commandPalette.title": "명령 메뉴",
+    "workbench.commandPalette.search": "작업 검색",
+    "workbench.commandPalette.noResults": "일치하는 작업이 없습니다.",
+    "workbench.commandPalette.newSession": "선택된 실행기 시작",
+    "workbench.commandPalette.chooseWorkspace": "워크스페이스 선택",
+    "workbench.commandPalette.showReview": "검토 인스펙터 열기",
+    "workbench.commandPalette.showTerminal": "터미널 인스펙터 열기",
+    "workbench.commandPalette.showFiles": "파일 인스펙터 열기",
+    "workbench.commandPalette.showSettings": "설정 인스펙터 열기",
+    "workbench.commandPalette.toggleLeft": "세션 사이드바 토글",
+    "workbench.commandPalette.toggleRight": "워크스페이스 패널 토글",
     "workbench.session.deleted": "{title} 세션을 삭제했습니다.",
     "workbench.workspace.all": "모든 워크스페이스",
     "workbench.status.total": "전체",

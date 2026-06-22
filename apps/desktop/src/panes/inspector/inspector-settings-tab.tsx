@@ -14,11 +14,14 @@ import type { DesktopRunnerMode } from "../../demo-workbench.js";
 export function InspectorSettingsTab({
   agentLanguageOptions,
   backendOptions,
+  composerEnterBehaviorOptions,
+  followUpPolicyOptions,
   i18n,
   modelAliasOptions,
   permissionModeOptions,
   persistenceNotes,
   providerRouteOptions,
+  reviewDeliveryOptions,
   routingModeOptions,
   runtimeSnapshot,
   runnerMode,
@@ -31,11 +34,14 @@ export function InspectorSettingsTab({
 }: {
   readonly agentLanguageOptions: readonly { readonly value: string; readonly label: string }[];
   readonly backendOptions: readonly WorkbenchCatalogOption[];
+  readonly composerEnterBehaviorOptions: readonly { readonly value: string; readonly label: string }[];
+  readonly followUpPolicyOptions: readonly { readonly value: string; readonly label: string }[];
   readonly i18n: UiI18n;
   readonly modelAliasOptions: readonly WorkbenchCatalogOption[];
   readonly permissionModeOptions: readonly { readonly value: string; readonly label: string }[];
   readonly persistenceNotes: readonly string[];
   readonly providerRouteOptions: readonly WorkbenchCatalogOption[];
+  readonly reviewDeliveryOptions: readonly { readonly value: string; readonly label: string }[];
   readonly routingModeOptions: readonly { readonly value: string; readonly label: string }[];
   readonly runtimeSnapshot: WorkbenchRuntimeSnapshot;
   readonly runnerMode: DesktopRunnerMode;
@@ -101,6 +107,37 @@ export function InspectorSettingsTab({
             void updateSessionDefaults({
               defaultPermissionMode:
                 value === "default" || value === "acceptEdits" ? value : "plan"
+            })
+          }
+        />
+        <SettingsSelect
+          label={settingsLabels.fields.followUpPolicy}
+          value={sessionDefaults.followUpPolicy}
+          options={followUpPolicyOptions}
+          onChange={(value) =>
+            void updateSessionDefaults({
+              followUpPolicy:
+                value === "steer" || value === "interrupt" ? value : "queue"
+            })
+          }
+        />
+        <SettingsSelect
+          label={settingsLabels.fields.composerEnterBehavior}
+          value={sessionDefaults.composerEnterBehavior}
+          options={composerEnterBehaviorOptions}
+          onChange={(value) =>
+            void updateSessionDefaults({
+              composerEnterBehavior: value === "enter" ? "enter" : "modEnter"
+            })
+          }
+        />
+        <SettingsSelect
+          label={settingsLabels.fields.reviewDelivery}
+          value={sessionDefaults.reviewDelivery}
+          options={reviewDeliveryOptions}
+          onChange={(value) =>
+            void updateSessionDefaults({
+              reviewDelivery: value === "detached" ? "detached" : "inline"
             })
           }
         />

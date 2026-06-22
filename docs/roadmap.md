@@ -39,6 +39,10 @@
 - Diff summary panel.
 - Settings surface for UI language and separate agent response language.
 - Tauri app data JSON for small non-secret preferences.
+- Command menu for common workbench actions such as starting a session,
+  choosing a workspace, opening inspector tabs, and toggling panels.
+- Explicit local preferences for follow-up policy, composer Enter behavior, and
+  review delivery, kept separate from backend/model/language settings.
 - SQLite-backed local sessions, events, snapshots, approvals, tool calls,
   command output summaries, diff summaries, and usage metadata.
 - Per-session projection:
@@ -75,6 +79,8 @@
   related diff or terminal context.
 - Permission-mode defaults that keep `bypassPermissions` out of normal persisted
   UI settings.
+- Review delivery starts inline in the active thread and reserves detached
+  review sessions as a later, explicit mode rather than a hidden fork.
 
 ## Milestone 4: Session Continuity
 
@@ -109,6 +115,11 @@
   handoffs, review context, and cross-agent evidence.
 - Local model provider experiments.
 - Extension/MCP management.
+- IDE/plugin mediated entry-point research:
+  - command menu actions,
+  - current file and selected text context attachment,
+  - task/review virtual document export,
+  - explicit provenance for any context imported from an IDE surface.
 - Provider-aware agent language preferences that remain separate from UI
   localization.
 - Model catalog, provider registry, and auto routing policy:
