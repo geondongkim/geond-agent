@@ -318,16 +318,19 @@ For the first desktop implementation, Tauri app data JSON stores small
 non-secret preferences such as UI language, agent response language, default
 backend, default provider route, default model alias, and layout preference.
 SQLite stores local sessions, workbench events, session snapshots, approvals,
-tool calls, command output summaries, diff summaries, and usage metadata when
-available.
+context attachments, tool calls, command output summaries, diff summaries, and
+usage metadata when available.
 
 The desktop shell now exposes Tauri commands for app-data JSON preferences and a
 SQLite-backed normalized event store. The native event store uses
 `PRAGMA user_version` migrations and transactionally appends workbench events
 with derived updates. Approval requests and resolutions are materialized into a
 queryable `workbench_approvals` table so pending approval counts come from
-approval rows rather than hand-maintained JSON-only session summaries. During
-renderer-only Vite development, `apps/desktop` keeps a browser `localStorage`
+approval rows rather than hand-maintained JSON-only session summaries. The v3
+persistence slice also materializes context attachments, tool calls, command
+output previews, diff summaries, and usage metadata into queryable tables
+derived from the normalized event stream. During renderer-only Vite
+development, `apps/desktop` keeps a browser `localStorage`
 fallback so the same settings UI can prove save/reload behavior outside the
 native shell. Both paths are limited to non-secret preference keys and
 normalized workbench events; provider secrets, raw Claude logs, account state,

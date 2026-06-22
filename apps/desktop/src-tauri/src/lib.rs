@@ -24,7 +24,7 @@ const CLAUDE_DEFAULT_TIMEOUT_MS: u64 = 10 * 60 * 1000;
 const CLAUDE_MAX_TIMEOUT_MS: u64 = 60 * 60 * 1000;
 const PROCESS_OUTPUT_CAP_BYTES: usize = 1024 * 1024;
 const PROCESS_OUTPUT_TRUNCATED_MARKER: &str = "\n... [truncated]\n";
-const EVENT_STORE_SCHEMA_VERSION: i64 = 2;
+const EVENT_STORE_SCHEMA_VERSION: i64 = 3;
 const CLAUDE_ENV_KEYS: &[&str] = &[
     "ANTHROPIC_API_KEY",
     "ANTHROPIC_BASE_URL",
@@ -32,6 +32,13 @@ const CLAUDE_ENV_KEYS: &[&str] = &[
     "ANTHROPIC_DEFAULT_SONNET_MODEL",
     "ANTHROPIC_DEFAULT_OPUS_MODEL",
     "ZAI_API_KEY",
+];
+const MATERIALIZED_EVENT_TABLES: &[&str] = &[
+    "workbench_context_attachments",
+    "workbench_tool_calls",
+    "workbench_command_outputs",
+    "workbench_diff_summaries",
+    "workbench_usage_metadata",
 ];
 
 #[derive(Debug, Deserialize)]
@@ -188,6 +195,7 @@ fn append_events_to_store(
                 .map_err(to_string)?;
             let source_event_id = transaction.last_insert_rowid();
             materialize_approval_for_event(&transaction, &event, source_event_id)?;
+            materialize_event_views_for_event(&transaction, &event, source_event_id)?;
             upsert_session_index_for_event(&transaction, &event)?;
             inserted += 1;
         }
@@ -816,6 +824,97 @@ fn migrate_event_store(connection: &mut Connection) -> Result<(), String> {
         transaction.commit().map_err(to_string)?;
     }
 
+    if version < 3 {
+        let transaction = connection.transaction().map_err(to_string)?;
+        transaction
+            .execute_batch(
+                "create table if not exists workbench_context_attachments (
+                    session_id text not null,
+                    attachment_id text not null,
+                    kind text not null,
+                    title text not null,
+                    provenance text not null,
+                    content_state text not null,
+                    path text,
+                    language text,
+                    range_json text,
+                    summary text,
+                    attached_at text,
+                    source_event_id integer,
+                    updated_at text,
+                    primary key (session_id, attachment_id)
+                );
+                create index if not exists idx_workbench_context_attachments_session
+                    on workbench_context_attachments(session_id, updated_at);
+                create table if not exists workbench_tool_calls (
+                    session_id text not null,
+                    tool_call_id text not null,
+                    name text not null,
+                    status text not null,
+                    input_summary text,
+                    output_summary text,
+                    source_event_id integer,
+                    updated_at text,
+                    primary key (session_id, tool_call_id)
+                );
+                create index if not exists idx_workbench_tool_calls_session
+                    on workbench_tool_calls(session_id, updated_at);
+                create table if not exists workbench_command_outputs (
+                    session_id text not null,
+                    command_id text not null,
+                    status text not null,
+                    exit_code integer,
+                    chunk_count integer not null default 0,
+                    stdout_preview text,
+                    stderr_preview text,
+                    source_event_id integer,
+                    updated_at text,
+                    primary key (session_id, command_id)
+                );
+                create index if not exists idx_workbench_command_outputs_session
+                    on workbench_command_outputs(session_id, updated_at);
+                create table if not exists workbench_diff_summaries (
+                    session_id text not null,
+                    diff_id text not null,
+                    title text,
+                    file_count integer not null default 0,
+                    additions integer not null default 0,
+                    deletions integer not null default 0,
+                    summary text,
+                    files_json text not null default '[]',
+                    source_event_id integer,
+                    updated_at text,
+                    primary key (session_id, diff_id)
+                );
+                create index if not exists idx_workbench_diff_summaries_session
+                    on workbench_diff_summaries(session_id, updated_at);
+                create table if not exists workbench_usage_metadata (
+                    session_id text not null,
+                    usage_id text not null,
+                    source text not null,
+                    model text,
+                    input_tokens integer,
+                    output_tokens integer,
+                    cache_creation_input_tokens integer,
+                    cache_read_input_tokens integer,
+                    context_window integer,
+                    max_output_tokens integer,
+                    cost_usd real,
+                    service_tier text,
+                    note text,
+                    source_event_id integer,
+                    updated_at text,
+                    primary key (session_id, usage_id)
+                );
+                create index if not exists idx_workbench_usage_metadata_session
+                    on workbench_usage_metadata(session_id, updated_at);
+                pragma user_version = 3;",
+            )
+            .map_err(to_string)?;
+        backfill_materialized_event_views_from_events(&transaction)?;
+        transaction.commit().map_err(to_string)?;
+    }
+
     Ok(())
 }
 
@@ -878,6 +977,26 @@ fn backfill_session_approval_counts(connection: &Connection) -> Result<(), Strin
                 ],
             )
             .map_err(to_string)?;
+    }
+
+    Ok(())
+}
+
+fn backfill_materialized_event_views_from_events(connection: &Connection) -> Result<(), String> {
+    let mut statement = connection
+        .prepare("select id, payload_json from workbench_events order by id asc")
+        .map_err(to_string)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+        })
+        .map_err(to_string)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(to_string)?;
+
+    for (source_event_id, payload) in rows {
+        let event = serde_json::from_str::<Value>(&payload).map_err(to_string)?;
+        materialize_event_views_for_event(connection, &event, source_event_id)?;
     }
 
     Ok(())
@@ -958,6 +1077,282 @@ fn materialize_approval_for_event(
                         approval_id,
                         read_string(event, "decision"),
                         resolved_at,
+                        source_event_id,
+                        updated_at,
+                    ],
+                )
+                .map_err(to_string)?;
+        }
+        _ => {}
+    }
+
+    Ok(())
+}
+
+fn materialize_event_views_for_event(
+    connection: &Connection,
+    event: &Value,
+    source_event_id: i64,
+) -> Result<(), String> {
+    let event_type = read_string(event, "type").unwrap_or_default();
+    let Some(session_id) = read_string(event, "sessionId") else {
+        return Ok(());
+    };
+    let updated_at = read_string(event, "at");
+
+    match event_type.as_str() {
+        "context.attached" => {
+            let Some(attachment) = event.get("attachment") else {
+                return Ok(());
+            };
+            let Some(attachment_id) = read_string(attachment, "id") else {
+                return Ok(());
+            };
+            let Some(title) = read_string(attachment, "title") else {
+                return Ok(());
+            };
+            let attached_at = read_string(attachment, "attachedAt").or_else(|| updated_at.clone());
+            let range_json = attachment
+                .get("range")
+                .map(serde_json::to_string)
+                .transpose()
+                .map_err(to_string)?;
+
+            connection
+                .execute(
+                    "insert into workbench_context_attachments (
+                        session_id, attachment_id, kind, title, provenance, content_state, path,
+                        language, range_json, summary, attached_at, source_event_id, updated_at
+                     ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+                     on conflict(session_id, attachment_id) do update set
+                        kind = excluded.kind,
+                        title = excluded.title,
+                        provenance = excluded.provenance,
+                        content_state = excluded.content_state,
+                        path = excluded.path,
+                        language = excluded.language,
+                        range_json = excluded.range_json,
+                        summary = excluded.summary,
+                        attached_at = excluded.attached_at,
+                        source_event_id = excluded.source_event_id,
+                        updated_at = excluded.updated_at",
+                    params![
+                        session_id,
+                        attachment_id,
+                        read_string(attachment, "kind").unwrap_or_else(|| "unknown".to_string()),
+                        title,
+                        read_string(attachment, "provenance")
+                            .unwrap_or_else(|| "unknown".to_string()),
+                        read_string(attachment, "contentState")
+                            .unwrap_or_else(|| "metadata-only".to_string()),
+                        read_string(attachment, "path"),
+                        read_string(attachment, "language"),
+                        range_json,
+                        read_string(attachment, "summary"),
+                        attached_at,
+                        source_event_id,
+                        updated_at,
+                    ],
+                )
+                .map_err(to_string)?;
+        }
+        "tool.call.started" => {
+            let Some(tool_call) = event.get("toolCall") else {
+                return Ok(());
+            };
+            let Some(tool_call_id) = read_string(tool_call, "id") else {
+                return Ok(());
+            };
+            connection
+                .execute(
+                    "insert into workbench_tool_calls (
+                        session_id, tool_call_id, name, status, input_summary, output_summary,
+                        source_event_id, updated_at
+                     ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+                     on conflict(session_id, tool_call_id) do update set
+                        name = excluded.name,
+                        status = excluded.status,
+                        input_summary = excluded.input_summary,
+                        output_summary = excluded.output_summary,
+                        source_event_id = excluded.source_event_id,
+                        updated_at = excluded.updated_at",
+                    params![
+                        session_id,
+                        tool_call_id,
+                        read_string(tool_call, "name").unwrap_or_else(|| "unknown".to_string()),
+                        read_string(tool_call, "status").unwrap_or_else(|| "pending".to_string()),
+                        read_string(tool_call, "inputSummary"),
+                        read_string(tool_call, "outputSummary"),
+                        source_event_id,
+                        updated_at,
+                    ],
+                )
+                .map_err(to_string)?;
+        }
+        "tool.call.updated" => {
+            let Some(tool_call_id) = read_string(event, "toolCallId") else {
+                return Ok(());
+            };
+            connection
+                .execute(
+                    "insert into workbench_tool_calls (
+                        session_id, tool_call_id, name, status, input_summary, output_summary,
+                        source_event_id, updated_at
+                     ) values (?1, ?2, 'unknown', ?3, null, ?4, ?5, ?6)
+                     on conflict(session_id, tool_call_id) do update set
+                        status = case
+                            when excluded.status = 'unknown' then workbench_tool_calls.status
+                            else excluded.status
+                        end,
+                        output_summary = coalesce(excluded.output_summary, workbench_tool_calls.output_summary),
+                        source_event_id = excluded.source_event_id,
+                        updated_at = excluded.updated_at",
+                    params![
+                        session_id,
+                        tool_call_id,
+                        read_string(event, "status").unwrap_or_else(|| "unknown".to_string()),
+                        read_string(event, "outputSummary"),
+                        source_event_id,
+                        updated_at,
+                    ],
+                )
+                .map_err(to_string)?;
+        }
+        "command.output" => {
+            let Some(command_id) = read_string(event, "commandId") else {
+                return Ok(());
+            };
+            let stream = read_string(event, "stream").unwrap_or_else(|| "status".to_string());
+            let text = read_string(event, "text");
+            let stdout_preview = if stream == "stdout" {
+                text.clone()
+            } else {
+                None
+            };
+            let stderr_preview = if stream == "stderr" {
+                text.clone()
+            } else {
+                None
+            };
+
+            connection
+                .execute(
+                    "insert into workbench_command_outputs (
+                        session_id, command_id, status, exit_code, chunk_count, stdout_preview,
+                        stderr_preview, source_event_id, updated_at
+                     ) values (?1, ?2, ?3, ?4, 1, ?5, ?6, ?7, ?8)
+                     on conflict(session_id, command_id) do update set
+                        status = excluded.status,
+                        exit_code = coalesce(excluded.exit_code, workbench_command_outputs.exit_code),
+                        chunk_count = workbench_command_outputs.chunk_count + 1,
+                        stdout_preview = coalesce(excluded.stdout_preview, workbench_command_outputs.stdout_preview),
+                        stderr_preview = coalesce(excluded.stderr_preview, workbench_command_outputs.stderr_preview),
+                        source_event_id = excluded.source_event_id,
+                        updated_at = excluded.updated_at",
+                    params![
+                        session_id,
+                        command_id,
+                        read_string(event, "status").unwrap_or_else(|| "running".to_string()),
+                        read_i64(event, "exitCode"),
+                        stdout_preview,
+                        stderr_preview,
+                        source_event_id,
+                        updated_at,
+                    ],
+                )
+                .map_err(to_string)?;
+        }
+        "diff.emitted" => {
+            let Some(diff) = event.get("diff") else {
+                return Ok(());
+            };
+            let Some(diff_id) = read_string(diff, "id") else {
+                return Ok(());
+            };
+            let files = diff
+                .get("files")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            let files_json = serde_json::to_string(&files).map_err(to_string)?;
+            let file_count = files.len() as i64;
+            let additions = sum_file_number(&files, "additions");
+            let deletions = sum_file_number(&files, "deletions");
+
+            connection
+                .execute(
+                    "insert into workbench_diff_summaries (
+                        session_id, diff_id, title, file_count, additions, deletions, summary,
+                        files_json, source_event_id, updated_at
+                     ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+                     on conflict(session_id, diff_id) do update set
+                        title = excluded.title,
+                        file_count = excluded.file_count,
+                        additions = excluded.additions,
+                        deletions = excluded.deletions,
+                        summary = excluded.summary,
+                        files_json = excluded.files_json,
+                        source_event_id = excluded.source_event_id,
+                        updated_at = excluded.updated_at",
+                    params![
+                        session_id,
+                        diff_id,
+                        read_string(diff, "title"),
+                        file_count,
+                        additions,
+                        deletions,
+                        read_string(diff, "summary"),
+                        files_json,
+                        source_event_id,
+                        updated_at,
+                    ],
+                )
+                .map_err(to_string)?;
+        }
+        "usage.reported" => {
+            let Some(usage) = event.get("usage") else {
+                return Ok(());
+            };
+            let Some(usage_id) = read_string(usage, "id") else {
+                return Ok(());
+            };
+
+            connection
+                .execute(
+                    "insert into workbench_usage_metadata (
+                        session_id, usage_id, source, model, input_tokens, output_tokens,
+                        cache_creation_input_tokens, cache_read_input_tokens, context_window,
+                        max_output_tokens, cost_usd, service_tier, note, source_event_id,
+                        updated_at
+                     ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
+                     on conflict(session_id, usage_id) do update set
+                        source = excluded.source,
+                        model = excluded.model,
+                        input_tokens = excluded.input_tokens,
+                        output_tokens = excluded.output_tokens,
+                        cache_creation_input_tokens = excluded.cache_creation_input_tokens,
+                        cache_read_input_tokens = excluded.cache_read_input_tokens,
+                        context_window = excluded.context_window,
+                        max_output_tokens = excluded.max_output_tokens,
+                        cost_usd = excluded.cost_usd,
+                        service_tier = excluded.service_tier,
+                        note = excluded.note,
+                        source_event_id = excluded.source_event_id,
+                        updated_at = excluded.updated_at",
+                    params![
+                        session_id,
+                        usage_id,
+                        read_string(usage, "source").unwrap_or_else(|| "unknown".to_string()),
+                        read_string(usage, "model"),
+                        read_i64(usage, "inputTokens"),
+                        read_i64(usage, "outputTokens"),
+                        read_i64(usage, "cacheCreationInputTokens"),
+                        read_i64(usage, "cacheReadInputTokens"),
+                        read_i64(usage, "contextWindow"),
+                        read_i64(usage, "maxOutputTokens"),
+                        read_f64(usage, "costUsd"),
+                        read_string(usage, "serviceTier"),
+                        read_string(usage, "note"),
                         source_event_id,
                         updated_at,
                     ],
@@ -1061,6 +1456,16 @@ fn delete_events_for_session(connection: &Connection, session_id: &str) -> Resul
                         params![session_id],
                     )
                     .map_err(to_string)?;
+            }
+            for table in MATERIALIZED_EVENT_TABLES {
+                if table_exists(connection, table)? {
+                    connection
+                        .execute(
+                            &format!("delete from {table} where session_id = ?1"),
+                            params![session_id],
+                        )
+                        .map_err(to_string)?;
+                }
             }
             if table_exists(connection, "workbench_sessions")? {
                 connection
@@ -1394,6 +1799,24 @@ fn read_string(value: &Value, key: &str) -> Option<String> {
         .map(ToString::to_string)
 }
 
+fn read_i64(value: &Value, key: &str) -> Option<i64> {
+    value
+        .as_object()
+        .and_then(|object: &Map<String, Value>| object.get(key))
+        .and_then(Value::as_i64)
+}
+
+fn read_f64(value: &Value, key: &str) -> Option<f64> {
+    value
+        .as_object()
+        .and_then(|object: &Map<String, Value>| object.get(key))
+        .and_then(Value::as_f64)
+}
+
+fn sum_file_number(files: &[Value], key: &str) -> i64 {
+    files.iter().filter_map(|file| read_i64(file, key)).sum()
+}
+
 fn path_to_string(path: &Path) -> String {
     path.to_string_lossy().to_string()
 }
@@ -1622,7 +2045,10 @@ mod tests {
         );
         assert!(record.provider_key_missing);
         assert_eq!(record.pending_approval_count, 0);
-        assert_eq!(record.updated_at.as_deref(), Some("2026-06-22T01:00:05.000Z"));
+        assert_eq!(
+            record.updated_at.as_deref(),
+            Some("2026-06-22T01:00:05.000Z")
+        );
         assert!(record.resumable);
     }
 
@@ -1684,6 +2110,176 @@ mod tests {
         assert_eq!(resolved_records[0].decision.as_deref(), Some("approved"));
         assert_eq!(record.pending_approval_ids, Vec::<String>::new());
         assert_eq!(record.pending_approval_count, 0);
+    }
+
+    #[test]
+    fn materializes_event_view_records_during_transactional_append() {
+        let mut connection = create_index_test_connection();
+        let context = serde_json::json!({
+            "type": "context.attached",
+            "sessionId": "session-views",
+            "attachment": {
+                "id": "context-workspace",
+                "kind": "workspace",
+                "title": "geond-agent",
+                "provenance": "desktop",
+                "contentState": "metadata-only",
+                "path": "/workspace/geond-agent",
+                "summary": "Metadata only"
+            },
+            "at": "2026-06-22T02:00:00.000Z"
+        });
+        let tool_started = serde_json::json!({
+            "type": "tool.call.started",
+            "sessionId": "session-views",
+            "toolCall": {
+                "id": "tool-read",
+                "name": "read-files",
+                "status": "running",
+                "inputSummary": "docs"
+            },
+            "at": "2026-06-22T02:00:01.000Z"
+        });
+        let tool_updated = serde_json::json!({
+            "type": "tool.call.updated",
+            "sessionId": "session-views",
+            "toolCallId": "tool-read",
+            "status": "succeeded",
+            "outputSummary": "Read complete",
+            "at": "2026-06-22T02:00:02.000Z"
+        });
+        let tool_output_only = serde_json::json!({
+            "type": "tool.call.updated",
+            "sessionId": "session-views",
+            "toolCallId": "tool-read",
+            "outputSummary": "Read complete without status",
+            "at": "2026-06-22T02:00:02.500Z"
+        });
+        let command_stdout = serde_json::json!({
+            "type": "command.output",
+            "sessionId": "session-views",
+            "commandId": "cmd-verify",
+            "stream": "stdout",
+            "text": "pnpm verify",
+            "status": "running",
+            "at": "2026-06-22T02:00:03.000Z"
+        });
+        let command_stderr = serde_json::json!({
+            "type": "command.output",
+            "sessionId": "session-views",
+            "commandId": "cmd-verify",
+            "stream": "stderr",
+            "text": "warning",
+            "status": "succeeded",
+            "exitCode": 0,
+            "at": "2026-06-22T02:00:04.000Z"
+        });
+        let diff = serde_json::json!({
+            "type": "diff.emitted",
+            "sessionId": "session-views",
+            "diff": {
+                "id": "diff-1",
+                "title": "Workbench diff",
+                "summary": "Two files changed",
+                "files": [
+                    { "path": "a.ts", "changeKind": "modified", "additions": 3, "deletions": 1 },
+                    { "path": "b.ts", "changeKind": "added", "additions": 2, "deletions": 0 }
+                ]
+            },
+            "at": "2026-06-22T02:00:05.000Z"
+        });
+        let usage = serde_json::json!({
+            "type": "usage.reported",
+            "sessionId": "session-views",
+            "usage": {
+                "id": "usage-1",
+                "source": "provider",
+                "model": "glm-5.2",
+                "inputTokens": 120,
+                "outputTokens": 34,
+                "costUsd": 0.0123
+            },
+            "at": "2026-06-22T02:00:06.000Z"
+        });
+
+        append_events_to_store(
+            &mut connection,
+            vec![
+                context,
+                tool_started,
+                tool_updated,
+                tool_output_only,
+                command_stdout,
+                command_stderr,
+                diff,
+                usage,
+            ],
+        )
+        .expect("append materialized event view records");
+
+        let context_title: String = connection
+            .query_row(
+                "select title from workbench_context_attachments where session_id = ?1 and attachment_id = ?2",
+                params!["session-views", "context-workspace"],
+                |row| row.get(0),
+            )
+            .expect("context title");
+        let tool_row: (String, Option<String>) = connection
+            .query_row(
+                "select status, output_summary
+                 from workbench_tool_calls
+                 where session_id = ?1 and tool_call_id = ?2",
+                params!["session-views", "tool-read"],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("tool row");
+        let command_row: (i64, Option<i64>, Option<String>, Option<String>) = connection
+            .query_row(
+                "select chunk_count, exit_code, stdout_preview, stderr_preview
+                 from workbench_command_outputs
+                 where session_id = ?1 and command_id = ?2",
+                params!["session-views", "cmd-verify"],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .expect("command output");
+        let diff_row: (i64, i64, i64) = connection
+            .query_row(
+                "select file_count, additions, deletions
+                 from workbench_diff_summaries
+                 where session_id = ?1 and diff_id = ?2",
+                params!["session-views", "diff-1"],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .expect("diff summary");
+        let usage_row: (String, Option<i64>, Option<f64>) = connection
+            .query_row(
+                "select model, input_tokens, cost_usd
+                 from workbench_usage_metadata
+                 where session_id = ?1 and usage_id = ?2",
+                params!["session-views", "usage-1"],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .expect("usage metadata");
+
+        assert_eq!(context_title, "geond-agent");
+        assert_eq!(
+            tool_row,
+            (
+                "succeeded".to_string(),
+                Some("Read complete without status".to_string())
+            )
+        );
+        assert_eq!(
+            command_row,
+            (
+                2,
+                Some(0),
+                Some("pnpm verify".to_string()),
+                Some("warning".to_string())
+            )
+        );
+        assert_eq!(diff_row, (2, 5, 1));
+        assert_eq!(usage_row, ("glm-5.2".to_string(), Some(120), Some(0.0123)));
     }
 
     #[test]
