@@ -214,6 +214,25 @@ export type UiMessageKey =
   | "workbench.context.kind.file"
   | "workbench.context.kind.selection"
   | "workbench.context.kind.note"
+  | "workbench.files.evidenceTitle"
+  | "workbench.files.evidenceDetail"
+  | "workbench.files.attachedContext"
+  | "workbench.files.changedFiles"
+  | "workbench.files.privacyBoundary"
+  | "workbench.files.diffSource"
+  | "workbench.files.noChangedFiles"
+  | "workbench.files.noEvidence"
+  | "workbench.files.redacted"
+  | "workbench.files.externalReference"
+  | "workbench.sideChat.title"
+  | "workbench.sideChat.detail"
+  | "workbench.sideChat.draftLabel"
+  | "workbench.sideChat.placeholder"
+  | "workbench.sideChat.queueDraft"
+  | "workbench.sideChat.queuedDrafts"
+  | "workbench.sideChat.empty"
+  | "workbench.sideChat.removeDraft"
+  | "workbench.sideChat.useInComposer"
   | "workbench.settings.languageSection"
   | "workbench.settings.routingSection"
   | "workbench.settings.inputSection"
@@ -454,6 +473,25 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.context.kind.file": "File",
     "workbench.context.kind.selection": "Selection",
     "workbench.context.kind.note": "Note",
+    "workbench.files.evidenceTitle": "Evidence preview",
+    "workbench.files.evidenceDetail": "Session-scoped file evidence assembled from metadata-only context attachments and normalized diff summaries. Raw private file contents stay outside persisted workbench events.",
+    "workbench.files.attachedContext": "Attached context",
+    "workbench.files.changedFiles": "Changed files",
+    "workbench.files.privacyBoundary": "Privacy boundary",
+    "workbench.files.diffSource": "Diff source",
+    "workbench.files.noChangedFiles": "No changed files projected yet.",
+    "workbench.files.noEvidence": "No file evidence is available for this session yet.",
+    "workbench.files.redacted": "Redacted",
+    "workbench.files.externalReference": "External reference",
+    "workbench.sideChat.title": "Side chat draft queue",
+    "workbench.sideChat.detail": "Capture follow-up notes without adding them to the primary transcript. Move a draft into the composer only when it is ready to dispatch.",
+    "workbench.sideChat.draftLabel": "Draft",
+    "workbench.sideChat.placeholder": "Draft a follow-up, steering note, or review question...",
+    "workbench.sideChat.queueDraft": "Queue draft",
+    "workbench.sideChat.queuedDrafts": "Queued drafts",
+    "workbench.sideChat.empty": "No side chat drafts queued yet.",
+    "workbench.sideChat.removeDraft": "Remove",
+    "workbench.sideChat.useInComposer": "Use in composer",
     "workbench.settings.languageSection": "Language",
     "workbench.settings.routingSection": "Backend and model route",
     "workbench.settings.inputSection": "Composer and review",
@@ -691,6 +729,25 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.context.kind.file": "파일",
     "workbench.context.kind.selection": "선택",
     "workbench.context.kind.note": "메모",
+    "workbench.files.evidenceTitle": "증거 미리보기",
+    "workbench.files.evidenceDetail": "세션 단위 파일 증거를 메타데이터 전용 컨텍스트 첨부와 정규화된 diff 요약에서 구성합니다. 원본 private 파일 내용은 저장되는 워크벤치 이벤트 밖에 둡니다.",
+    "workbench.files.attachedContext": "첨부된 컨텍스트",
+    "workbench.files.changedFiles": "변경 파일",
+    "workbench.files.privacyBoundary": "프라이버시 경계",
+    "workbench.files.diffSource": "Diff 출처",
+    "workbench.files.noChangedFiles": "아직 투영된 변경 파일이 없습니다.",
+    "workbench.files.noEvidence": "이 세션에는 아직 파일 증거가 없습니다.",
+    "workbench.files.redacted": "가림 처리됨",
+    "workbench.files.externalReference": "외부 참조",
+    "workbench.sideChat.title": "사이드 채팅 초안 큐",
+    "workbench.sideChat.detail": "주 transcript에 바로 넣지 않을 후속 메모를 모아둡니다. 실행할 준비가 되었을 때만 초안을 composer로 옮깁니다.",
+    "workbench.sideChat.draftLabel": "초안",
+    "workbench.sideChat.placeholder": "후속 지시, 방향 조정 메모, 검토 질문을 작성하세요...",
+    "workbench.sideChat.queueDraft": "초안 큐에 추가",
+    "workbench.sideChat.queuedDrafts": "대기 중인 초안",
+    "workbench.sideChat.empty": "아직 대기 중인 사이드 채팅 초안이 없습니다.",
+    "workbench.sideChat.removeDraft": "제거",
+    "workbench.sideChat.useInComposer": "Composer로 옮기기",
     "workbench.settings.languageSection": "언어",
     "workbench.settings.routingSection": "백엔드와 모델 라우트",
     "workbench.settings.inputSection": "입력과 검토",

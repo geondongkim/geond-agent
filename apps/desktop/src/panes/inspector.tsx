@@ -18,10 +18,11 @@ import {
 } from "lucide-react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.js";
-import { EmptyState } from "../components/workbench/empty-state.js";
 import type { ProjectedActiveSession } from "../lib/workbench-types.js";
-import { formatContextKindLabel, formatProviderSummary } from "../lib/workbench-format.js";
+import { formatProviderSummary } from "../lib/workbench-format.js";
+import { InspectorFilesTab } from "./inspector/inspector-files-tab.js";
 import { InspectorSettingsTab } from "./inspector/inspector-settings-tab.js";
+import { InspectorSideChatTab } from "./inspector/inspector-side-chat-tab.js";
 import { InspectorTerminalTab } from "./inspector/inspector-terminal-tab.js";
 import { InspectorReviewTab } from "./inspector/inspector-review-tab.js";
 import type { DesktopRunnerMode } from "../demo-workbench.js";
@@ -52,6 +53,7 @@ export function InspectorPane({
   runnerMode,
   sessionDefaults,
   settingsLabels,
+  setComposerPrompt,
   setInspectorTab,
   updateAgentResponseLanguage,
   updateRunnerMode,
@@ -82,6 +84,7 @@ export function InspectorPane({
   readonly runnerMode: DesktopRunnerMode;
   readonly sessionDefaults: WorkbenchSessionDefaults;
   readonly settingsLabels: WorkbenchSettingsLabels;
+  readonly setComposerPrompt: (prompt: string) => void;
   readonly setInspectorTab: (tab: string) => void;
   readonly updateAgentResponseLanguage: (language: string) => void;
   readonly updateRunnerMode: (mode: DesktopRunnerMode) => void;
@@ -182,14 +185,10 @@ export function InspectorPane({
         />
         <InspectorFilesTab
           activeSession={activeSession}
-          contextAttachments={inspectorData?.contextAttachments}
+          inspectorData={inspectorData}
           i18n={i18n}
         />
-        <WorkspacePlaceholderTab
-          value="chat"
-          title={i18n.t("workbench.workspacePanel.chatTitle")}
-          detail={i18n.t("workbench.workspacePanel.chatDetail")}
-        />
+        <InspectorSideChatTab i18n={i18n} setComposerPrompt={setComposerPrompt} />
         <InspectorSettingsTab
           agentLanguageOptions={agentLanguageOptions}
           backendOptions={backendOptions}
@@ -214,106 +213,6 @@ export function InspectorPane({
       </Tabs>
     </aside>
   );
-}
-
-function InspectorFilesTab({
-  activeSession,
-  contextAttachments,
-  i18n
-}: {
-  readonly activeSession?: ProjectedActiveSession;
-  readonly contextAttachments?: InspectorSessionReadModel["contextAttachments"];
-  readonly i18n: UiI18n;
-}) {
-  const attachments = contextAttachments ?? activeSession?.contextAttachments ?? [];
-
-  return (
-    <TabsContent value="files" className="border-0 bg-transparent p-0">
-      <div className="inspector-card">
-        <p className="text-sm font-semibold">{i18n.t("workbench.context.title")}</p>
-        <p className="mt-2 text-xs leading-5 text-[color:var(--ink-soft)]">
-          {i18n.t("workbench.workspacePanel.filesDetail")}
-        </p>
-      </div>
-      {attachments.length ? (
-        <div className="mt-3 space-y-3">
-          {attachments.map((attachment) => (
-            <article key={attachment.id} className="inspector-card">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="muted-meta">
-                    {formatContextKindLabel(i18n, attachment.kind)}
-                  </p>
-                  <h3 className="truncate text-sm font-semibold">{attachment.title}</h3>
-                </div>
-                <span className="status-pill status-neutral">
-                  {i18n.t("workbench.context.metadataOnly")}
-                </span>
-              </div>
-              <dl className="mt-3 space-y-2 text-xs">
-                {attachment.path ? (
-                  <ContextDetail
-                    label={i18n.t("workbench.context.path")}
-                    value={attachment.path}
-                  />
-                ) : null}
-                {attachment.range ? (
-                  <ContextDetail
-                    label={i18n.t("workbench.context.range")}
-                    value={formatContextRange(attachment.range)}
-                  />
-                ) : null}
-                <ContextDetail
-                  label={i18n.t("workbench.context.provenance")}
-                  value={attachment.provenance}
-                />
-                {attachment.summary ? (
-                  <ContextDetail
-                    label={i18n.t("workbench.context.summary")}
-                    value={attachment.summary}
-                  />
-                ) : null}
-              </dl>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <div className="mt-3">
-          <EmptyState text={i18n.t("workbench.context.empty")} />
-        </div>
-      )}
-    </TabsContent>
-  );
-}
-
-function ContextDetail({
-  label,
-  value
-}: {
-  readonly label: string;
-  readonly value: string;
-}) {
-  return (
-    <div>
-      <dt className="muted-meta">{label}</dt>
-      <dd className="mt-1 break-words font-mono text-[color:var(--ink-soft)]">{value}</dd>
-    </div>
-  );
-}
-
-function formatContextRange(
-  range: ProjectedActiveSession["contextAttachments"][number]["range"]
-): string {
-  if (!range) {
-    return "";
-  }
-
-  const start = `${range.startLine}${range.startColumn ? `:${range.startColumn}` : ""}`;
-  const end = range.endLine
-    ? `${range.endLine}${range.endColumn ? `:${range.endColumn}` : ""}`
-    : undefined;
-
-  return end ? `L${start}-L${end}` : `L${start}`;
 }
 
 function WorkspacePlaceholderTab({

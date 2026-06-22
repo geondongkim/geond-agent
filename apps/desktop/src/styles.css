@@ -430,6 +430,66 @@ body {
     @apply rounded-md border border-white/10 bg-[#070908] p-3 text-[color:var(--inverse)];
   }
 
+  .file-evidence-hero {
+    @apply rounded-xl border border-white/10 bg-[#232624] p-3;
+  }
+
+  .file-evidence-hero-icon {
+    @apply grid h-9 w-9 shrink-0 place-items-center rounded-md border border-[rgba(79,208,124,0.28)] bg-[rgba(79,208,124,0.08)] text-[color:var(--accent-strong)];
+  }
+
+  .file-evidence-metrics {
+    @apply mt-3 grid grid-cols-3 gap-2;
+  }
+
+  .file-evidence-metric {
+    @apply flex min-w-0 items-start gap-2 rounded-lg border border-white/10 bg-black/15 px-3 py-2;
+  }
+
+  .file-evidence-metric svg {
+    @apply mt-0.5 shrink-0 text-[color:var(--ink-muted)];
+  }
+
+  .file-evidence-section {
+    @apply rounded-xl border border-white/10 bg-[#232624] p-3;
+  }
+
+  .file-evidence-card {
+    @apply rounded-lg border border-[color:var(--border)] bg-[#111614] p-3;
+  }
+
+  .file-evidence-card-header {
+    @apply flex min-w-0 items-start gap-3;
+  }
+
+  .file-evidence-icon {
+    @apply grid h-8 w-8 shrink-0 place-items-center rounded-md border border-white/10 bg-black/20 text-[color:var(--ink-muted)];
+  }
+
+  .file-evidence-icon-diff {
+    @apply border-[rgba(108,166,255,0.28)] bg-[rgba(108,166,255,0.09)] text-[color:var(--info)];
+  }
+
+  .file-evidence-details {
+    @apply mt-3 space-y-2 text-xs;
+  }
+
+  .side-chat-panel {
+    @apply rounded-xl border border-white/10 bg-[#232624] p-3;
+  }
+
+  .side-chat-icon {
+    @apply grid h-9 w-9 shrink-0 place-items-center rounded-md border border-[rgba(108,166,255,0.28)] bg-[rgba(108,166,255,0.09)] text-[color:var(--info)];
+  }
+
+  .side-chat-input {
+    @apply mt-2 min-h-[112px] w-full resize-none rounded-lg border border-white/10 bg-[#111614] px-3 py-2 text-sm leading-6 text-[color:var(--ink)] outline-none placeholder:text-[color:var(--ink-muted)] focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[rgba(79,208,124,0.12)];
+  }
+
+  .side-chat-draft-card {
+    @apply rounded-lg border border-[color:var(--border)] bg-[#111614] p-3;
+  }
+
   .usage-grid {
     @apply grid grid-cols-2 gap-2;
   }

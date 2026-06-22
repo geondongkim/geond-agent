@@ -427,6 +427,7 @@ export function App({ document }: AppProps) {
               runnerMode={runnerMode}
               sessionDefaults={sessionDefaults}
               settingsLabels={settingsLabels}
+              setComposerPrompt={setComposerPrompt}
               setInspectorTab={setInspectorTab}
               updateAgentResponseLanguage={updateAgentResponseLanguage}
               updateRunnerMode={updateRunnerMode}

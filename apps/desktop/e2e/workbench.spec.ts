@@ -51,10 +51,25 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await page.getByRole("button", { name: /Attach workspace context/ }).click();
   const filesPanel = page.getByRole("tabpanel", { name: "Files" });
   await expect(filesPanel).toBeVisible();
-  await expect(filesPanel.getByText("Attached context")).toBeVisible();
-  await expect(filesPanel.getByText("Metadata only", { exact: true })).toBeVisible();
+  await expect(filesPanel.getByText("Evidence preview")).toBeVisible();
+  await expect(filesPanel.getByRole("heading", { name: "Changed files" })).toBeVisible();
+  await expect(filesPanel.getByText("Privacy boundary")).toBeVisible();
+  await expect(filesPanel.getByText("apps/desktop/src/app.tsx")).toBeVisible();
+  await expect(filesPanel.getByRole("heading", { name: "Attached context" })).toBeVisible();
+  await expect(filesPanel.getByText("Metadata only", { exact: true }).first()).toBeVisible();
   await expect(filesPanel.getByText("Workspace path attached as metadata only")).toBeVisible();
   await expect(page.locator(".context-chip").filter({ hasText: "geond-agent" }).first()).toBeVisible();
+  await page.getByRole("tab", { name: "Side chat" }).click();
+  const sideChatPanel = page.getByRole("tabpanel", { name: "Side chat" });
+  await expect(sideChatPanel.getByText("Side chat draft queue")).toBeVisible();
+  await sideChatPanel.getByLabel("Draft").fill("Check the evidence preview before dispatching.");
+  await sideChatPanel.getByRole("button", { name: "Queue draft" }).click();
+  await expect(sideChatPanel.getByText("Queued drafts")).toBeVisible();
+  await expect(sideChatPanel.getByText("Check the evidence preview before dispatching.")).toBeVisible();
+  await sideChatPanel.getByRole("button", { name: "Use in composer" }).click();
+  await expect(page.getByLabel("Agent command")).toHaveValue(
+    "Check the evidence preview before dispatching."
+  );
   await page.screenshot({ path: "test-results/workbench-right-panel.png" });
   await page.getByRole("button", { name: "Hide workspace panel" }).click();
   await expect(page.locator(".inspector-surface")).toHaveCount(0);
