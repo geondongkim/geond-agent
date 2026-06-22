@@ -240,6 +240,50 @@ export function useWorkbenchActions({
     );
   };
 
+  const attachFileContext = async () => {
+    if (!activeSession) {
+      return;
+    }
+
+    const selected = await document.chooseFile(
+      workspacePath === "__all__"
+        ? activeSession.workspacePath ?? document.activeWorkspace.path
+        : workspacePath
+    );
+    if (!selected) {
+      return;
+    }
+
+    const attachedAt = new Date().toISOString();
+    const events: readonly WorkbenchEvent[] = [
+      {
+        type: "context.attached",
+        sessionId: activeSession.id,
+        attachment: {
+          id: `context-file-${slugify(selected.path)}-${Date.now()}`,
+          kind: "file",
+          title: selected.label,
+          provenance: "desktop",
+          contentState: "metadata-only",
+          path: selected.path,
+          summary: i18n.t("workbench.context.fileSummary"),
+          attachedAt
+        },
+        at: attachedAt
+      }
+    ];
+
+    await document.eventStore.append(events);
+    setControllerSnapshot(
+      document.controller.appendEvents(events, { activateSessionId: activeSession.id })
+    );
+    setRunnerStatus(
+      formatMessage(i18n.t("workbench.context.attachedStatus"), {
+        title: selected.label
+      })
+    );
+  };
+
   const updateUiLanguage = async (language: string) => {
     const nextSnapshot = await document.runtime.setUiLanguage(language);
     setRuntimeSnapshot(nextSnapshot);
@@ -259,6 +303,7 @@ export function useWorkbenchActions({
   };
 
   return {
+    attachFileContext,
     attachWorkspaceContext,
     chooseWorkspace,
     deleteActiveSession,

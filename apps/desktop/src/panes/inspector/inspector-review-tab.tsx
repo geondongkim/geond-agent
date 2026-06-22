@@ -1,4 +1,5 @@
 import type { KeyboardEvent } from "react";
+import { MessageSquarePlus } from "lucide-react";
 
 import type {
   ApprovalDecision,
@@ -26,6 +27,10 @@ import {
   formatUsageSourceLabel
 } from "../../lib/workbench-format.js";
 import type { InspectorSessionReadModel } from "../../lib/inspector-read-model.js";
+import {
+  createApprovalFollowUpDraft,
+  createDiffFollowUpDraft
+} from "../../lib/inspector-follow-up.js";
 import type { ProjectedActiveSession } from "../../lib/workbench-types.js";
 
 export function InspectorReviewTab({
@@ -33,6 +38,7 @@ export function InspectorReviewTab({
   activeSession,
   bridgeCommand,
   canFollowUpApprovals,
+  enqueueSideChatDraft,
   i18n,
   ignoredRecordCount,
   inspectorData,
@@ -44,6 +50,7 @@ export function InspectorReviewTab({
   readonly activeSession?: ProjectedActiveSession;
   readonly bridgeCommand: string;
   readonly canFollowUpApprovals: boolean;
+  readonly enqueueSideChatDraft: (text: string, sourceLabel?: string) => void;
   readonly i18n: UiI18n;
   readonly ignoredRecordCount: number;
   readonly inspectorData?: InspectorSessionReadModel;
@@ -114,6 +121,19 @@ export function InspectorReviewTab({
                   </div>
                   {approval.status === "pending" ? (
                     <div className="mt-3 flex flex-wrap justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        className="gap-2"
+                        onClick={() =>
+                          enqueueSideChatDraft(
+                            createApprovalFollowUpDraft(approval),
+                            approval.title
+                          )
+                        }
+                      >
+                        <MessageSquarePlus size={14} />
+                        {i18n.t("workbench.followUp.queueReview")}
+                      </Button>
                       {approval.kind === "command" ? (
                         <Button variant="ghost" onClick={() => setInspectorTab("terminal")}>
                           {i18n.t("workbench.approvals.viewTerminal")}
@@ -165,6 +185,18 @@ export function InspectorReviewTab({
                         </p>
                       </div>
                     ))}
+                  </div>
+                  <div className="mt-3 flex justify-end">
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      onClick={() =>
+                        enqueueSideChatDraft(createDiffFollowUpDraft(diff), diff.title ?? diff.id)
+                      }
+                    >
+                      <MessageSquarePlus size={14} />
+                      {i18n.t("workbench.followUp.queueReview")}
+                    </Button>
                   </div>
                 </div>
               ))}

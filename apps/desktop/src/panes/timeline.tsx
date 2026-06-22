@@ -2,6 +2,7 @@ import type { UiI18n, WorkbenchSessionDefaults } from "@geond-agent/ui-workbench
 import {
   AlertTriangle,
   Bot,
+  FilePlus,
   Paperclip,
   Pin,
   PinOff,
@@ -32,6 +33,7 @@ export function TimelinePane({
   activeSession,
   activeRunMode,
   activeSessionPinned,
+  attachFileContext,
   attachWorkspaceContext,
   canResumeActiveSession,
   cancelActiveRun,
@@ -52,6 +54,7 @@ export function TimelinePane({
   readonly activeSession?: ProjectedActiveSession;
   readonly activeRunMode?: DesktopRunnerMode;
   readonly activeSessionPinned: boolean;
+  readonly attachFileContext: () => void;
   readonly attachWorkspaceContext: () => void;
   readonly canResumeActiveSession: boolean;
   readonly cancelActiveRun: () => void;
@@ -266,6 +269,16 @@ export function TimelinePane({
               title={i18n.t("workbench.context.attachWorkspace")}
             >
               <Paperclip size={15} />
+            </Button>
+            <Button
+              variant="ghost"
+              className="composer-icon-action"
+              onClick={() => void attachFileContext()}
+              disabled={!activeSession}
+              aria-label={i18n.t("workbench.context.attachFile")}
+              title={i18n.t("workbench.context.attachFile")}
+            >
+              <FilePlus size={15} />
             </Button>
             <button
               type="button"

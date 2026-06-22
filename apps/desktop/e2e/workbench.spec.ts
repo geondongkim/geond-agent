@@ -49,10 +49,15 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await page.keyboard.press("Control+K");
   await page.getByLabel("Search actions").fill("context");
   await page.getByRole("button", { name: /Attach workspace context/ }).click();
+  await page.keyboard.press("Control+K");
+  await page.getByLabel("Search actions").fill("file");
+  await expect(page.getByRole("button", { name: /Attach file evidence/ })).toBeVisible();
+  await page.keyboard.press("Escape");
   const filesPanel = page.getByRole("tabpanel", { name: "Files" });
   await expect(filesPanel).toBeVisible();
   await expect(filesPanel.getByText("Evidence preview")).toBeVisible();
   await expect(filesPanel.getByText("Evidence detail")).toBeVisible();
+  await expect(filesPanel.getByRole("button", { name: "Attach file" })).toBeVisible();
   await expect(filesPanel.getByRole("heading", { name: "Changed files" })).toBeVisible();
   await expect(filesPanel.getByText("Privacy boundary").first()).toBeVisible();
   await expect(
@@ -63,6 +68,9 @@ test("workbench session, settings, persistence, and inspector workflow", async (
     "apps/desktop/src/app.tsx"
   );
   await filesPanel.getByRole("button", { name: "Queue evidence follow-up" }).click();
+  await expect.poll(async () =>
+    page.evaluate(() => window.localStorage.getItem("geond-agent.workbench.side-chat-drafts"))
+  ).toContain("apps/desktop/src/app.tsx");
   await expect(filesPanel.getByRole("heading", { name: "Attached context" })).toBeVisible();
   await expect(filesPanel.getByText("Metadata only", { exact: true }).first()).toBeVisible();
   await expect(filesPanel.getByText("Workspace path attached as metadata only")).toBeVisible();
@@ -80,14 +88,23 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(page.getByLabel("Agent command")).toHaveValue(
     /Review the changed file evidence for apps\/desktop\/src\/app\.tsx/
   );
+  await expect.poll(async () =>
+    page.evaluate(() => window.localStorage.getItem("geond-agent.workbench.side-chat-drafts"))
+  ).toBe("[]");
   await sideChatPanel.getByLabel("Draft").fill("Check the evidence preview before dispatching.");
   await sideChatPanel.getByRole("button", { name: "Queue draft" }).click();
+  await expect.poll(async () =>
+    page.evaluate(() => window.localStorage.getItem("geond-agent.workbench.side-chat-drafts"))
+  ).toContain("Check the evidence preview before dispatching.");
   await expect(sideChatPanel.getByText("Queued drafts")).toBeVisible();
   await expect(sideChatPanel.getByText("Check the evidence preview before dispatching.")).toBeVisible();
   await sideChatPanel.getByRole("button", { name: "Use in composer" }).click();
   await expect(page.getByLabel("Agent command")).toHaveValue(
     "Check the evidence preview before dispatching."
   );
+  await expect.poll(async () =>
+    page.evaluate(() => window.localStorage.getItem("geond-agent.workbench.side-chat-drafts"))
+  ).toBe("[]");
   await page.screenshot({ path: "test-results/workbench-right-panel.png" });
   await page.getByRole("button", { name: "Hide workspace panel" }).click();
   await expect(page.locator(".inspector-surface")).toHaveCount(0);
@@ -105,6 +122,7 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(reviewPanel.getByText("glm-4.7")).toBeVisible();
   await expect(reviewPanel.getByText("Source: Provider")).toBeVisible();
   await expect(reviewPanel.getByText("1,200")).toBeVisible();
+  await expect(reviewPanel.getByRole("button", { name: "Queue follow-up" }).first()).toBeVisible();
 
   await page.getByLabel("Search sessions").fill("no matching session");
   await expect(page.getByText("No matching sessions.").first()).toBeVisible();
@@ -188,7 +206,7 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await page.getByRole("button", { name: "Dispatch" }).click();
   await expect(page.getByText("2 total")).toBeVisible();
   await expect(page.getByRole("button", { name: /Local demo session 2/ })).toBeVisible();
-  await expect(page.getByText(/Appended 15 events/)).toBeVisible();
+  await expect(page.locator(".run-status-strip").filter({ hasText: /Appended 15 events/ })).toBeVisible();
 
   await page.getByRole("tab", { name: "Review" }).click();
   const updatedReviewPanel = page.getByRole("tabpanel", { name: "Review" });
@@ -200,6 +218,14 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   const terminalPanel = page.getByRole("tabpanel", { name: "Terminal" });
   await expect(terminalPanel.getByText("cmd-build")).toBeVisible();
   await expect(terminalPanel.getByText("pnpm build")).toBeVisible();
+  await terminalPanel.getByRole("button", { name: "Queue terminal follow-up" }).first().click();
+  await page.getByRole("tab", { name: "Side chat" }).click();
+  await expect(sideChatPanel.getByText("Review the terminal output")).toBeVisible();
+  await sideChatPanel
+    .locator(".side-chat-draft-card")
+    .filter({ hasText: "cmd-build" })
+    .getByRole("button", { name: "Remove" })
+    .click();
 
   await page.getByRole("tab", { name: "Review" }).click();
   const approvalsPanel = page.getByRole("tabpanel", { name: "Review" });
@@ -213,10 +239,16 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await page.getByRole("tab", { name: "Review" }).click();
   await approvalsPanel.getByRole("group", { name: "Approval Run verification command" }).focus();
   await page.keyboard.press("Enter");
-  await expect(page.getByText("Recorded approved for Run verification command.")).toBeVisible();
+  await expect(
+    page.locator(".run-status-strip").filter({
+      hasText: "Recorded approved for Run verification command."
+    })
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Delete session" }).click();
-  await expect(page.getByText("Deleted Local demo session 2.")).toBeVisible();
+  await expect(
+    page.locator(".run-status-strip").filter({ hasText: "Deleted Local demo session 2." })
+  ).toBeVisible();
   await expect(page.getByText("1 total")).toBeVisible();
   await expect(page.getByRole("button", { name: /Local demo session 2/ })).toHaveCount(0);
 

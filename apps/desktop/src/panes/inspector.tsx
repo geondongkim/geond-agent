@@ -16,7 +16,6 @@ import {
   Terminal,
   Zap
 } from "lucide-react";
-import { useCallback, useState } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.js";
 import type { ProjectedActiveSession } from "../lib/workbench-types.js";
@@ -28,21 +27,20 @@ import { InspectorTerminalTab } from "./inspector/inspector-terminal-tab.js";
 import { InspectorReviewTab } from "./inspector/inspector-review-tab.js";
 import type { DesktopRunnerMode } from "../demo-workbench.js";
 import type { InspectorSessionReadModel } from "../lib/inspector-read-model.js";
-
-export interface SideChatDraft {
-  readonly id: string;
-  readonly text: string;
-  readonly sourceLabel?: string;
-}
+import type { SideChatDraft } from "../lib/side-chat-drafts.js";
 
 export function InspectorPane({
   activeExternalSession,
+  activeRunMode,
   activeSession,
+  attachFileContext,
   canFollowUpApprovals,
   agentLanguageOptions,
   backendOptions,
   bridgeCommand,
   composerEnterBehaviorOptions,
+  drafts,
+  enqueueSideChatDraft,
   followUpPolicyOptions,
   ignoredRecordCount,
   i18n,
@@ -53,11 +51,14 @@ export function InspectorPane({
   persistenceNotes,
   providerRouteOptions,
   providerSummary,
+  removeSideChatDraft,
   reviewDeliveryOptions,
   resolveApproval,
   routingModeOptions,
   runtimeSnapshot,
   runnerMode,
+  runnerBusy,
+  runnerStatus,
   sessionDefaults,
   settingsLabels,
   setComposerPrompt,
@@ -68,13 +69,17 @@ export function InspectorPane({
   updateUiLanguage
 }: {
   readonly activeExternalSession?: ProjectedActiveSession["externalSessions"][string];
+  readonly activeRunMode?: DesktopRunnerMode;
   readonly activeSession?: ProjectedActiveSession;
+  readonly attachFileContext: () => void;
   readonly canFollowUpApprovals: boolean;
   readonly agentLanguageOptions: readonly { readonly value: string; readonly label: string }[];
   readonly backendOptions: readonly WorkbenchCatalogOption[];
   readonly bridgeCommand: string;
   readonly ignoredRecordCount: number;
   readonly composerEnterBehaviorOptions: readonly { readonly value: string; readonly label: string }[];
+  readonly drafts: readonly SideChatDraft[];
+  readonly enqueueSideChatDraft: (text: string, sourceLabel?: string) => void;
   readonly followUpPolicyOptions: readonly { readonly value: string; readonly label: string }[];
   readonly i18n: UiI18n;
   readonly inspectorTab: string;
@@ -84,11 +89,14 @@ export function InspectorPane({
   readonly persistenceNotes: readonly string[];
   readonly providerRouteOptions: readonly WorkbenchCatalogOption[];
   readonly providerSummary: string;
+  readonly removeSideChatDraft: (draftId: string) => void;
   readonly reviewDeliveryOptions: readonly { readonly value: string; readonly label: string }[];
   readonly resolveApproval: (approvalId: string, decision: ApprovalDecision) => void;
   readonly routingModeOptions: readonly { readonly value: string; readonly label: string }[];
   readonly runtimeSnapshot: WorkbenchRuntimeSnapshot;
+  readonly runnerBusy: boolean;
   readonly runnerMode: DesktopRunnerMode;
+  readonly runnerStatus: string;
   readonly sessionDefaults: WorkbenchSessionDefaults;
   readonly settingsLabels: WorkbenchSettingsLabels;
   readonly setComposerPrompt: (prompt: string) => void;
@@ -98,26 +106,6 @@ export function InspectorPane({
   readonly updateSessionDefaults: (patch: Partial<WorkbenchSessionDefaults>) => void;
   readonly updateUiLanguage: (language: string) => void;
 }) {
-  const [sideChatDrafts, setSideChatDrafts] = useState<readonly SideChatDraft[]>([]);
-  const enqueueSideChatDraft = useCallback((text: string, sourceLabel?: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) {
-      return;
-    }
-
-    setSideChatDrafts((current) => [
-      ...current,
-      {
-        id: `side-chat-draft-${Date.now()}-${current.length + 1}`,
-        text: trimmed,
-        sourceLabel
-      }
-    ]);
-  }, []);
-  const removeSideChatDraft = useCallback((draftId: string) => {
-    setSideChatDrafts((current) => current.filter((draft) => draft.id !== draftId));
-  }, []);
-
   return (
     <aside className="inspector-surface">
       <div className="environment-card">
@@ -151,6 +139,24 @@ export function InspectorPane({
               </p>
             </div>
           </div>
+        </div>
+        <div className="mt-3 rounded-md border border-[color:var(--border)] bg-[color:var(--panel)] px-3 py-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="muted-meta">{i18n.t("workbench.runner.mode")}</p>
+            <span className={runnerBusy ? "status-pill status-warn" : "status-pill status-neutral"}>
+              {runnerBusy
+                ? i18n.t("workbench.runner.running")
+                : runnerMode === "claude-live"
+                  ? i18n.t("workbench.runner.claudeLive")
+                  : i18n.t("workbench.runner.fixture")}
+            </span>
+          </div>
+          <p className="mt-2 truncate font-mono text-[11px] leading-5 text-[color:var(--ink-soft)]">
+            {runnerStatus ||
+              (activeRunMode
+                ? `${activeRunMode} ${i18n.t("workbench.runner.running")}`
+                : i18n.t("workbench.runner.fixtureReady"))}
+          </p>
         </div>
         <p className="mt-3 rounded-md border border-[color:var(--border)] bg-[color:var(--panel)] px-3 py-2 font-mono text-[11px] leading-5 text-[color:var(--ink-soft)]">
           {formatProviderSummary(providerSummary)}
@@ -193,6 +199,7 @@ export function InspectorPane({
           activeSession={activeSession}
           bridgeCommand={bridgeCommand}
           canFollowUpApprovals={canFollowUpApprovals}
+          enqueueSideChatDraft={enqueueSideChatDraft}
           i18n={i18n}
           ignoredRecordCount={ignoredRecordCount}
           inspectorData={inspectorData}
@@ -203,6 +210,7 @@ export function InspectorPane({
         <InspectorTerminalTab
           activeSession={activeSession}
           commandOutputs={inspectorData?.commandOutputs}
+          enqueueSideChatDraft={enqueueSideChatDraft}
           i18n={i18n}
         />
         <WorkspacePlaceholderTab
@@ -212,12 +220,13 @@ export function InspectorPane({
         />
         <InspectorFilesTab
           activeSession={activeSession}
+          attachFileContext={attachFileContext}
           enqueueSideChatDraft={enqueueSideChatDraft}
           inspectorData={inspectorData}
           i18n={i18n}
         />
         <InspectorSideChatTab
-          drafts={sideChatDrafts}
+          drafts={drafts}
           enqueueSideChatDraft={enqueueSideChatDraft}
           followUpPolicy={sessionDefaults.followUpPolicy}
           i18n={i18n}
