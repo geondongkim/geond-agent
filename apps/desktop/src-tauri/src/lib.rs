@@ -116,6 +116,86 @@ pub struct WorkbenchApprovalRecord {
     updated_at: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkbenchContextAttachmentRecord {
+    session_id: String,
+    attachment_id: String,
+    kind: String,
+    title: String,
+    provenance: String,
+    content_state: String,
+    path: Option<String>,
+    language: Option<String>,
+    range: Option<Value>,
+    summary: Option<String>,
+    attached_at: Option<String>,
+    source_event_id: Option<i64>,
+    updated_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkbenchToolCallRecord {
+    session_id: String,
+    tool_call_id: String,
+    name: String,
+    status: String,
+    input_summary: Option<String>,
+    output_summary: Option<String>,
+    source_event_id: Option<i64>,
+    updated_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkbenchCommandOutputRecord {
+    session_id: String,
+    command_id: String,
+    status: String,
+    exit_code: Option<i64>,
+    chunk_count: i64,
+    stdout_preview: Option<String>,
+    stderr_preview: Option<String>,
+    source_event_id: Option<i64>,
+    updated_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkbenchDiffSummaryRecord {
+    session_id: String,
+    diff_id: String,
+    title: Option<String>,
+    file_count: i64,
+    additions: i64,
+    deletions: i64,
+    summary: Option<String>,
+    files: Value,
+    source_event_id: Option<i64>,
+    updated_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkbenchUsageMetadataRecord {
+    session_id: String,
+    usage_id: String,
+    source: String,
+    model: Option<String>,
+    input_tokens: Option<i64>,
+    output_tokens: Option<i64>,
+    cache_creation_input_tokens: Option<i64>,
+    cache_read_input_tokens: Option<i64>,
+    context_window: Option<i64>,
+    max_output_tokens: Option<i64>,
+    cost_usd: Option<f64>,
+    service_tier: Option<String>,
+    note: Option<String>,
+    source_event_id: Option<i64>,
+    updated_at: Option<String>,
+}
+
 type ProcessHandle = Arc<Mutex<Child>>;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -130,6 +210,11 @@ pub fn run() {
             list_workbench_events,
             list_workbench_sessions,
             list_workbench_approvals,
+            list_workbench_context_attachments,
+            list_workbench_tool_calls,
+            list_workbench_command_outputs,
+            list_workbench_diff_summaries,
+            list_workbench_usage_metadata,
             delete_workbench_session_events,
             list_workspaces,
             run_claude_code_stream_json,
@@ -297,6 +382,51 @@ fn list_workbench_approvals(
 ) -> Result<Vec<WorkbenchApprovalRecord>, String> {
     let connection = open_event_store(&app)?;
     list_approval_records(&connection, session_id.as_deref(), status.as_deref())
+}
+
+#[tauri::command]
+fn list_workbench_context_attachments(
+    app: AppHandle,
+    session_id: Option<String>,
+) -> Result<Vec<WorkbenchContextAttachmentRecord>, String> {
+    let connection = open_event_store(&app)?;
+    list_context_attachment_records(&connection, session_id.as_deref())
+}
+
+#[tauri::command]
+fn list_workbench_tool_calls(
+    app: AppHandle,
+    session_id: Option<String>,
+) -> Result<Vec<WorkbenchToolCallRecord>, String> {
+    let connection = open_event_store(&app)?;
+    list_tool_call_records(&connection, session_id.as_deref())
+}
+
+#[tauri::command]
+fn list_workbench_command_outputs(
+    app: AppHandle,
+    session_id: Option<String>,
+) -> Result<Vec<WorkbenchCommandOutputRecord>, String> {
+    let connection = open_event_store(&app)?;
+    list_command_output_records(&connection, session_id.as_deref())
+}
+
+#[tauri::command]
+fn list_workbench_diff_summaries(
+    app: AppHandle,
+    session_id: Option<String>,
+) -> Result<Vec<WorkbenchDiffSummaryRecord>, String> {
+    let connection = open_event_store(&app)?;
+    list_diff_summary_records(&connection, session_id.as_deref())
+}
+
+#[tauri::command]
+fn list_workbench_usage_metadata(
+    app: AppHandle,
+    session_id: Option<String>,
+) -> Result<Vec<WorkbenchUsageMetadataRecord>, String> {
+    let connection = open_event_store(&app)?;
+    list_usage_metadata_records(&connection, session_id.as_deref())
 }
 
 #[tauri::command]
@@ -1408,6 +1538,187 @@ fn list_approval_records(
     rows.collect::<Result<Vec<_>, _>>().map_err(to_string)
 }
 
+fn list_context_attachment_records(
+    connection: &Connection,
+    session_id: Option<&str>,
+) -> Result<Vec<WorkbenchContextAttachmentRecord>, String> {
+    let mut statement = connection
+        .prepare(
+            "select session_id, attachment_id, kind, title, provenance, content_state, path,
+                    language, range_json, summary, attached_at, source_event_id, updated_at
+             from workbench_context_attachments
+             where (?1 is null or session_id = ?1)
+             order by coalesce(attached_at, updated_at, ''), session_id, attachment_id",
+        )
+        .map_err(to_string)?;
+
+    let rows = statement
+        .query_map(params![session_id], |row| {
+            let range_json: Option<String> = row.get(8)?;
+            Ok(WorkbenchContextAttachmentRecord {
+                session_id: row.get(0)?,
+                attachment_id: row.get(1)?,
+                kind: row.get(2)?,
+                title: row.get(3)?,
+                provenance: row.get(4)?,
+                content_state: row.get(5)?,
+                path: row.get(6)?,
+                language: row.get(7)?,
+                range: parse_optional_json_value(range_json),
+                summary: row.get(9)?,
+                attached_at: row.get(10)?,
+                source_event_id: row.get(11)?,
+                updated_at: row.get(12)?,
+            })
+        })
+        .map_err(to_string)?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(to_string)
+}
+
+fn list_tool_call_records(
+    connection: &Connection,
+    session_id: Option<&str>,
+) -> Result<Vec<WorkbenchToolCallRecord>, String> {
+    let mut statement = connection
+        .prepare(
+            "select session_id, tool_call_id, name, status, input_summary, output_summary,
+                    source_event_id, updated_at
+             from workbench_tool_calls
+             where (?1 is null or session_id = ?1)
+             order by coalesce(updated_at, ''), session_id, tool_call_id",
+        )
+        .map_err(to_string)?;
+
+    let rows = statement
+        .query_map(params![session_id], |row| {
+            Ok(WorkbenchToolCallRecord {
+                session_id: row.get(0)?,
+                tool_call_id: row.get(1)?,
+                name: row.get(2)?,
+                status: row.get(3)?,
+                input_summary: row.get(4)?,
+                output_summary: row.get(5)?,
+                source_event_id: row.get(6)?,
+                updated_at: row.get(7)?,
+            })
+        })
+        .map_err(to_string)?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(to_string)
+}
+
+fn list_command_output_records(
+    connection: &Connection,
+    session_id: Option<&str>,
+) -> Result<Vec<WorkbenchCommandOutputRecord>, String> {
+    let mut statement = connection
+        .prepare(
+            "select session_id, command_id, status, exit_code, chunk_count, stdout_preview,
+                    stderr_preview, source_event_id, updated_at
+             from workbench_command_outputs
+             where (?1 is null or session_id = ?1)
+             order by coalesce(updated_at, ''), session_id, command_id",
+        )
+        .map_err(to_string)?;
+
+    let rows = statement
+        .query_map(params![session_id], |row| {
+            Ok(WorkbenchCommandOutputRecord {
+                session_id: row.get(0)?,
+                command_id: row.get(1)?,
+                status: row.get(2)?,
+                exit_code: row.get(3)?,
+                chunk_count: row.get(4)?,
+                stdout_preview: row.get(5)?,
+                stderr_preview: row.get(6)?,
+                source_event_id: row.get(7)?,
+                updated_at: row.get(8)?,
+            })
+        })
+        .map_err(to_string)?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(to_string)
+}
+
+fn list_diff_summary_records(
+    connection: &Connection,
+    session_id: Option<&str>,
+) -> Result<Vec<WorkbenchDiffSummaryRecord>, String> {
+    let mut statement = connection
+        .prepare(
+            "select session_id, diff_id, title, file_count, additions, deletions, summary,
+                    files_json, source_event_id, updated_at
+             from workbench_diff_summaries
+             where (?1 is null or session_id = ?1)
+             order by coalesce(updated_at, ''), session_id, diff_id",
+        )
+        .map_err(to_string)?;
+
+    let rows = statement
+        .query_map(params![session_id], |row| {
+            let files_json: String = row.get(7)?;
+            Ok(WorkbenchDiffSummaryRecord {
+                session_id: row.get(0)?,
+                diff_id: row.get(1)?,
+                title: row.get(2)?,
+                file_count: row.get(3)?,
+                additions: row.get(4)?,
+                deletions: row.get(5)?,
+                summary: row.get(6)?,
+                files: parse_json_value(&files_json, Value::Array(Vec::new())),
+                source_event_id: row.get(8)?,
+                updated_at: row.get(9)?,
+            })
+        })
+        .map_err(to_string)?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(to_string)
+}
+
+fn list_usage_metadata_records(
+    connection: &Connection,
+    session_id: Option<&str>,
+) -> Result<Vec<WorkbenchUsageMetadataRecord>, String> {
+    let mut statement = connection
+        .prepare(
+            "select session_id, usage_id, source, model, input_tokens, output_tokens,
+                    cache_creation_input_tokens, cache_read_input_tokens, context_window,
+                    max_output_tokens, cost_usd, service_tier, note, source_event_id, updated_at
+             from workbench_usage_metadata
+             where (?1 is null or session_id = ?1)
+             order by coalesce(updated_at, ''), session_id, usage_id",
+        )
+        .map_err(to_string)?;
+
+    let rows = statement
+        .query_map(params![session_id], |row| {
+            Ok(WorkbenchUsageMetadataRecord {
+                session_id: row.get(0)?,
+                usage_id: row.get(1)?,
+                source: row.get(2)?,
+                model: row.get(3)?,
+                input_tokens: row.get(4)?,
+                output_tokens: row.get(5)?,
+                cache_creation_input_tokens: row.get(6)?,
+                cache_read_input_tokens: row.get(7)?,
+                context_window: row.get(8)?,
+                max_output_tokens: row.get(9)?,
+                cost_usd: row.get(10)?,
+                service_tier: row.get(11)?,
+                note: row.get(12)?,
+                source_event_id: row.get(13)?,
+                updated_at: row.get(14)?,
+            })
+        })
+        .map_err(to_string)?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(to_string)
+}
+
+fn parse_optional_json_value(serialized: Option<String>) -> Option<Value> {
+    serialized.and_then(|value| serde_json::from_str::<Value>(&value).ok())
+}
+
+fn parse_json_value(serialized: &str, fallback: Value) -> Value {
+    serde_json::from_str::<Value>(serialized).unwrap_or(fallback)
+}
+
 fn pending_approval_ids_for_session(
     connection: &Connection,
     session_id: &str,
@@ -2217,69 +2528,46 @@ mod tests {
         )
         .expect("append materialized event view records");
 
-        let context_title: String = connection
-            .query_row(
-                "select title from workbench_context_attachments where session_id = ?1 and attachment_id = ?2",
-                params!["session-views", "context-workspace"],
-                |row| row.get(0),
-            )
-            .expect("context title");
-        let tool_row: (String, Option<String>) = connection
-            .query_row(
-                "select status, output_summary
-                 from workbench_tool_calls
-                 where session_id = ?1 and tool_call_id = ?2",
-                params!["session-views", "tool-read"],
-                |row| Ok((row.get(0)?, row.get(1)?)),
-            )
-            .expect("tool row");
-        let command_row: (i64, Option<i64>, Option<String>, Option<String>) = connection
-            .query_row(
-                "select chunk_count, exit_code, stdout_preview, stderr_preview
-                 from workbench_command_outputs
-                 where session_id = ?1 and command_id = ?2",
-                params!["session-views", "cmd-verify"],
-                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
-            )
-            .expect("command output");
-        let diff_row: (i64, i64, i64) = connection
-            .query_row(
-                "select file_count, additions, deletions
-                 from workbench_diff_summaries
-                 where session_id = ?1 and diff_id = ?2",
-                params!["session-views", "diff-1"],
-                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-            )
-            .expect("diff summary");
-        let usage_row: (String, Option<i64>, Option<f64>) = connection
-            .query_row(
-                "select model, input_tokens, cost_usd
-                 from workbench_usage_metadata
-                 where session_id = ?1 and usage_id = ?2",
-                params!["session-views", "usage-1"],
-                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-            )
-            .expect("usage metadata");
+        let contexts = list_context_attachment_records(&connection, Some("session-views"))
+            .expect("list context attachments");
+        let tool_calls =
+            list_tool_call_records(&connection, Some("session-views")).expect("list tool calls");
+        let command_outputs = list_command_output_records(&connection, Some("session-views"))
+            .expect("list command outputs");
+        let diffs =
+            list_diff_summary_records(&connection, Some("session-views")).expect("list diffs");
+        let usage = list_usage_metadata_records(&connection, Some("session-views"))
+            .expect("list usage metadata");
 
-        assert_eq!(context_title, "geond-agent");
+        assert_eq!(contexts.len(), 1);
+        assert_eq!(contexts[0].title, "geond-agent");
+        assert_eq!(contexts[0].path.as_deref(), Some("/workspace/geond-agent"));
+        assert_eq!(tool_calls.len(), 1);
+        assert_eq!(tool_calls[0].status, "succeeded");
         assert_eq!(
-            tool_row,
-            (
-                "succeeded".to_string(),
-                Some("Read complete without status".to_string())
-            )
+            tool_calls[0].output_summary.as_deref(),
+            Some("Read complete without status")
+        );
+        assert_eq!(command_outputs.len(), 1);
+        assert_eq!(command_outputs[0].chunk_count, 2);
+        assert_eq!(command_outputs[0].exit_code, Some(0));
+        assert_eq!(
+            command_outputs[0].stdout_preview.as_deref(),
+            Some("pnpm verify")
         );
         assert_eq!(
-            command_row,
-            (
-                2,
-                Some(0),
-                Some("pnpm verify".to_string()),
-                Some("warning".to_string())
-            )
+            command_outputs[0].stderr_preview.as_deref(),
+            Some("warning")
         );
-        assert_eq!(diff_row, (2, 5, 1));
-        assert_eq!(usage_row, ("glm-5.2".to_string(), Some(120), Some(0.0123)));
+        assert_eq!(diffs.len(), 1);
+        assert_eq!(diffs[0].file_count, 2);
+        assert_eq!(diffs[0].additions, 5);
+        assert_eq!(diffs[0].deletions, 1);
+        assert_eq!(diffs[0].files.as_array().map(Vec::len), Some(2));
+        assert_eq!(usage.len(), 1);
+        assert_eq!(usage[0].model.as_deref(), Some("glm-5.2"));
+        assert_eq!(usage[0].input_tokens, Some(120));
+        assert_eq!(usage[0].cost_usd, Some(0.0123));
     }
 
     #[test]
