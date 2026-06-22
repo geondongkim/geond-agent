@@ -5,7 +5,11 @@ import {
   type WorkbenchSessionDefaults
 } from "@geond-agent/ui-workbench";
 
-import type { DesktopDemoDocument, DesktopRunnerMode } from "./demo-workbench.js";
+import type {
+  DesktopDemoDocument,
+  DesktopRunnerMode,
+  DesktopWorkbenchLayoutPreference
+} from "./demo-workbench.js";
 import { CommandPalette, type CommandPaletteAction } from "./components/workbench/command-palette.js";
 import { AppBar } from "./panes/app-bar.js";
 import { InspectorPane } from "./panes/inspector.js";
@@ -39,18 +43,17 @@ export function App({ document }: AppProps) {
   const [selectedWorkspaces, setSelectedWorkspaces] = useState(document.workspaces);
   const [pinnedSessionIds, setPinnedSessionIds] = useState(document.pinnedSessionIds);
   const [sessionQuery, setSessionQuery] = useState("");
-  const [inspectorTab, setInspectorTab] = useState("review");
+  const [layoutPreference, setLayoutPreference] = useState(document.layoutPreference);
   const [runnerMode, setRunnerMode] = useState<DesktopRunnerMode>(document.runnerMode);
   const [ignoredRecordCount, setIgnoredRecordCount] = useState(document.ignoredRecordCount);
   const [composerPrompt, setComposerPrompt] = useState("");
-  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
-  const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [materializedInspectorData, setMaterializedInspectorData] = useState<
     InspectorSessionReadModel | undefined
   >(() => createProjectionInspectorSessionReadModel(document.initialControllerSnapshot.projection.activeSession));
 
   const i18n = runtimeSnapshot.i18n;
+  const { inspectorTab, leftPanelOpen, rightPanelOpen } = layoutPreference;
   const {
     agentLanguageOptions,
     backendOptions,
@@ -294,8 +297,45 @@ export function App({ document }: AppProps) {
   }, [activeSession, controllerSnapshot.events.length, document]);
 
   function openInspectorTab(tab: string) {
-    setInspectorTab(tab);
-    setRightPanelOpen(true);
+    updateLayoutPreference({
+      inspectorTab: tab,
+      rightPanelOpen: true
+    });
+  }
+
+  function setInspectorTab(tab: string) {
+    updateLayoutPreference({ inspectorTab: tab });
+  }
+
+  function setLeftPanelOpen(value: boolean | ((open: boolean) => boolean)) {
+    updateLayoutPreference((previous) => ({
+      leftPanelOpen:
+        typeof value === "function" ? value(previous.leftPanelOpen) : value
+    }));
+  }
+
+  function setRightPanelOpen(value: boolean | ((open: boolean) => boolean)) {
+    updateLayoutPreference((previous) => ({
+      rightPanelOpen:
+        typeof value === "function" ? value(previous.rightPanelOpen) : value
+    }));
+  }
+
+  function updateLayoutPreference(
+    patch:
+      | Partial<DesktopWorkbenchLayoutPreference>
+      | ((
+          previous: DesktopWorkbenchLayoutPreference
+        ) => Partial<DesktopWorkbenchLayoutPreference>)
+  ) {
+    setLayoutPreference((previous) => {
+      const next = {
+        ...previous,
+        ...(typeof patch === "function" ? patch(previous) : patch)
+      };
+      void document.saveLayoutPreference(next);
+      return next;
+    });
   }
 
   return (
