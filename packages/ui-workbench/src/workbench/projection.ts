@@ -2,6 +2,9 @@ import type {
   ApprovalDecision,
   CommandStatus,
   WorkbenchEvent,
+  WorkbenchProviderRouteHealthStatus,
+  WorkbenchRunnerIssueKind,
+  WorkbenchRunnerIssueSuggestedAction,
   WorkbenchSessionLifecycle
 } from "./events.js";
 import {
@@ -82,6 +85,19 @@ export interface ProjectedCommandOutput {
   readonly chunkCount: number;
 }
 
+export interface ProjectedProviderRouteHealth {
+  readonly providerRouteId: string;
+  readonly latestHealth: WorkbenchProviderRouteHealthStatus;
+  readonly latestIssueKind?: WorkbenchRunnerIssueKind;
+  readonly latestIssueTitle?: string;
+  readonly latestIssueMessage?: string;
+  readonly issueCount: number;
+  readonly retryableIssueCount: number;
+  readonly lastDetectedAt?: string;
+  readonly suggestedActions: readonly WorkbenchRunnerIssueSuggestedAction[];
+  readonly modelProfileIds: readonly string[];
+}
+
 export interface ProjectedWorkbenchSession {
   readonly id: string;
   readonly title: string;
@@ -98,6 +114,7 @@ export interface ProjectedWorkbenchSession {
   readonly usageReports: readonly WorkbenchSessionSnapshot["usageReports"][string][];
   readonly runAttempts: readonly WorkbenchSessionSnapshot["runAttempts"][string][];
   readonly runnerIssues: readonly WorkbenchSessionSnapshot["runnerIssues"][string][];
+  readonly providerRouteHealth: readonly ProjectedProviderRouteHealth[];
   readonly approvals: readonly WorkbenchSessionSnapshot["approvals"][string][];
   readonly notices: WorkbenchSessionSnapshot["notices"];
   readonly timeline: readonly WorkbenchTimelineEntry[];
@@ -242,6 +259,8 @@ function projectActiveSession(
   session: WorkbenchSessionSnapshot,
   events: readonly WorkbenchEvent[]
 ): ProjectedWorkbenchSession {
+  const runnerIssues = Object.values(session.runnerIssues).sort(compareRunnerIssuesByRecency);
+
   return {
     id: session.id,
     title: session.title ?? session.id,
@@ -257,11 +276,83 @@ function projectActiveSession(
     diffs: Object.values(session.diffs),
     usageReports: Object.values(session.usageReports),
     runAttempts: Object.values(session.runAttempts).sort(compareRunAttemptsByRecency),
-    runnerIssues: Object.values(session.runnerIssues).sort(compareRunnerIssuesByRecency),
+    runnerIssues,
+    providerRouteHealth: projectProviderRouteHealth(runnerIssues),
     approvals: Object.values(session.approvals),
     notices: session.notices,
     timeline: events.map(projectTimelineEntry).filter((entry): entry is WorkbenchTimelineEntry => entry !== undefined)
   };
+}
+
+function projectProviderRouteHealth(
+  issues: readonly WorkbenchSessionSnapshot["runnerIssues"][string][]
+): readonly ProjectedProviderRouteHealth[] {
+  const byRoute = new Map<
+    string,
+    {
+      providerRouteId: string;
+      latestHealth: WorkbenchProviderRouteHealthStatus;
+      latestIssueKind?: WorkbenchRunnerIssueKind;
+      latestIssueTitle?: string;
+      latestIssueMessage?: string;
+      issueCount: number;
+      retryableIssueCount: number;
+      lastDetectedAt?: string;
+      suggestedActions: Set<WorkbenchRunnerIssueSuggestedAction>;
+      modelProfileIds: Set<string>;
+    }
+  >();
+
+  issues.forEach((issue) => {
+    const providerRouteId = issue.providerRouteId ?? "unknown-provider-route";
+    const current = byRoute.get(providerRouteId);
+    const nextDetectedAt = issue.detectedAt;
+    const isNewer =
+      !current ||
+      compareMaybeIso(nextDetectedAt, current.lastDetectedAt) >= 0;
+    const entry = current ?? {
+      providerRouteId,
+      latestHealth: "unknown" as WorkbenchProviderRouteHealthStatus,
+      issueCount: 0,
+      retryableIssueCount: 0,
+      suggestedActions: new Set<WorkbenchRunnerIssueSuggestedAction>(),
+      modelProfileIds: new Set<string>()
+    };
+
+    entry.issueCount += 1;
+    entry.retryableIssueCount += issue.retryable ? 1 : 0;
+    entry.suggestedActions.add(issue.suggestedAction);
+    if (issue.modelProfileId) {
+      entry.modelProfileIds.add(issue.modelProfileId);
+    }
+    if (isNewer) {
+      entry.latestHealth = issue.routeHealth ?? "unknown";
+      entry.latestIssueKind = issue.kind;
+      entry.latestIssueTitle = issue.title;
+      entry.latestIssueMessage = issue.message;
+      entry.lastDetectedAt = nextDetectedAt;
+    }
+
+    byRoute.set(providerRouteId, entry);
+  });
+
+  return Array.from(byRoute.values())
+    .map((entry) => ({
+      providerRouteId: entry.providerRouteId,
+      latestHealth: entry.latestHealth,
+      latestIssueKind: entry.latestIssueKind,
+      latestIssueTitle: entry.latestIssueTitle,
+      latestIssueMessage: entry.latestIssueMessage,
+      issueCount: entry.issueCount,
+      retryableIssueCount: entry.retryableIssueCount,
+      lastDetectedAt: entry.lastDetectedAt,
+      suggestedActions: Array.from(entry.suggestedActions).sort(),
+      modelProfileIds: Array.from(entry.modelProfileIds).sort()
+    }))
+    .sort((left, right) =>
+      compareMaybeIso(right.lastDetectedAt, left.lastDetectedAt) ||
+      left.providerRouteId.localeCompare(right.providerRouteId)
+    );
 }
 
 function projectCommandOutput(command: CommandOutputSnapshot): ProjectedCommandOutput {

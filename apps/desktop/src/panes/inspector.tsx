@@ -204,9 +204,12 @@ export function InspectorPane({
           i18n={i18n}
           ignoredRecordCount={ignoredRecordCount}
           inspectorData={inspectorData}
+          providerRouteOptions={providerRouteOptions}
           resolveApproval={resolveApproval}
           runtimeSnapshot={runtimeSnapshot}
+          sessionDefaults={sessionDefaults}
           setInspectorTab={setInspectorTab}
+          updateSessionDefaults={updateSessionDefaults}
         />
         <InspectorTerminalTab
           activeSession={activeSession}
