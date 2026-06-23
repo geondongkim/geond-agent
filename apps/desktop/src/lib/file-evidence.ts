@@ -1,7 +1,7 @@
 import { redactSensitiveTextContent } from "@geond-agent/claude-code-bridge";
 
 import type { InspectorSessionReadModel } from "./inspector-read-model.js";
-import type { ProjectedActiveSession } from "./workbench-types.js";
+import type { ProjectedActiveSession, ProjectedSessionListItem } from "./workbench-types.js";
 
 export interface FileEvidencePreviewModel {
   readonly contextCount: number;
@@ -231,6 +231,38 @@ export function createEvidenceReportDraft({
   ].join("\n");
 }
 
+export function createWorkspaceEvidenceReportDraft({
+  activeSession,
+  inspectorData,
+  sessions
+}: {
+  readonly activeSession?: ProjectedActiveSession;
+  readonly inspectorData?: InspectorSessionReadModel;
+  readonly sessions: readonly ProjectedSessionListItem[];
+}): string {
+  const activeSessionId = activeSession?.id ?? inspectorData?.sessionId;
+  const activeBundle = createEvidenceBundleDraft({ activeSession, inspectorData });
+
+  return [
+    "Workbench workspace report (metadata only).",
+    "Raw private file contents, raw Claude logs, API keys, provider account state, and local session files are excluded.",
+    "",
+    `Session count: ${sessions.length}`,
+    activeSessionId ? `Active session: ${safeText(activeSessionId)}` : "Active session: none",
+    "",
+    "Session index",
+    ...formatSessionIndexReportItems(sessions),
+    "",
+    "Active session evidence",
+    activeBundle,
+    "",
+    "Dogfood review prompts",
+    "- Which sessions need retry, resume, or a route switch?",
+    "- Which sessions produced enough evidence for a follow-up issue/report?",
+    "- Are warning/error counts explainable without raw logs?"
+  ].join("\n");
+}
+
 export function createEvidenceBundleFileName({
   activeSession,
   now = new Date()
@@ -246,6 +278,14 @@ export function createEvidenceBundleFileName({
     .slice(0, 48) || "workbench-session";
   const date = now.toISOString().slice(0, 10);
   return `${date}-${slug}-evidence.md`;
+}
+
+export function createWorkspaceEvidenceReportFileName({
+  now = new Date()
+}: {
+  readonly now?: Date;
+} = {}): string {
+  return `${now.toISOString().slice(0, 10)}-workbench-workspace-report.md`;
 }
 
 function formatContextBundleItems(
@@ -317,6 +357,30 @@ function formatRunAttemptBundleItems(
       item.trigger ? `trigger=${safeText(item.trigger)}` : undefined,
       item.failureKind ? `failure=${safeText(item.failureKind)}` : undefined,
       item.errorMessage ? `error=${safeText(item.errorMessage)}` : undefined
+    ]
+      .filter((part): part is string => Boolean(part))
+      .join(" | ")
+  );
+}
+
+function formatSessionIndexReportItems(
+  sessions: readonly ProjectedSessionListItem[]
+): readonly string[] {
+  if (!sessions.length) {
+    return ["- none"];
+  }
+
+  return sessions.map((session) =>
+    [
+      `- ${safeText(session.title)} (${safeText(session.id)}): ${safeText(session.lifecycle)}`,
+      session.workspacePath ? `workspace=${safeText(session.workspacePath)}` : undefined,
+      session.backendAdapterId ? `backend=${safeText(session.backendAdapterId)}` : undefined,
+      session.backendLabel ? `backendLabel=${safeText(session.backendLabel)}` : undefined,
+      `resumable=${session.resumable ? "yes" : "no"}`,
+      `approvals=${session.pendingApprovalCount}`,
+      `warnings=${session.warningCount}`,
+      `errors=${session.errorCount}`,
+      session.updatedAt ? `updated=${safeText(session.updatedAt)}` : undefined
     ]
       .filter((part): part is string => Boolean(part))
       .join(" | ")

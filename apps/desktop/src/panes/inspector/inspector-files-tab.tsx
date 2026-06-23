@@ -9,7 +9,8 @@ import {
   FolderOpen,
   MessageSquarePlus,
   Paperclip,
-  ShieldCheck
+  ShieldCheck,
+  Star
 } from "lucide-react";
 
 import { Button } from "../../components/ui/button.js";
@@ -20,6 +21,8 @@ import {
   createEvidenceBundleDraft,
   createEvidenceBundleFileName,
   createEvidenceReportDraft,
+  createWorkspaceEvidenceReportDraft,
+  createWorkspaceEvidenceReportFileName,
   createEvidenceFollowUpDraft,
   createFileEvidencePreviewModel,
   findFileEvidenceSelection,
@@ -34,7 +37,7 @@ import type { InspectorSessionReadModel } from "../../lib/inspector-read-model.j
 import type { RecentContextItem } from "../../lib/recent-context.js";
 import { exportMarkdownFile } from "../../lib/text-export.js";
 import { formatContextKindLabel } from "../../lib/workbench-format.js";
-import type { ProjectedActiveSession } from "../../lib/workbench-types.js";
+import type { ProjectedActiveSession, ProjectedSessionListItem } from "../../lib/workbench-types.js";
 
 export function InspectorFilesTab({
   activeSession,
@@ -44,8 +47,10 @@ export function InspectorFilesTab({
   enqueueSideChatDraft,
   inspectorData,
   i18n,
+  projectedSessions,
   recentContextItems,
-  setRunnerStatus
+  setRunnerStatus,
+  toggleRecentContextFavorite
 }: {
   readonly activeSession?: ProjectedActiveSession;
   readonly attachRecentContext: (item: RecentContextItem) => void;
@@ -54,12 +59,16 @@ export function InspectorFilesTab({
   readonly enqueueSideChatDraft: (text: string, sourceLabel?: string) => void;
   readonly inspectorData?: InspectorSessionReadModel;
   readonly i18n: UiI18n;
+  readonly projectedSessions: readonly ProjectedSessionListItem[];
   readonly recentContextItems: readonly RecentContextItem[];
   readonly setRunnerStatus: (status: string) => void;
+  readonly toggleRecentContextFavorite: (itemId: string) => void;
 }) {
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | undefined>();
   const model = createFileEvidencePreviewModel({ activeSession, inspectorData });
   const hasEvidence = model.contextCount > 0 || model.changedFileCount > 0;
+  const favoriteContextItems = recentContextItems.filter((item) => item.favorite);
+  const nonFavoriteContextItems = recentContextItems.filter((item) => !item.favorite);
   const selectedEvidence = findFileEvidenceSelection(model, selectedEvidenceId);
   const resolvedSelectedEvidenceId = getFileEvidenceSelectionId(selectedEvidence);
 
@@ -94,6 +103,36 @@ export function InspectorFilesTab({
     enqueueSideChatDraft(
       createEvidenceReportDraft({ activeSession, inspectorData }),
       i18n.t("workbench.files.issueReport")
+    );
+  }
+
+  function queueWorkspaceReport() {
+    enqueueSideChatDraft(
+      createWorkspaceEvidenceReportDraft({
+        activeSession,
+        inspectorData,
+        sessions: projectedSessions
+      }),
+      i18n.t("workbench.files.workspaceReport")
+    );
+  }
+
+  async function exportWorkspaceReport() {
+    const result = await exportMarkdownFile({
+      fileName: createWorkspaceEvidenceReportFileName(),
+      text: createWorkspaceEvidenceReportDraft({
+        activeSession,
+        inspectorData,
+        sessions: projectedSessions
+      }),
+      title: i18n.t("workbench.files.exportWorkspaceReport")
+    });
+    setRunnerStatus(
+      result === "saved"
+        ? i18n.t("workbench.files.workspaceReportExportSaved")
+        : result === "downloaded"
+          ? i18n.t("workbench.files.workspaceReportExportDownloaded")
+          : i18n.t("workbench.files.workspaceReportExportCancelled")
     );
   }
 
@@ -169,11 +208,27 @@ export function InspectorFilesTab({
           <Button
             variant="ghost"
             className="gap-2"
+            onClick={queueWorkspaceReport}
+          >
+            <MessageSquarePlus size={14} />
+            {i18n.t("workbench.files.queueWorkspaceReport")}
+          </Button>
+          <Button
+            variant="ghost"
+            className="gap-2"
             onClick={() => void exportEvidenceBundle()}
             disabled={!activeSession}
           >
             <Download size={14} />
             {i18n.t("workbench.files.exportEvidenceBundle")}
+          </Button>
+          <Button
+            variant="ghost"
+            className="gap-2"
+            onClick={() => void exportWorkspaceReport()}
+          >
+            <Download size={14} />
+            {i18n.t("workbench.files.exportWorkspaceReport")}
           </Button>
           <Button
             variant="outline"
@@ -196,22 +251,26 @@ export function InspectorFilesTab({
         </div>
       </div>
 
+      {favoriteContextItems.length > 0 ? (
+        <RecentContextSection
+          attachRecentContext={attachRecentContext}
+          count={favoriteContextItems.length}
+          i18n={i18n}
+          items={favoriteContextItems}
+          title={i18n.t("workbench.files.favoriteContext")}
+          toggleRecentContextFavorite={toggleRecentContextFavorite}
+        />
+      ) : null}
+
       {recentContextItems.length > 0 ? (
-        <EvidenceSection
-          count={recentContextItems.length}
+        <RecentContextSection
+          attachRecentContext={attachRecentContext}
+          count={nonFavoriteContextItems.length}
+          i18n={i18n}
+          items={nonFavoriteContextItems}
           title={i18n.t("workbench.files.recentContext")}
-        >
-          <div className="space-y-2">
-            {recentContextItems.map((item) => (
-              <RecentContextCard
-                key={item.id}
-                i18n={i18n}
-                item={item}
-                onAttach={() => attachRecentContext(item)}
-              />
-            ))}
-          </div>
-        </EvidenceSection>
+          toggleRecentContextFavorite={toggleRecentContextFavorite}
+        />
       ) : null}
 
       {hasEvidence ? (
@@ -270,6 +329,42 @@ export function InspectorFilesTab({
         </div>
       )}
     </TabsContent>
+  );
+}
+
+function RecentContextSection({
+  attachRecentContext,
+  count,
+  i18n,
+  items,
+  title,
+  toggleRecentContextFavorite
+}: {
+  readonly attachRecentContext: (item: RecentContextItem) => void;
+  readonly count: number;
+  readonly i18n: UiI18n;
+  readonly items: readonly RecentContextItem[];
+  readonly title: string;
+  readonly toggleRecentContextFavorite: (itemId: string) => void;
+}) {
+  if (!items.length) {
+    return null;
+  }
+
+  return (
+    <EvidenceSection count={count} title={title}>
+      <div className="space-y-2">
+        {items.map((item) => (
+          <RecentContextCard
+            key={item.id}
+            i18n={i18n}
+            item={item}
+            onAttach={() => attachRecentContext(item)}
+            onToggleFavorite={() => toggleRecentContextFavorite(item.id)}
+          />
+        ))}
+      </div>
+    </EvidenceSection>
   );
 }
 
@@ -380,14 +475,16 @@ function EvidencePreviewCard({
 function RecentContextCard({
   i18n,
   item,
-  onAttach
+  onAttach,
+  onToggleFavorite
 }: {
   readonly i18n: UiI18n;
   readonly item: RecentContextItem;
   readonly onAttach: () => void;
+  readonly onToggleFavorite: () => void;
 }) {
   return (
-    <button type="button" className="file-evidence-card" onClick={onAttach}>
+    <div className="file-evidence-card">
       <div className="file-evidence-card-header">
         <span className="file-evidence-icon">
           {item.kind === "workspace" ? <FolderOpen size={15} /> : <FileText size={15} />}
@@ -403,7 +500,28 @@ function RecentContextCard({
       <dl className="file-evidence-details">
         <EvidenceDetail label={i18n.t("workbench.context.path")} value={item.path} />
       </dl>
-    </button>
+      <div className="mt-3 flex justify-end gap-2">
+        <Button
+          variant="ghost"
+          className="gap-2"
+          onClick={onToggleFavorite}
+          aria-label={
+            item.favorite
+              ? i18n.t("workbench.files.unmarkFavorite")
+              : i18n.t("workbench.files.markFavorite")
+          }
+        >
+          <Star size={14} fill={item.favorite ? "currentColor" : "none"} />
+          {item.favorite
+            ? i18n.t("workbench.files.favorited")
+            : i18n.t("workbench.files.favorite")}
+        </Button>
+        <Button variant="outline" className="gap-2" onClick={onAttach}>
+          <Paperclip size={14} />
+          {i18n.t("workbench.files.attachRecentContext")}
+        </Button>
+      </div>
+    </div>
   );
 }
 

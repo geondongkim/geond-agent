@@ -105,14 +105,23 @@ export function buildClaudeCodeStreamJsonCommand(
       options.modelAlias ?? "sonnet",
       "--permission-mode",
       options.permissionMode ?? "plan",
-      ...(options.externalSessionId
+      ...(isClaudeCodeSessionUuid(options.externalSessionId)
         ? ["--resume", options.externalSessionId]
-        : options.sessionId
+        : isClaudeCodeSessionUuid(options.sessionId)
           ? ["--session-id", options.sessionId]
           : []),
       options.prompt
     ]
   };
+}
+
+function isClaudeCodeSessionUuid(value: string | undefined): value is string {
+  return Boolean(
+    value &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        value
+      )
+  );
 }
 
 export function buildClaudeCodeApprovalFollowUpPrompt({

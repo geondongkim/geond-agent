@@ -6,6 +6,8 @@ import {
   createEvidenceReportDraft,
   createEvidenceFollowUpDraft,
   createFileEvidencePreviewModel,
+  createWorkspaceEvidenceReportDraft,
+  createWorkspaceEvidenceReportFileName,
   findFileEvidenceSelection,
   formatDiffStat,
   formatEvidenceRange
@@ -244,5 +246,58 @@ describe("file evidence preview model", () => {
     expect(report).toContain("Suggested checks");
     expect(report).toContain("Workbench evidence bundle (metadata only).");
     expect(report).toContain("raw Claude logs");
+  });
+
+  it("creates a metadata-only workspace report across sessions", () => {
+    const report = createWorkspaceEvidenceReportDraft({
+      activeSession: {
+        id: "session-1",
+        title: "Claude dogfood",
+        workspacePath: "/workspace/geond-agent",
+        contextAttachments: [],
+        commandOutputs: [],
+        diffs: [],
+        runAttempts: []
+      } as unknown as ProjectedActiveSession,
+      sessions: [
+        {
+          id: "session-1",
+          title: "Claude dogfood",
+          lifecycle: "completed",
+          workspacePath: "/workspace/geond-agent",
+          backendAdapterId: "claude-code.external-cli-acp",
+          backendLabel: "Claude Code",
+          resumable: true,
+          pendingApprovalCount: 0,
+          warningCount: 1,
+          errorCount: 0,
+          updatedAt: "2026-06-24T00:00:00.000Z"
+        },
+        {
+          id: "session-2",
+          title: "Retry path",
+          lifecycle: "failed",
+          resumable: false,
+          pendingApprovalCount: 0,
+          warningCount: 0,
+          errorCount: 1
+        }
+      ]
+    });
+
+    expect(report).toContain("Workbench workspace report (metadata only).");
+    expect(report).toContain("Session count: 2");
+    expect(report).toContain("Claude dogfood (session-1): completed");
+    expect(report).toContain("resumable=yes");
+    expect(report).toContain("Active session evidence");
+    expect(report).not.toContain("sk-local");
+  });
+
+  it("creates stable workspace report filenames", () => {
+    expect(
+      createWorkspaceEvidenceReportFileName({
+        now: new Date("2026-06-24T00:00:00.000Z")
+      })
+    ).toBe("2026-06-24-workbench-workspace-report.md");
   });
 });

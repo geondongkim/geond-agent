@@ -19,6 +19,7 @@ import {
 
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs.js";
 import type { ProjectedActiveSession } from "../lib/workbench-types.js";
+import type { ProjectedSessionListItem } from "../lib/workbench-types.js";
 import { formatProviderSummary } from "../lib/workbench-format.js";
 import { InspectorBrowserTab } from "./inspector/inspector-browser-tab.js";
 import { InspectorFilesTab } from "./inspector/inspector-files-tab.js";
@@ -52,6 +53,7 @@ export function InspectorPane({
   i18n,
   inspectorTab,
   inspectorData,
+  projectedSessions,
   modelAliasOptions,
   permissionModeOptions,
   persistenceNotes,
@@ -71,6 +73,7 @@ export function InspectorPane({
   setComposerPrompt,
   setInspectorTab,
   setRunnerStatus,
+  toggleRecentContextFavorite,
   updateAgentResponseLanguage,
   updateRunnerMode,
   updateSessionDefaults,
@@ -95,6 +98,7 @@ export function InspectorPane({
   readonly i18n: UiI18n;
   readonly inspectorTab: string;
   readonly inspectorData?: InspectorSessionReadModel;
+  readonly projectedSessions: readonly ProjectedSessionListItem[];
   readonly modelAliasOptions: readonly WorkbenchCatalogOption[];
   readonly permissionModeOptions: readonly { readonly value: string; readonly label: string }[];
   readonly persistenceNotes: readonly string[];
@@ -114,6 +118,7 @@ export function InspectorPane({
   readonly setComposerPrompt: (prompt: string) => void;
   readonly setInspectorTab: (tab: string) => void;
   readonly setRunnerStatus: (status: string) => void;
+  readonly toggleRecentContextFavorite: (itemId: string) => void;
   readonly updateAgentResponseLanguage: (language: string) => void;
   readonly updateRunnerMode: (mode: DesktopRunnerMode) => void;
   readonly updateSessionDefaults: (patch: Partial<WorkbenchSessionDefaults>) => void;
@@ -244,8 +249,10 @@ export function InspectorPane({
           enqueueSideChatDraft={enqueueSideChatDraft}
           inspectorData={inspectorData}
           i18n={i18n}
+          projectedSessions={projectedSessions}
           recentContextItems={recentContextItems}
           setRunnerStatus={setRunnerStatus}
+          toggleRecentContextFavorite={toggleRecentContextFavorite}
         />
         <InspectorSideChatTab
           drafts={drafts}

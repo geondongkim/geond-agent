@@ -14,6 +14,7 @@ export interface RecentContextItem {
   readonly label: string;
   readonly path: string;
   readonly updatedAt: string;
+  readonly favorite: boolean;
 }
 
 export async function loadRecentContextItems(
@@ -64,7 +65,8 @@ export function createRecentContextItem({
     kind: normalizedKind,
     label: normalizedLabel,
     path: normalizedPath,
-    updatedAt: normalizeText(updatedAt, 64) ?? new Date().toISOString()
+    updatedAt: normalizeText(updatedAt, 64) ?? new Date().toISOString(),
+    favorite: false
   };
 }
 
@@ -76,10 +78,33 @@ export function mergeRecentContextItem(
     return normalizeRecentContextItems(current);
   }
 
+  const existing = current.find(
+    (entry) => entry.kind === item.kind && entry.path === item.path
+  );
+
   return normalizeRecentContextItems([
-    item,
+    {
+      ...item,
+      favorite: item.favorite || existing?.favorite === true
+    },
     ...current.filter((entry) => entry.kind !== item.kind || entry.path !== item.path)
   ]);
+}
+
+export function toggleRecentContextItemFavorite(
+  current: readonly RecentContextItem[],
+  itemId: string
+): readonly RecentContextItem[] {
+  return normalizeRecentContextItems(
+    current.map((item) =>
+      item.id === itemId
+        ? {
+            ...item,
+            favorite: !item.favorite
+          }
+        : item
+    )
+  );
 }
 
 export function normalizeRecentContextItems(value: unknown): readonly RecentContextItem[] {
@@ -119,7 +144,8 @@ function normalizeRecentContextItem(value: unknown): readonly RecentContextItem[
       kind,
       label,
       path,
-      updatedAt
+      updatedAt,
+      favorite: value.favorite === true
     }
   ];
 }
