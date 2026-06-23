@@ -1,9 +1,8 @@
 import type { UiI18n } from "@geond-agent/ui-workbench";
 
-import { Button } from "../components/ui/button.js";
-import { SessionList } from "../components/workbench/session-list.js";
+import { WorkspaceSessionList } from "../components/workbench/workspace-session-list.js";
 import { cn } from "../lib/cn.js";
-import type { ProjectedSessionListItem } from "../lib/workbench-types.js";
+import type { WorkspaceSessionGroup } from "../lib/workspace-session-groups.js";
 import { backendTone, formatStatusLabel } from "../lib/workbench-format.js";
 import type { DesktopDemoDocument } from "../demo-workbench.js";
 
@@ -19,10 +18,7 @@ export function SessionRailPane({
   sessionQuery,
   setSessionQuery,
   setWorkspacePath,
-  visiblePinnedSessions,
-  visibleRecentSessions,
-  workspaceOptions,
-  workspacePath
+  workspaceSessionGroups
 }: {
   readonly activeSessionId?: string;
   readonly activeSessionTitle?: string;
@@ -33,10 +29,7 @@ export function SessionRailPane({
   readonly sessionQuery: string;
   readonly setSessionQuery: (query: string) => void;
   readonly setWorkspacePath: (path: string) => void;
-  readonly visiblePinnedSessions: readonly ProjectedSessionListItem[];
-  readonly visibleRecentSessions: readonly ProjectedSessionListItem[];
-  readonly workspaceOptions: readonly { readonly label: string; readonly path: string }[];
-  readonly workspacePath: string;
+  readonly workspaceSessionGroups: readonly WorkspaceSessionGroup[];
 }) {
   return (
     <aside className="session-rail">
@@ -45,32 +38,6 @@ export function SessionRailPane({
         <span className="font-mono text-[11px] text-[color:var(--ink-muted)]">
           {projection.sessions.length}
         </span>
-      </div>
-
-      <div className="rail-card">
-        <label className="muted-meta block" htmlFor="workspace-filter">
-          {i18n.t("workbench.sessionSidebar.workspaceSwitcher")}
-        </label>
-        <select
-          id="workspace-filter"
-          value={workspacePath}
-          onChange={(event) => setWorkspacePath(event.target.value)}
-          className="mt-2 h-9 w-full rounded-md border border-[color:var(--border-strong)] bg-[color:var(--panel)] px-3 text-sm outline-none"
-        >
-          <option value="__all__">{i18n.t("workbench.workspace.all")}</option>
-          {workspaceOptions.map((workspace) => (
-            <option key={workspace.path} value={workspace.path}>
-              {workspace.label}
-            </option>
-          ))}
-        </select>
-        <Button
-          variant="outline"
-          className="mt-2 w-full"
-          onClick={() => void chooseWorkspace()}
-        >
-          {i18n.t("workbench.actions.chooseWorkspace")}
-        </Button>
       </div>
 
       <div className="rail-card">
@@ -86,24 +53,16 @@ export function SessionRailPane({
         />
       </div>
 
-      <SessionList
+      <WorkspaceSessionList
         activeSessionId={activeSessionId}
-        title={i18n.t("workbench.sessionSidebar.pinned")}
-        sessions={visiblePinnedSessions}
-        emptyText={i18n.t("workbench.sessionSidebar.noSessions")}
+        chooseWorkspace={chooseWorkspace}
+        groups={workspaceSessionGroups}
         i18n={i18n}
         onSelect={selectSession}
-      />
-      <SessionList
-        activeSessionId={activeSessionId}
-        title={i18n.t("workbench.sessionSidebar.recent")}
-        sessions={visibleRecentSessions}
-        emptyText={i18n.t("workbench.sessionSidebar.noSessions")}
-        i18n={i18n}
-        onSelect={selectSession}
+        onSelectWorkspace={setWorkspacePath}
       />
 
-      <section className="mt-auto space-y-2">
+      <section className="backend-status-section">
         <h3 className="panel-title">
           {i18n.t("workbench.sessionSidebar.backendStatus")}
         </h3>
