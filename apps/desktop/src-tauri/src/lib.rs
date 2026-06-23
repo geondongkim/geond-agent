@@ -20,11 +20,13 @@ const WORKSPACE_SETTINGS_KEY: &str = "geond-agent.workbench.workspace";
 const RUNNER_MODE_SETTINGS_KEY: &str = "geond-agent.workbench.runner-mode";
 const LAYOUT_SETTINGS_KEY: &str = "geond-agent.workbench.layout";
 const SIDE_CHAT_DRAFTS_SETTINGS_KEY: &str = "geond-agent.workbench.side-chat-drafts";
+const RECENT_CONTEXT_SETTINGS_KEY: &str = "geond-agent.workbench.recent-context";
 const LOCAL_ENV_FILE_NAME: &str = ".env.local";
 const CLAUDE_STREAM_EVENT_NAME: &str = "geond-agent://claude-code-stream-json";
 const CLAUDE_DEFAULT_TIMEOUT_MS: u64 = 10 * 60 * 1000;
 const CLAUDE_MAX_TIMEOUT_MS: u64 = 60 * 60 * 1000;
 const PROCESS_OUTPUT_CAP_BYTES: usize = 1024 * 1024;
+const TEXT_EXPORT_CAP_BYTES: usize = 2 * 1024 * 1024;
 const PROCESS_OUTPUT_TRUNCATED_MARKER: &str = "\n... [truncated]\n";
 const EVENT_STORE_SCHEMA_VERSION: i64 = 7;
 const CLAUDE_ENV_KEYS: &[&str] = &[
@@ -266,6 +268,7 @@ pub fn run() {
             list_workbench_run_attempts,
             delete_workbench_session_events,
             list_workspaces,
+            write_text_file,
             probe_claude_code_executable,
             run_claude_code_stream_json,
             cancel_claude_code_stream
@@ -513,6 +516,16 @@ fn delete_workbench_session_events(app: AppHandle, session_id: String) -> Result
 fn list_workspaces() -> Result<Vec<WorkspaceDescriptor>, String> {
     let path = env::current_dir().map_err(to_string)?;
     Ok(vec![workspace_descriptor(path)])
+}
+
+#[tauri::command]
+fn write_text_file(path: String, contents: String) -> Result<(), String> {
+    let path = path.trim();
+    if path.is_empty() {
+        return Err("Export path is required.".to_string());
+    }
+
+    write_text_export_file(PathBuf::from(path), &contents)
 }
 
 #[tauri::command]
@@ -836,9 +849,32 @@ fn ensure_allowed_setting_key(key: &str) -> Result<(), String> {
         | WORKSPACE_SETTINGS_KEY
         | RUNNER_MODE_SETTINGS_KEY
         | LAYOUT_SETTINGS_KEY
-        | SIDE_CHAT_DRAFTS_SETTINGS_KEY => Ok(()),
+        | SIDE_CHAT_DRAFTS_SETTINGS_KEY
+        | RECENT_CONTEXT_SETTINGS_KEY => Ok(()),
         _ => Err("Unsupported settings key.".to_string()),
     }
+}
+
+fn write_text_export_file(path: PathBuf, contents: &str) -> Result<(), String> {
+    if path.as_os_str().is_empty() {
+        return Err("Export path is required.".to_string());
+    }
+    if contents.len() > TEXT_EXPORT_CAP_BYTES {
+        return Err(format!(
+            "Export content exceeds the {TEXT_EXPORT_CAP_BYTES} byte metadata bundle cap."
+        ));
+    }
+    if path.is_dir() {
+        return Err("Export path must be a file.".to_string());
+    }
+
+    if let Some(parent) = path.parent() {
+        if !parent.as_os_str().is_empty() {
+            fs::create_dir_all(parent).map_err(to_string)?;
+        }
+    }
+
+    fs::write(path, contents).map_err(to_string)
 }
 
 fn ensure_stream_json_args(args: &[String]) -> Result<(), String> {
@@ -1252,7 +1288,9 @@ fn migrate_event_store(connection: &mut Connection) -> Result<(), String> {
         }
         if !column_exists(&transaction, "workbench_run_attempts", "source_approval_id")? {
             transaction
-                .execute_batch("alter table workbench_run_attempts add column source_approval_id text;")
+                .execute_batch(
+                    "alter table workbench_run_attempts add column source_approval_id text;",
+                )
                 .map_err(to_string)?;
         }
         transaction
@@ -2863,7 +2901,35 @@ mod tests {
         assert!(ensure_allowed_setting_key(RUNNER_MODE_SETTINGS_KEY).is_ok());
         assert!(ensure_allowed_setting_key(LAYOUT_SETTINGS_KEY).is_ok());
         assert!(ensure_allowed_setting_key(SIDE_CHAT_DRAFTS_SETTINGS_KEY).is_ok());
+        assert!(ensure_allowed_setting_key(RECENT_CONTEXT_SETTINGS_KEY).is_ok());
         assert!(ensure_allowed_setting_key("geond-agent.workbench.provider-credential").is_err());
+    }
+
+    #[test]
+    fn writes_text_export_files_under_explicit_path() {
+        let root = env::temp_dir().join(format!(
+            "geond-agent-text-export-test-{}",
+            std::process::id()
+        ));
+        let path = root.join("nested").join("evidence.md");
+
+        write_text_export_file(path.clone(), "Workbench evidence bundle\n")
+            .expect("write text export");
+
+        let text = fs::read_to_string(&path).expect("read text export");
+        assert_eq!(text, "Workbench evidence bundle\n");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn rejects_invalid_text_export_requests() {
+        assert!(write_text_file(" ".to_string(), "text".to_string()).is_err());
+        assert!(write_text_export_file(PathBuf::from(""), "text").is_err());
+        assert!(write_text_export_file(
+            PathBuf::from("/tmp/geond-agent-too-large.md"),
+            &"x".repeat(TEXT_EXPORT_CAP_BYTES + 1)
+        )
+        .is_err());
     }
 
     #[test]
@@ -3379,13 +3445,13 @@ mod tests {
 
         let inserted = append_events_to_store(&mut connection, events.clone())
             .expect("append large event batch");
-        let duplicate_inserted = append_events_to_store(
-            &mut connection,
-            events.iter().take(10).cloned().collect(),
-        )
-        .expect("append duplicate sample");
+        let duplicate_inserted =
+            append_events_to_store(&mut connection, events.iter().take(10).cloned().collect())
+                .expect("append duplicate sample");
         let all_event_count: i64 = connection
-            .query_row("select count(*) from workbench_events", [], |row| row.get(0))
+            .query_row("select count(*) from workbench_events", [], |row| {
+                row.get(0)
+            })
             .expect("count events");
         let session_a_events: i64 = connection
             .query_row(

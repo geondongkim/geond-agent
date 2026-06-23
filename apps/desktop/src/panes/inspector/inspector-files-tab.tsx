@@ -19,6 +19,7 @@ import { cn } from "../../lib/cn.js";
 import {
   createEvidenceBundleDraft,
   createEvidenceBundleFileName,
+  createEvidenceReportDraft,
   createEvidenceFollowUpDraft,
   createFileEvidencePreviewModel,
   findFileEvidenceSelection,
@@ -30,23 +31,31 @@ import {
   type FileEvidenceSelection
 } from "../../lib/file-evidence.js";
 import type { InspectorSessionReadModel } from "../../lib/inspector-read-model.js";
+import type { RecentContextItem } from "../../lib/recent-context.js";
+import { exportMarkdownFile } from "../../lib/text-export.js";
 import { formatContextKindLabel } from "../../lib/workbench-format.js";
 import type { ProjectedActiveSession } from "../../lib/workbench-types.js";
 
 export function InspectorFilesTab({
   activeSession,
+  attachRecentContext,
   attachFileContext,
   attachWorkspaceContext,
   enqueueSideChatDraft,
   inspectorData,
-  i18n
+  i18n,
+  recentContextItems,
+  setRunnerStatus
 }: {
   readonly activeSession?: ProjectedActiveSession;
+  readonly attachRecentContext: (item: RecentContextItem) => void;
   readonly attachFileContext: () => void;
   readonly attachWorkspaceContext: () => void;
   readonly enqueueSideChatDraft: (text: string, sourceLabel?: string) => void;
   readonly inspectorData?: InspectorSessionReadModel;
   readonly i18n: UiI18n;
+  readonly recentContextItems: readonly RecentContextItem[];
+  readonly setRunnerStatus: (status: string) => void;
 }) {
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | undefined>();
   const model = createFileEvidencePreviewModel({ activeSession, inspectorData });
@@ -77,14 +86,33 @@ export function InspectorFilesTab({
     );
   }
 
-  function exportEvidenceBundle() {
+  function queueEvidenceReport() {
     if (!activeSession) {
       return;
     }
 
-    downloadTextFile(
-      createEvidenceBundleFileName({ activeSession }),
-      createEvidenceBundleDraft({ activeSession, inspectorData })
+    enqueueSideChatDraft(
+      createEvidenceReportDraft({ activeSession, inspectorData }),
+      i18n.t("workbench.files.issueReport")
+    );
+  }
+
+  async function exportEvidenceBundle() {
+    if (!activeSession) {
+      return;
+    }
+
+    const result = await exportMarkdownFile({
+      fileName: createEvidenceBundleFileName({ activeSession }),
+      text: createEvidenceBundleDraft({ activeSession, inspectorData }),
+      title: i18n.t("workbench.files.exportEvidenceBundle")
+    });
+    setRunnerStatus(
+      result === "saved"
+        ? i18n.t("workbench.files.exportSaved")
+        : result === "downloaded"
+          ? i18n.t("workbench.files.exportDownloaded")
+          : i18n.t("workbench.files.exportCancelled")
     );
   }
 
@@ -119,7 +147,7 @@ export function InspectorFilesTab({
         <p className="mt-3 border-t border-white/[0.055] px-1 pt-3 text-xs leading-5 text-[color:var(--ink-soft)]">
           {i18n.t("workbench.files.providerPromptBoundary")}
         </p>
-        <div className="mt-3 flex justify-end gap-2">
+        <div className="mt-3 flex flex-wrap justify-end gap-2">
           <Button
             variant="ghost"
             className="gap-2"
@@ -132,7 +160,16 @@ export function InspectorFilesTab({
           <Button
             variant="ghost"
             className="gap-2"
-            onClick={exportEvidenceBundle}
+            onClick={queueEvidenceReport}
+            disabled={!activeSession}
+          >
+            <MessageSquarePlus size={14} />
+            {i18n.t("workbench.files.queueIssueReport")}
+          </Button>
+          <Button
+            variant="ghost"
+            className="gap-2"
+            onClick={() => void exportEvidenceBundle()}
             disabled={!activeSession}
           >
             <Download size={14} />
@@ -158,6 +195,24 @@ export function InspectorFilesTab({
           </Button>
         </div>
       </div>
+
+      {recentContextItems.length > 0 ? (
+        <EvidenceSection
+          count={recentContextItems.length}
+          title={i18n.t("workbench.files.recentContext")}
+        >
+          <div className="space-y-2">
+            {recentContextItems.map((item) => (
+              <RecentContextCard
+                key={item.id}
+                i18n={i18n}
+                item={item}
+                onAttach={() => attachRecentContext(item)}
+              />
+            ))}
+          </div>
+        </EvidenceSection>
+      ) : null}
 
       {hasEvidence ? (
         <div className="mt-3 space-y-3">
@@ -216,19 +271,6 @@ export function InspectorFilesTab({
       )}
     </TabsContent>
   );
-}
-
-function downloadTextFile(fileName: string, text: string): void {
-  const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = fileName;
-  anchor.rel = "noopener";
-  document.body.append(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
 }
 
 function EvidencePreviewCard({
@@ -335,6 +377,36 @@ function EvidencePreviewCard({
   );
 }
 
+function RecentContextCard({
+  i18n,
+  item,
+  onAttach
+}: {
+  readonly i18n: UiI18n;
+  readonly item: RecentContextItem;
+  readonly onAttach: () => void;
+}) {
+  return (
+    <button type="button" className="file-evidence-card" onClick={onAttach}>
+      <div className="file-evidence-card-header">
+        <span className="file-evidence-icon">
+          {item.kind === "workspace" ? <FolderOpen size={15} /> : <FileText size={15} />}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="muted-meta">{formatRecentContextKindLabel(i18n, item.kind)}</p>
+          <h4 className="truncate text-sm font-semibold">{item.label}</h4>
+        </div>
+        <span className="status-pill status-neutral">
+          {i18n.t("workbench.context.metadataOnly")}
+        </span>
+      </div>
+      <dl className="file-evidence-details">
+        <EvidenceDetail label={i18n.t("workbench.context.path")} value={item.path} />
+      </dl>
+    </button>
+  );
+}
+
 function EvidenceSection({
   children,
   count,
@@ -353,6 +425,12 @@ function EvidenceSection({
       {children}
     </section>
   );
+}
+
+function formatRecentContextKindLabel(i18n: UiI18n, value: RecentContextItem["kind"]): string {
+  return value === "workspace"
+    ? i18n.t("workbench.context.kind.workspace")
+    : i18n.t("workbench.context.kind.file");
 }
 
 function ChangedFileCard({

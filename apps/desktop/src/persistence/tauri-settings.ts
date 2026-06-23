@@ -7,6 +7,7 @@ export const WORKSPACE_SETTINGS_KEY = "geond-agent.workbench.workspace";
 export const RUNNER_MODE_SETTINGS_KEY = "geond-agent.workbench.runner-mode";
 export const LAYOUT_SETTINGS_KEY = "geond-agent.workbench.layout";
 export { SIDE_CHAT_DRAFTS_SETTINGS_KEY } from "../lib/side-chat-drafts.js";
+export { RECENT_CONTEXT_SETTINGS_KEY } from "../lib/recent-context.js";
 
 export function createDesktopLocalSettingsStore(
   fallback: LocalSettingsStore = createBrowserLocalSettingsStore()

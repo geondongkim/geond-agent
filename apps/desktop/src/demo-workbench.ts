@@ -54,6 +54,11 @@ import {
   saveSideChatDrafts,
   type SideChatDraft
 } from "./lib/side-chat-drafts.js";
+import {
+  loadRecentContextItems,
+  saveRecentContextItems,
+  type RecentContextItem
+} from "./lib/recent-context.js";
 import type { DesktopWorkspaceDescriptor } from "./workspace.js";
 import {
   FALLBACK_WORKSPACE,
@@ -86,6 +91,7 @@ export interface DesktopDemoDocument {
   readonly runnerMode: DesktopRunnerMode;
   readonly layoutPreference: DesktopWorkbenchLayoutPreference;
   readonly sideChatDrafts: readonly SideChatDraft[];
+  readonly recentContextItems: readonly RecentContextItem[];
   readonly sessionDefaultWarnings: readonly string[];
   readonly selectionCatalog: WorkbenchSelectionCatalog;
   readonly persistence: WorkbenchPersistenceBoundary;
@@ -116,6 +122,9 @@ export interface DesktopDemoDocument {
   readonly saveSideChatDrafts: (
     drafts: readonly SideChatDraft[]
   ) => Promise<readonly SideChatDraft[]>;
+  readonly saveRecentContextItems: (
+    items: readonly RecentContextItem[]
+  ) => Promise<readonly RecentContextItem[]>;
   readonly saveSessionDefaults: (
     settings: WorkbenchSessionDefaults
   ) => Promise<WorkbenchSessionDefaults>;
@@ -155,6 +164,7 @@ export async function createDesktopDemoDocument(
   const savedRunnerMode = await loadSavedRunnerMode(settingsStore);
   const savedLayoutPreference = await loadSavedLayoutPreference(settingsStore);
   const savedSideChatDrafts = await loadSideChatDrafts(settingsStore);
+  const savedRecentContextItems = await loadRecentContextItems(settingsStore);
   const runner = createClaudeCodeFixtureReplayRunner();
   const liveRunner = createClaudeCodeProcessRunner(createTauriClaudeCodeExecutor());
   const claudeCliProbe = await probeTauriClaudeCodeExecutable();
@@ -210,6 +220,7 @@ export async function createDesktopDemoDocument(
     runnerMode: savedRunnerMode,
     layoutPreference: savedLayoutPreference,
     sideChatDrafts: savedSideChatDrafts,
+    recentContextItems: savedRecentContextItems,
     sessionDefaultWarnings: workbench.sessionDefaultWarnings,
     selectionCatalog: workbench.selectionCatalog,
     persistence: workbench.persistence,
@@ -241,6 +252,7 @@ export async function createDesktopDemoDocument(
       return validated;
     },
     saveSideChatDrafts: (drafts) => saveSideChatDrafts(settingsStore, drafts),
+    saveRecentContextItems: (items) => saveRecentContextItems(settingsStore, items),
     saveSessionDefaults: async (settings) => {
       const validated = validateWorkbenchSessionDefaults(
         settings,

@@ -31,6 +31,7 @@ import {
   normalizeSideChatDrafts,
   type SideChatDraft
 } from "./lib/side-chat-drafts.js";
+import type { RecentContextItem } from "./lib/recent-context.js";
 
 interface AppProps {
   readonly document: DesktopDemoDocument;
@@ -56,6 +57,9 @@ export function App({ document }: AppProps) {
   const [composerPrompt, setComposerPrompt] = useState("");
   const [sideChatDrafts, setSideChatDrafts] = useState<readonly SideChatDraft[]>(
     document.sideChatDrafts
+  );
+  const [recentContextItems, setRecentContextItems] = useState<readonly RecentContextItem[]>(
+    document.recentContextItems
   );
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [materializedInspectorData, setMaterializedInspectorData] = useState<
@@ -170,6 +174,7 @@ export function App({ document }: AppProps) {
   };
   const {
     attachFileContext,
+    attachRecentContext,
     attachWorkspaceContext,
     chooseWorkspace,
     deleteActiveSession,
@@ -194,6 +199,7 @@ export function App({ document }: AppProps) {
     sessionDefaults,
     setControllerSnapshot,
     setPinnedSessionIds,
+    setRecentContextItems,
     setRunnerStatus,
     setRuntimeSnapshot,
     setSelectedWorkspaces,
@@ -472,6 +478,7 @@ export function App({ document }: AppProps) {
               activeExternalSession={activeExternalSession}
               activeRunMode={activeRunMode}
               activeSession={activeSession}
+              attachRecentContext={attachRecentContext}
               attachFileContext={attachFileContext}
               attachWorkspaceContext={attachWorkspaceContext}
               agentLanguageOptions={agentLanguageOptions}
@@ -492,6 +499,7 @@ export function App({ document }: AppProps) {
               persistenceNotes={document.persistence.notes}
               providerRouteOptions={providerRouteOptions}
               providerSummary={document.providerSummary}
+              recentContextItems={recentContextItems}
               removeSideChatDraft={removeSideChatDraft}
               reviewDeliveryOptions={reviewDeliveryOptions}
               resolveApproval={resolveApproval}
@@ -504,6 +512,7 @@ export function App({ document }: AppProps) {
               settingsLabels={settingsLabels}
               setComposerPrompt={setComposerPrompt}
               setInspectorTab={setInspectorTab}
+              setRunnerStatus={setRunnerStatus}
               updateAgentResponseLanguage={updateAgentResponseLanguage}
               updateRunnerMode={updateRunnerMode}
               updateSessionDefaults={updateSessionDefaults}

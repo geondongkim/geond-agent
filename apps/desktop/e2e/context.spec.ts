@@ -25,6 +25,7 @@ test("file evidence, provider prompt disclosure, browser check, and side chat dr
   await expect(filesPanel).toBeVisible();
   await expect(filesPanel.getByText("Evidence preview")).toBeVisible();
   await expect(filesPanel.getByText("Evidence detail")).toBeVisible();
+  await expect(filesPanel.getByText("Recent context")).toBeVisible();
   await expect(filesPanel.getByRole("button", { name: "Attach workspace" })).toBeVisible();
   await expect(filesPanel.getByRole("button", { name: "Attach file" })).toBeVisible();
   await expect(filesPanel.getByRole("heading", { name: "Changed files" })).toBeVisible();
@@ -42,6 +43,16 @@ test("file evidence, provider prompt disclosure, browser check, and side chat dr
   await earlySideChatPanel
     .locator(".side-chat-draft-card")
     .filter({ hasText: "Workbench evidence bundle" })
+    .getByRole("button", { name: "Remove" })
+    .click();
+  await expectSideChatStorage(page, "[]", "equals");
+  await page.getByRole("tab", { name: "Files" }).click();
+  await filesPanel.getByRole("button", { name: "Queue report" }).click();
+  await expectSideChatStorage(page, "Workbench dogfood report");
+  await page.getByRole("tab", { name: "Side chat" }).click();
+  await earlySideChatPanel
+    .locator(".side-chat-draft-card")
+    .filter({ hasText: "Workbench dogfood report" })
     .getByRole("button", { name: "Remove" })
     .click();
   await expectSideChatStorage(page, "[]", "equals");
