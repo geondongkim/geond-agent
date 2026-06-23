@@ -326,8 +326,8 @@ For the first desktop implementation, Tauri app data JSON stores small
 non-secret preferences such as UI language, agent response language, default
 backend, default provider route, default model alias, and layout preference.
 SQLite stores local sessions, workbench events, session snapshots, approvals,
-context attachments, tool calls, command output summaries, diff summaries, and
-usage metadata when available.
+context attachments, tool calls, command output summaries, diff summaries,
+usage metadata, and redacted run attempt summaries when available.
 
 The desktop shell now exposes Tauri commands for app-data JSON preferences and a
 SQLite-backed normalized event store. The native event store uses
@@ -336,15 +336,18 @@ with derived updates. Approval requests and resolutions are materialized into a
 queryable `workbench_approvals` table so pending approval counts come from
 approval rows rather than hand-maintained JSON-only session summaries. The v3
 persistence slice also materializes context attachments, tool calls, command
-output previews, diff summaries, and usage metadata into queryable tables
-derived from the normalized event stream. The desktop shell exposes those
-materialized views through Tauri query commands, and the renderer consumes them
-through a typed `createDesktopMaterializedEventStore` boundary so inspector
-panes do not need to replay the full event stream for every lookup. The active
-inspector read model refreshes the selected session from SQLite materialized
-views and falls back to replay-derived projection data in renderer-only
-development. During renderer-only Vite development, `apps/desktop` keeps a
-browser `localStorage`
+output previews, diff summaries, usage metadata, and run attempt summaries into
+queryable tables derived from the normalized event stream. Run attempt rows
+capture redacted execution evidence such as runner mode, backend/model
+selection, prompt summary, command preview, external session id, normalized
+event counts, parse warning count, exit code, and final status, but never raw
+Claude logs or provider secrets. The desktop shell exposes those materialized
+views through Tauri query commands, and the renderer consumes them through a
+typed `createDesktopMaterializedEventStore` boundary so inspector panes do not
+need to replay the full event stream for every lookup. The active inspector read
+model refreshes the selected session from SQLite materialized views and falls
+back to replay-derived projection data in renderer-only development. During
+renderer-only Vite development, `apps/desktop` keeps a browser `localStorage`
 fallback so the same settings UI can prove save/reload behavior outside the
 native shell. Both paths are limited to non-secret preference keys and
 normalized workbench events; provider secrets, raw Claude logs, account state,

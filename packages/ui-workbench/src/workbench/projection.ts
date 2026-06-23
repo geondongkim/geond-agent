@@ -29,6 +29,7 @@ export type WorkbenchTimelineEntryKind =
   | "command"
   | "diff"
   | "usage"
+  | "run"
   | "approval"
   | "warning"
   | "error";
@@ -94,6 +95,7 @@ export interface ProjectedWorkbenchSession {
   readonly commandOutputs: readonly ProjectedCommandOutput[];
   readonly diffs: readonly WorkbenchSessionSnapshot["diffs"][string][];
   readonly usageReports: readonly WorkbenchSessionSnapshot["usageReports"][string][];
+  readonly runAttempts: readonly WorkbenchSessionSnapshot["runAttempts"][string][];
   readonly approvals: readonly WorkbenchSessionSnapshot["approvals"][string][];
   readonly notices: WorkbenchSessionSnapshot["notices"];
   readonly timeline: readonly WorkbenchTimelineEntry[];
@@ -252,6 +254,7 @@ function projectActiveSession(
     commandOutputs: Object.values(session.commandOutputs).map(projectCommandOutput),
     diffs: Object.values(session.diffs),
     usageReports: Object.values(session.usageReports),
+    runAttempts: Object.values(session.runAttempts).sort(compareRunAttemptsByRecency),
     approvals: Object.values(session.approvals),
     notices: session.notices,
     timeline: events.map(projectTimelineEntry).filter((entry): entry is WorkbenchTimelineEntry => entry !== undefined)
@@ -394,6 +397,24 @@ function projectTimelineEntry(event: WorkbenchEvent): WorkbenchTimelineEntry | u
         body: describeUsage(event.usage),
         status: event.usage.source
       };
+    case "run.attempt.started":
+      return {
+        id: `${event.type}:${event.attempt.id}:${event.at ?? "unknown"}`,
+        kind: "run",
+        at: event.at,
+        title: "Run attempt started",
+        body: describeRunAttempt(event.attempt),
+        status: "running"
+      };
+    case "run.attempt.updated":
+      return {
+        id: `${event.type}:${event.attemptId}:${event.status}:${event.at ?? "unknown"}`,
+        kind: "run",
+        at: event.at,
+        title: `Run attempt ${event.status}`,
+        body: describeRunAttemptUpdate(event),
+        status: event.status
+      };
     case "approval.requested":
       return {
         id: `${event.type}:${event.approval.id}:${event.at ?? "unknown"}`,
@@ -430,6 +451,38 @@ function projectTimelineEntry(event: WorkbenchEvent): WorkbenchTimelineEntry | u
         status: "error"
       };
   }
+}
+
+function compareRunAttemptsByRecency(
+  left: WorkbenchSessionSnapshot["runAttempts"][string],
+  right: WorkbenchSessionSnapshot["runAttempts"][string]
+): number {
+  return compareMaybeIso(right.startedAt ?? right.finishedAt, left.startedAt ?? left.finishedAt);
+}
+
+function describeRunAttempt(
+  attempt: WorkbenchSessionSnapshot["runAttempts"][string]
+): string {
+  return [
+    attempt.mode,
+    attempt.modelProfileId,
+    attempt.routingMode,
+    attempt.externalSessionId ? "resume" : undefined
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join(" / ");
+}
+
+function describeRunAttemptUpdate(event: Extract<WorkbenchEvent, { type: "run.attempt.updated" }>): string {
+  return [
+    event.eventCount !== undefined ? `${event.eventCount} event(s)` : undefined,
+    event.ignoredRecordCount !== undefined ? `${event.ignoredRecordCount} ignored` : undefined,
+    event.parseWarningCount !== undefined ? `${event.parseWarningCount} parse warning(s)` : undefined,
+    event.exitCode !== undefined ? `exit ${event.exitCode}` : undefined,
+    event.errorMessage
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join(" | ");
 }
 
 function projectWorkspaceSummaries(

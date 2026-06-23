@@ -130,6 +130,21 @@ export function redactWorkbenchEventContent(event: WorkbenchEvent): WorkbenchEve
           note: redactOptionalText(event.usage.note)
         }
       };
+    case "run.attempt.started":
+      return {
+        ...event,
+        attempt: {
+          ...event.attempt,
+          commandPreview: redactOptionalText(event.attempt.commandPreview),
+          promptSummary: redactOptionalText(event.attempt.promptSummary),
+          errorMessage: redactOptionalText(event.attempt.errorMessage)
+        }
+      };
+    case "run.attempt.updated":
+      return {
+        ...event,
+        errorMessage: redactOptionalText(event.errorMessage)
+      };
     case "approval.requested":
       return {
         ...event,

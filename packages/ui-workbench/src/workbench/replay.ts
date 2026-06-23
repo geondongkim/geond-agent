@@ -7,6 +7,7 @@ import type {
   WorkbenchDiffSnapshot,
   WorkbenchEvent,
   WorkbenchPlanItemSnapshot,
+  WorkbenchRunAttemptSnapshot,
   WorkbenchSessionLifecycle,
   WorkbenchToolCallSnapshot,
   WorkbenchUsageSnapshot
@@ -54,6 +55,7 @@ export interface WorkbenchSessionSnapshot {
   readonly commandOutputs: Readonly<Record<string, CommandOutputSnapshot>>;
   readonly diffs: Readonly<Record<string, WorkbenchDiffSnapshot>>;
   readonly usageReports: Readonly<Record<string, WorkbenchUsageSnapshot>>;
+  readonly runAttempts: Readonly<Record<string, WorkbenchRunAttemptSnapshot>>;
   readonly approvals: Readonly<Record<string, WorkbenchApprovalSnapshot>>;
   readonly pendingApprovalIds: readonly string[];
   readonly notices: readonly WorkbenchNoticeSnapshot[];
@@ -245,6 +247,43 @@ export function applyWorkbenchEvent(
         },
         updatedAt: event.at ?? session.updatedAt
       });
+    case "run.attempt.started":
+      return putSession(state, {
+        ...session,
+        runAttempts: {
+          ...session.runAttempts,
+          [event.attempt.id]: {
+            ...event.attempt,
+            status: "running",
+            startedAt: event.attempt.startedAt ?? event.at
+          }
+        },
+        updatedAt: event.at ?? session.updatedAt
+      });
+    case "run.attempt.updated": {
+      const previous = session.runAttempts[event.attemptId] ?? {
+        id: event.attemptId,
+        mode: "claude-live" as const,
+        status: "running" as const
+      };
+      return putSession(state, {
+        ...session,
+        runAttempts: {
+          ...session.runAttempts,
+          [event.attemptId]: {
+            ...previous,
+            status: event.status,
+            finishedAt: event.finishedAt ?? event.at ?? previous.finishedAt,
+            exitCode: event.exitCode ?? previous.exitCode,
+            eventCount: event.eventCount ?? previous.eventCount,
+            ignoredRecordCount: event.ignoredRecordCount ?? previous.ignoredRecordCount,
+            parseWarningCount: event.parseWarningCount ?? previous.parseWarningCount,
+            errorMessage: event.errorMessage ?? previous.errorMessage
+          }
+        },
+        updatedAt: event.at ?? session.updatedAt
+      });
+    }
     case "approval.requested":
       return putSession(state, {
         ...session,
@@ -318,6 +357,7 @@ function ensureSession(
       commandOutputs: {},
       diffs: {},
       usageReports: {},
+      runAttempts: {},
       approvals: {},
       pendingApprovalIds: [],
       notices: []

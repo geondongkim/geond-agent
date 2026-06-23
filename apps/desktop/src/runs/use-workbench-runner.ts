@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   workbenchEventIdentity,
   type UiI18n,
@@ -18,10 +18,14 @@ import {
   createLiveRunCancelledEvents,
   createLiveRunCompletionEvents,
   createLiveRunFailureEvents,
-  createLiveRunPreludeEvents
+  createLiveRunPreludeEvents,
+  createRunAttemptStartedEvent,
+  createRunAttemptUpdatedEvent
 } from "./live-run-events.js";
 import { buildDispatchPrompt } from "./runner-prompt.js";
 import { listenToClaudeCodeStream } from "./stream-listener.js";
+
+type WorkbenchRunnerResult = Awaited<ReturnType<DesktopDemoDocument["runSession"]>>;
 
 export interface StartSessionOptions {
   readonly resumeSessionId?: string;
@@ -65,7 +69,9 @@ export function useWorkbenchRunner({
   const [runnerStatus, setRunnerStatus] = useState("");
   const [runnerBusy, setRunnerBusy] = useState(false);
   const [activeRunSessionId, setActiveRunSessionId] = useState<string | undefined>();
+  const [activeRunAttemptId, setActiveRunAttemptId] = useState<string | undefined>();
   const [activeRunMode, setActiveRunMode] = useState<DesktopRunnerMode | undefined>();
+  const cancelledAttemptIds = useRef(new Set<string>());
 
   const startSession: StartWorkbenchSession = async (
     mode: DesktopRunnerMode,
@@ -102,6 +108,7 @@ export function useWorkbenchRunner({
       sessionDefaults,
       workspacePath: selectedWorkspacePath
     });
+    const attemptId = createRunAttemptId(mode, sessionId);
     const streamedEventKeys = new Set<string>();
     const appendEvents = async (
       events: readonly WorkbenchEvent[],
@@ -129,6 +136,7 @@ export function useWorkbenchRunner({
     };
     setRunnerBusy(true);
     setActiveRunSessionId(sessionId);
+    setActiveRunAttemptId(attemptId);
     setActiveRunMode(mode);
     setRunnerStatus(
       mode === "claude-live" && isResumeRun
@@ -140,6 +148,8 @@ export function useWorkbenchRunner({
 
     let unlistenStream: (() => void) | undefined;
     try {
+      await appendEvents([createRunAttemptStartedEvent(request, mode, attemptId, isResumeRun)]);
+
       if (mode === "claude-live") {
         unlistenStream = await listenToClaudeCodeStream(request, i18n, (events) =>
           appendEvents(events, { markAsStreamed: true })
@@ -155,13 +165,29 @@ export function useWorkbenchRunner({
       }
 
       const result = await document.runSession(mode, request);
-      const resultEvents =
+      const baseResultEvents =
         mode === "claude-live"
           ? [
               ...result.events.filter((event) => !streamedEventKeys.has(workbenchEventIdentity(event))),
               ...createLiveRunCompletionEvents(sessionId, result)
             ]
           : result.events;
+      const exitCode = getRunnerExitCode(result);
+      const attemptStatus =
+        cancelledAttemptIds.current.has(attemptId)
+          ? "cancelled"
+          : exitCode !== undefined && exitCode !== 0
+            ? "failed"
+            : "succeeded";
+      const resultEvents = [
+        ...baseResultEvents,
+        createRunAttemptUpdatedEvent(sessionId, attemptId, attemptStatus, {
+          exitCode,
+          eventCount: result.events.length,
+          ignoredRecordCount: result.ignoredRecords.length,
+          parseWarningCount: getRunnerParseWarningCount(result)
+        })
+      ];
 
       await appendEvents(resultEvents);
       setIgnoredRecordCount(result.ignoredRecords.length);
@@ -177,27 +203,58 @@ export function useWorkbenchRunner({
       const message = error instanceof Error ? error.message : i18n.t("workbench.runner.failed");
 
       if (mode === "claude-live") {
-        const failureEvents = createLiveRunFailureEvents(sessionId, message);
+        const failureEvents = [
+          ...createLiveRunFailureEvents(sessionId, message),
+          createRunAttemptUpdatedEvent(
+            sessionId,
+            attemptId,
+            cancelledAttemptIds.current.has(attemptId) ? "cancelled" : "failed",
+            {
+              errorMessage: message
+            }
+          )
+        ];
         await appendEvents(failureEvents);
+      } else {
+        await appendEvents([
+          createRunAttemptUpdatedEvent(sessionId, attemptId, "failed", {
+            errorMessage: message
+          })
+        ]);
       }
 
       setRunnerStatus(message);
     } finally {
       unlistenStream?.();
+      cancelledAttemptIds.current.delete(attemptId);
       setRunnerBusy(false);
       setActiveRunSessionId(undefined);
+      setActiveRunAttemptId(undefined);
       setActiveRunMode(undefined);
     }
   };
 
   const cancelActiveRun = async () => {
-    if (!activeRunSessionId || activeRunMode !== "claude-live") {
+    if (!activeRunSessionId || !activeRunAttemptId || activeRunMode !== "claude-live") {
       setRunnerStatus(i18n.t("workbench.runner.cancelFailed"));
       return;
     }
 
     const cancelled = await cancelTauriClaudeCodeStream(activeRunSessionId);
-    const events = createLiveRunCancelledEvents(activeRunSessionId, i18n, cancelled);
+    if (cancelled) {
+      cancelledAttemptIds.current.add(activeRunAttemptId);
+    }
+    const events = [
+      ...createLiveRunCancelledEvents(activeRunSessionId, i18n, cancelled),
+      createRunAttemptUpdatedEvent(
+        activeRunSessionId,
+        activeRunAttemptId,
+        cancelled ? "cancelled" : "failed",
+        {
+          errorMessage: cancelled ? undefined : i18n.t("workbench.runner.cancelFailed")
+        }
+      )
+    ];
     await document.eventStore.append(events);
     setControllerSnapshot(
       document.controller.appendEvents(events, { activateSessionId: activeRunSessionId })
@@ -216,4 +273,16 @@ export function useWorkbenchRunner({
     setRunnerStatus,
     startSession
   };
+}
+
+function createRunAttemptId(mode: DesktopRunnerMode, sessionId: string): string {
+  return `attempt-${mode}-${sessionId}-${Date.now()}`;
+}
+
+function getRunnerExitCode(result: WorkbenchRunnerResult): number | undefined {
+  return "exitCode" in result && typeof result.exitCode === "number" ? result.exitCode : undefined;
+}
+
+function getRunnerParseWarningCount(result: WorkbenchRunnerResult): number | undefined {
+  return "parseErrors" in result ? result.parseErrors.length : undefined;
 }

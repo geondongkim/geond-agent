@@ -92,6 +92,8 @@ export function formatStatusLabel(i18n: UiI18n, status: string): string {
     case "failed":
     case "rejected":
       return i18n.t("workbench.status.failed");
+    case "cancelled":
+      return i18n.t("workbench.status.cancelled");
     case "workspace":
     case "file":
     case "selection":
@@ -124,6 +126,8 @@ export function formatTimelineKindLabel(i18n: UiI18n, kind: string): string {
       return i18n.t("workbench.timeline.kind.diff");
     case "usage":
       return i18n.t("workbench.timeline.kind.usage");
+    case "run":
+      return i18n.t("workbench.timeline.kind.run");
     case "approval":
       return i18n.t("workbench.timeline.kind.approval");
     case "warning":
@@ -195,6 +199,8 @@ export function eventCardTone(kind: string): string {
       return "event-card-command";
     case "usage":
       return "event-card-usage";
+    case "run":
+      return "event-card-command";
     case "warning":
     case "error":
       return "event-card-warning";
@@ -210,6 +216,10 @@ export function eventDotTone(kind: string, status?: string): string {
 
   if (kind === "usage") {
     return "event-dot-usage";
+  }
+
+  if (kind === "run") {
+    return status === "running" ? "event-dot-command" : "";
   }
 
   if (kind === "warning" || kind === "error" || status === "failed") {

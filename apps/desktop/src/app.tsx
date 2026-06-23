@@ -321,13 +321,15 @@ export function App({ document }: AppProps) {
         toolCalls,
         commandOutputs,
         diffSummaries,
-        usageMetadata
+        usageMetadata,
+        runAttempts
       ] = await Promise.all([
         document.materializedEventStore.listContextAttachments(sessionId),
         document.materializedEventStore.listToolCalls(sessionId),
         document.materializedEventStore.listCommandOutputs(sessionId),
         document.materializedEventStore.listDiffSummaries(sessionId),
-        document.materializedEventStore.listUsageMetadata(sessionId)
+        document.materializedEventStore.listUsageMetadata(sessionId),
+        document.materializedEventStore.listRunAttempts(sessionId)
       ]);
 
       if (cancelled) {
@@ -342,7 +344,8 @@ export function App({ document }: AppProps) {
             toolCalls,
             commandOutputs,
             diffSummaries,
-            usageMetadata
+            usageMetadata,
+            runAttempts
           },
           activeSession
         )

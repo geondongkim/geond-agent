@@ -60,6 +60,7 @@ export type UiMessageKey =
   | "workbench.timeline.kind.command"
   | "workbench.timeline.kind.diff"
   | "workbench.timeline.kind.usage"
+  | "workbench.timeline.kind.run"
   | "workbench.timeline.kind.approval"
   | "workbench.timeline.kind.warning"
   | "workbench.timeline.kind.error"
@@ -80,6 +81,17 @@ export type UiMessageKey =
   | "workbench.usage.maxOutput"
   | "workbench.usage.cost"
   | "workbench.usage.serviceTier"
+  | "workbench.runAttempts.title"
+  | "workbench.runAttempts.mode"
+  | "workbench.runAttempts.started"
+  | "workbench.runAttempts.finished"
+  | "workbench.runAttempts.events"
+  | "workbench.runAttempts.ignored"
+  | "workbench.runAttempts.parseWarnings"
+  | "workbench.runAttempts.exitCode"
+  | "workbench.runAttempts.prompt"
+  | "workbench.runAttempts.command"
+  | "workbench.runAttempts.resume"
   | "workbench.approvals.title"
   | "workbench.approvals.requiredTitle"
   | "workbench.approvals.requiredDetail"
@@ -270,6 +282,7 @@ export type UiMessageKey =
   | "workbench.empty.approvals.planMode"
   | "workbench.empty.approvals.completed"
   | "workbench.empty.usage"
+  | "workbench.empty.runAttempts"
   | "workbench.empty.selection"
   | "workbench.status.created"
   | "workbench.status.resumed"
@@ -281,7 +294,8 @@ export type UiMessageKey =
   | "workbench.status.running"
   | "workbench.status.succeeded"
   | "workbench.status.pending"
-  | "workbench.status.failed";
+  | "workbench.status.failed"
+  | "workbench.status.cancelled";
 
 export type UiMessageCatalog = Readonly<Record<UiMessageKey, string>>;
 
@@ -346,6 +360,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.timeline.kind.command": "Command",
     "workbench.timeline.kind.diff": "Diff",
     "workbench.timeline.kind.usage": "Usage",
+    "workbench.timeline.kind.run": "Run",
     "workbench.timeline.kind.approval": "Approval",
     "workbench.timeline.kind.warning": "Warning",
     "workbench.timeline.kind.error": "Error",
@@ -366,6 +381,17 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.usage.maxOutput": "Max output",
     "workbench.usage.cost": "Cost",
     "workbench.usage.serviceTier": "Service tier",
+    "workbench.runAttempts.title": "Run attempts",
+    "workbench.runAttempts.mode": "Mode",
+    "workbench.runAttempts.started": "Started",
+    "workbench.runAttempts.finished": "Finished",
+    "workbench.runAttempts.events": "Events",
+    "workbench.runAttempts.ignored": "Ignored",
+    "workbench.runAttempts.parseWarnings": "Parse warnings",
+    "workbench.runAttempts.exitCode": "Exit",
+    "workbench.runAttempts.prompt": "Prompt",
+    "workbench.runAttempts.command": "Command",
+    "workbench.runAttempts.resume": "Resume",
     "workbench.approvals.title": "Approvals",
     "workbench.approvals.requiredTitle": "Approval required",
     "workbench.approvals.requiredDetail": "{count} pending approval(s) are blocking this session.",
@@ -556,6 +582,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.empty.approvals.planMode": "Plan mode is active, so Claude Code should not request write or command approvals.",
     "workbench.empty.approvals.completed": "No unresolved approvals remain for this session.",
     "workbench.empty.usage": "No usage metadata reported yet.",
+    "workbench.empty.runAttempts": "No run attempts recorded for this session yet.",
     "workbench.empty.selection": "No selection snapshot on the active session.",
     "workbench.status.created": "created",
     "workbench.status.resumed": "resumed",
@@ -567,7 +594,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.status.running": "running",
     "workbench.status.succeeded": "succeeded",
     "workbench.status.pending": "pending",
-    "workbench.status.failed": "failed"
+    "workbench.status.failed": "failed",
+    "workbench.status.cancelled": "cancelled"
   },
   ko: {
     "settings.language.title": "언어",
@@ -629,6 +657,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.timeline.kind.command": "명령",
     "workbench.timeline.kind.diff": "변경",
     "workbench.timeline.kind.usage": "사용량",
+    "workbench.timeline.kind.run": "실행",
     "workbench.timeline.kind.approval": "승인",
     "workbench.timeline.kind.warning": "경고",
     "workbench.timeline.kind.error": "오류",
@@ -649,6 +678,17 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.usage.maxOutput": "최대 출력",
     "workbench.usage.cost": "비용",
     "workbench.usage.serviceTier": "서비스 티어",
+    "workbench.runAttempts.title": "실행 시도",
+    "workbench.runAttempts.mode": "모드",
+    "workbench.runAttempts.started": "시작",
+    "workbench.runAttempts.finished": "종료",
+    "workbench.runAttempts.events": "이벤트",
+    "workbench.runAttempts.ignored": "무시됨",
+    "workbench.runAttempts.parseWarnings": "파싱 경고",
+    "workbench.runAttempts.exitCode": "종료 코드",
+    "workbench.runAttempts.prompt": "프롬프트",
+    "workbench.runAttempts.command": "명령",
+    "workbench.runAttempts.resume": "이어쓰기",
     "workbench.approvals.title": "승인",
     "workbench.approvals.requiredTitle": "승인이 필요합니다",
     "workbench.approvals.requiredDetail": "이 세션에서 {count}개의 승인이 대기 중입니다.",
@@ -839,6 +879,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.empty.approvals.planMode": "계획 모드가 활성화되어 Claude Code가 쓰기나 명령 승인을 요청하지 않아야 합니다.",
     "workbench.empty.approvals.completed": "이 세션에 남은 미해결 승인이 없습니다.",
     "workbench.empty.usage": "아직 보고된 사용량 메타데이터가 없습니다.",
+    "workbench.empty.runAttempts": "이 세션에는 아직 기록된 실행 시도가 없습니다.",
     "workbench.empty.selection": "활성 세션에 선택 스냅샷이 없습니다.",
     "workbench.status.created": "생성됨",
     "workbench.status.resumed": "재개됨",
@@ -850,7 +891,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.status.running": "실행 중",
     "workbench.status.succeeded": "성공",
     "workbench.status.pending": "대기",
-    "workbench.status.failed": "실패"
+    "workbench.status.failed": "실패",
+    "workbench.status.cancelled": "취소됨"
   }
 };
 

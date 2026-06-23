@@ -21,11 +21,12 @@ rendering, and safety standards.
 
 | Area | Minimum bar | Verification |
 | --- | --- | --- |
-| Event protocol | Session lifecycle, assistant text, plan updates, tool calls, command output, diffs, approvals, warnings, and errors have normalized event shapes. | Fixture replay tests reconstruct the same workbench state from the same event stream. |
+| Event protocol | Session lifecycle, assistant text, plan updates, tool calls, command output, diffs, approvals, run attempts, warnings, and errors have normalized event shapes. | Fixture replay tests reconstruct the same workbench state from the same event stream. |
 | Backend/model picker | Backend adapter, provider route, model profile, and routing mode are separate controls and are captured in a per-session snapshot. | Unit tests cover manual mode, auto placeholder mode, unavailable capability states, and persisted snapshot rendering. |
 | Approval UX | Command, patch, permission, and network/MCP approvals show request identity, reason, affected files or command, and available decisions. | Snapshot tests cover approve/reject/cancel states, keyboard navigation, and queued approval behavior. |
 | Diff review | File changes render with stable paths, change counts, and enough context to approve safely. | Snapshot tests cover add/update/delete/rename, long lines, small widths, and Korean UI labels. |
 | Terminal output | Streaming output is readable, bounded, searchable later, and never shifts layout unpredictably. | Fixture tests cover running, succeeded, failed, truncated, and interrupted command states. |
+| Run attempts | Live Claude runs persist redacted attempt metadata, status, event counts, parse warnings, and exit codes without storing raw logs or secret values. | Unit and native SQLite tests cover started/updated run attempt events, redaction, and materialized inspector rendering. |
 | Metrics | Cost, quota, context window, token usage, and backend capability metadata are shown only when adapters provide them. | Tests cover present, missing, stale, and unavailable metadata states. |
 | Settings/secrets | UI settings may persist locally; raw API keys and provider tokens are never in tracked settings payloads. | Secret scans run in verification and settings serializers expose presence flags, not raw secrets. |
 | Evidence prompts | File/workspace evidence remains metadata-only in local persistence, and any metadata forwarded to a backend/provider prompt is disclosed in the UI. | E2E tests verify the Files inspector prompt-boundary notice; dispatch tests must verify prompts contain metadata only, never raw private file content. |
@@ -46,7 +47,8 @@ rendering, and safety standards.
 ## Out Of Scope For The First Slice
 
 - GitHub Copilot SDK dependency.
-- Real Claude Code, Cline, OpenCode, Goose, or OpenHands execution.
+- Real Cline, OpenCode, Goose, or OpenHands execution.
+- Raw Claude Code log or private transcript persistence.
 - Provider API calls or account introspection.
 - API key storage in source-controlled settings.
 - Third-party source code import.

@@ -5,6 +5,7 @@ import type {
   WorkbenchContextAttachmentProvenance,
   WorkbenchContextAttachmentRange,
   WorkbenchDiffFileSnapshot,
+  WorkbenchRunAttemptStatus,
   WorkbenchToolCallStatus
 } from "@geond-agent/ui-workbench";
 
@@ -13,6 +14,7 @@ import type {
   WorkbenchCommandOutputRecord,
   WorkbenchContextAttachmentRecord,
   WorkbenchDiffSummaryRecord,
+  WorkbenchRunAttemptRecord,
   WorkbenchToolCallRecord,
   WorkbenchUsageMetadataRecord
 } from "../persistence/materialized-event-store.js";
@@ -25,6 +27,7 @@ export interface MaterializedInspectorRecords {
   readonly commandOutputs: readonly WorkbenchCommandOutputRecord[];
   readonly diffSummaries: readonly WorkbenchDiffSummaryRecord[];
   readonly usageMetadata: readonly WorkbenchUsageMetadataRecord[];
+  readonly runAttempts?: readonly WorkbenchRunAttemptRecord[];
 }
 
 export interface InspectorSessionReadModel {
@@ -35,6 +38,7 @@ export interface InspectorSessionReadModel {
   readonly commandOutputs: ProjectedActiveSession["commandOutputs"];
   readonly diffs: ProjectedActiveSession["diffs"];
   readonly usageReports: ProjectedActiveSession["usageReports"];
+  readonly runAttempts: ProjectedActiveSession["runAttempts"];
 }
 
 export function createProjectionInspectorSessionReadModel(
@@ -51,7 +55,8 @@ export function createProjectionInspectorSessionReadModel(
     toolCalls: activeSession.toolCalls,
     commandOutputs: activeSession.commandOutputs,
     diffs: activeSession.diffs,
-    usageReports: activeSession.usageReports
+    usageReports: activeSession.usageReports,
+    runAttempts: activeSession.runAttempts
   };
 }
 
@@ -107,12 +112,34 @@ export function createMaterializedInspectorSessionReadModel(
     serviceTier: record.serviceTier,
     note: record.note
   }));
+  const runAttempts: ProjectedActiveSession["runAttempts"] = (records.runAttempts ?? []).map((record) => ({
+    id: record.attemptId,
+    mode: record.mode === "fixture" ? "fixture" as const : "claude-live" as const,
+    status: normalizeRunAttemptStatus(record.status),
+    backendAdapterId: record.backendAdapterId,
+    providerRouteId: record.providerRouteId,
+    modelProfileId: record.modelProfileId,
+    routingMode: normalizeRoutingMode(record.routingMode),
+    permissionMode: record.permissionMode,
+    externalSessionId: record.externalSessionId,
+    resumedFromExternalSessionId: record.resumedFromExternalSessionId,
+    commandPreview: record.commandPreview,
+    promptSummary: record.promptSummary,
+    startedAt: record.startedAt,
+    finishedAt: record.finishedAt,
+    exitCode: record.exitCode,
+    eventCount: record.eventCount,
+    ignoredRecordCount: record.ignoredRecordCount,
+    parseWarningCount: record.parseWarningCount,
+    errorMessage: record.errorMessage
+  }));
   const hasMaterializedRows =
     contextAttachments.length +
       toolCalls.length +
       commandOutputs.length +
       diffs.length +
-      usageReports.length >
+      usageReports.length +
+      runAttempts.length >
     0;
 
   return {
@@ -124,7 +151,8 @@ export function createMaterializedInspectorSessionReadModel(
     commandOutputs:
       commandOutputs.length > 0 ? commandOutputs : fallback?.commandOutputs ?? [],
     diffs: diffs.length > 0 ? diffs : fallback?.diffs ?? [],
-    usageReports: usageReports.length > 0 ? usageReports : fallback?.usageReports ?? []
+    usageReports: usageReports.length > 0 ? usageReports : fallback?.usageReports ?? [],
+    runAttempts: runAttempts.length > 0 ? runAttempts : fallback?.runAttempts ?? []
   };
 }
 
@@ -154,6 +182,20 @@ function normalizeCommandStatus(value: string): CommandStatus {
 
 function normalizeUsageSource(value: string): "backend" | "provider" | "model" {
   return isOneOf(value, ["backend", "provider", "model"]) ? value : "backend";
+}
+
+function normalizeRoutingMode(value: string | undefined): "manual" | "auto" | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return isOneOf(value, ["manual", "auto"]) ? value : undefined;
+}
+
+function normalizeRunAttemptStatus(value: string): WorkbenchRunAttemptStatus {
+  return isOneOf(value, ["running", "succeeded", "failed", "cancelled"])
+    ? value
+    : "failed";
 }
 
 function normalizeContextRange(

@@ -6,7 +6,9 @@ import {
   createLiveRunCancelledEvents,
   createLiveRunCompletionEvents,
   createLiveRunFailureEvents,
-  createLiveRunPreludeEvents
+  createLiveRunPreludeEvents,
+  createRunAttemptStartedEvent,
+  createRunAttemptUpdatedEvent
 } from "./live-run-events.js";
 import { createDesktopWorkbenchCatalog } from "../lib/workbench-catalog.js";
 import type { RunnerRequest, RunnerResult } from "./types.js";
@@ -74,6 +76,55 @@ describe("desktop live run event factories", () => {
       type: "command.output",
       status: "interrupted"
     });
+  });
+
+  it("creates redacted run attempt ledger events for live Claude runs", () => {
+    const secretEnvName = ["ZAI", "API", "KEY"].join("_");
+    const token = ["sk", "d".repeat(28)].join("-");
+    const started = createRunAttemptStartedEvent(
+      createRunnerRequest({
+        prompt: `Implement the slice with ${secretEnvName}=${token}`,
+        externalSessionId: "claude-session-1"
+      }),
+      "claude-live",
+      "attempt-1",
+      true
+    );
+    const updated = createRunAttemptUpdatedEvent("workbench-session-1", "attempt-1", "failed", {
+      exitCode: 1,
+      eventCount: 4,
+      ignoredRecordCount: 1,
+      parseWarningCount: 2,
+      errorMessage: `stderr echoed ${secretEnvName}=${token}`
+    });
+
+    expect(started).toMatchObject({
+      type: "run.attempt.started",
+      sessionId: "workbench-session-1",
+      attempt: {
+        id: "attempt-1",
+        mode: "claude-live",
+        status: "running",
+        resumedFromExternalSessionId: "claude-session-1"
+      }
+    });
+    expect(started.type === "run.attempt.started" ? started.attempt.promptSummary : "").toBe(
+      `Implement the slice with ${secretEnvName}=[redacted]`
+    );
+    expect(updated).toMatchObject({
+      type: "run.attempt.updated",
+      sessionId: "workbench-session-1",
+      attemptId: "attempt-1",
+      status: "failed",
+      eventCount: 4,
+      ignoredRecordCount: 1,
+      parseWarningCount: 2,
+      exitCode: 1
+    });
+    expect(updated.type === "run.attempt.updated" ? updated.errorMessage : "").toBe(
+      `${"stderr echoed"} ${secretEnvName}=[redacted]`
+    );
+    expect(JSON.stringify([started, updated])).not.toContain(token);
   });
 });
 

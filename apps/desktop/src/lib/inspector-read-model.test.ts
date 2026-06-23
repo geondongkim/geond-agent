@@ -26,7 +26,15 @@ const fallbackSession = {
     }
   ],
   diffs: [],
-  usageReports: []
+  usageReports: [],
+  runAttempts: [
+    {
+      id: "attempt-projection",
+      mode: "fixture",
+      status: "running",
+      eventCount: 1
+    }
+  ]
 } as unknown as ProjectedActiveSession;
 
 describe("inspector read model", () => {
@@ -98,6 +106,30 @@ describe("inspector read model", () => {
             model: "glm-5.2",
             inputTokens: 100
           }
+        ],
+        runAttempts: [
+          {
+            sessionId: "session-a",
+            attemptId: "attempt-sqlite",
+            mode: "claude-live",
+            status: "succeeded",
+            backendAdapterId: "claude-code.external-cli-acp",
+            providerRouteId: "zai.anthropic-compatible",
+            modelProfileId: "opus",
+            routingMode: "manual",
+            permissionMode: "plan",
+            externalSessionId: "claude-session-1",
+            resumedFromExternalSessionId: undefined,
+            commandPreview: "claude --bare -p --verbose --output-format stream-json",
+            promptSummary: "Implement persistence polish",
+            startedAt: "2026-06-22T04:00:00.000Z",
+            finishedAt: "2026-06-22T04:01:00.000Z",
+            exitCode: 0,
+            eventCount: 12,
+            ignoredRecordCount: 1,
+            parseWarningCount: 0,
+            errorMessage: undefined
+          }
         ]
       },
       fallbackSession
@@ -110,6 +142,12 @@ describe("inspector read model", () => {
     expect(model.commandOutputs[0]?.preview).toBe("pnpm verify\nwarning");
     expect(model.diffs[0]?.files[0]?.path).toBe("apps/desktop/src/app.tsx");
     expect(model.usageReports[0]?.model).toBe("glm-5.2");
+    expect(model.runAttempts[0]).toMatchObject({
+      id: "attempt-sqlite",
+      status: "succeeded",
+      modelProfileId: "opus",
+      eventCount: 12
+    });
   });
 
   it("keeps projection records when native materialized rows are unavailable", () => {
@@ -120,7 +158,8 @@ describe("inspector read model", () => {
         toolCalls: [],
         commandOutputs: [],
         diffSummaries: [],
-        usageMetadata: []
+        usageMetadata: [],
+        runAttempts: []
       },
       fallbackSession
     );
@@ -128,5 +167,6 @@ describe("inspector read model", () => {
     expect(model.source).toBe("projection");
     expect(model.contextAttachments[0]?.id).toBe("context-projection");
     expect(model.commandOutputs[0]?.id).toBe("cmd-projection");
+    expect(model.runAttempts[0]?.id).toBe("attempt-projection");
   });
 });

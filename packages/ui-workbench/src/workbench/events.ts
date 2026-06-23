@@ -58,6 +58,30 @@ export interface WorkbenchUsageSnapshot {
   readonly note?: string;
 }
 
+export type WorkbenchRunAttemptStatus = "running" | "succeeded" | "failed" | "cancelled";
+
+export interface WorkbenchRunAttemptSnapshot {
+  readonly id: string;
+  readonly mode: "fixture" | "claude-live";
+  readonly status: WorkbenchRunAttemptStatus;
+  readonly backendAdapterId?: string;
+  readonly providerRouteId?: string;
+  readonly modelProfileId?: string;
+  readonly routingMode?: "manual" | "auto";
+  readonly permissionMode?: string;
+  readonly externalSessionId?: string;
+  readonly resumedFromExternalSessionId?: string;
+  readonly commandPreview?: string;
+  readonly promptSummary?: string;
+  readonly startedAt?: string;
+  readonly finishedAt?: string;
+  readonly exitCode?: number;
+  readonly eventCount?: number;
+  readonly ignoredRecordCount?: number;
+  readonly parseWarningCount?: number;
+  readonly errorMessage?: string;
+}
+
 export interface WorkbenchAdapterSessionLinkSnapshot {
   readonly adapterId: string;
   readonly externalSessionId: string;
@@ -191,6 +215,25 @@ export type WorkbenchEvent =
       readonly type: "usage.reported";
       readonly sessionId: string;
       readonly usage: WorkbenchUsageSnapshot;
+      readonly at?: string;
+    }
+  | {
+      readonly type: "run.attempt.started";
+      readonly sessionId: string;
+      readonly attempt: WorkbenchRunAttemptSnapshot;
+      readonly at?: string;
+    }
+  | {
+      readonly type: "run.attempt.updated";
+      readonly sessionId: string;
+      readonly attemptId: string;
+      readonly status: WorkbenchRunAttemptStatus;
+      readonly finishedAt?: string;
+      readonly exitCode?: number;
+      readonly eventCount?: number;
+      readonly ignoredRecordCount?: number;
+      readonly parseWarningCount?: number;
+      readonly errorMessage?: string;
       readonly at?: string;
     }
   | {
