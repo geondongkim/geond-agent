@@ -5,6 +5,8 @@ import { createUiI18n } from "@geond-agent/ui-workbench";
 import {
   formatExternalSessionId,
   formatMessage,
+  formatSelectionReadinessDetail,
+  formatSelectionReadinessLevelLabel,
   formatStatusLabel,
   formatUsageCost,
   formatUsageNumber
@@ -31,5 +33,30 @@ describe("desktop workbench formatting helpers", () => {
   it("uses localized not-available labels for missing usage metadata", () => {
     expect(formatUsageNumber(createUiI18n("ko"), undefined)).toBe("해당 없음");
     expect(formatUsageCost(createUiI18n("en"), undefined)).toBe("n/a");
+  });
+
+  it("formats selection readiness level and non-ready detail", () => {
+    expect(formatSelectionReadinessLevelLabel(createUiI18n("ko"), "blocked")).toBe("차단됨");
+    expect(
+      formatSelectionReadinessDetail({
+        level: "blocked",
+        summary: "1 readiness blocker must be resolved before live execution.",
+        items: [
+          {
+            id: "provider-route",
+            label: "Z.ai route",
+            level: "blocked",
+            reason: "API key presence is missing."
+          },
+          {
+            id: "routing-mode",
+            label: "Manual routing",
+            level: "ready"
+          }
+        ]
+      })
+    ).toBe(
+      "1 readiness blocker must be resolved before live execution. | Z.ai route: API key presence is missing."
+    );
   });
 });

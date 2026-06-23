@@ -10,7 +10,9 @@ import {
   formatAgentLanguageLabel,
   formatExternalSessionId,
   formatMessage,
-  formatRoutingModeLabel
+  formatRoutingModeLabel,
+  formatSelectionReadinessDetail,
+  formatSelectionReadinessLevelLabel
 } from "../../lib/workbench-format.js";
 import type { ProjectedActiveSession } from "../../lib/workbench-types.js";
 
@@ -70,6 +72,14 @@ export function InspectorSelectionTab({
                 ? formatExternalSessionId(activeExternalSession.externalSessionId)
                 : i18n.t("workbench.status.unknown")
             }
+          />
+          <SettingsRow
+            label={i18n.t("workbench.selection.readiness")}
+            value={formatSelectionReadinessLevelLabel(
+              i18n,
+              activeSession.selection.readiness?.level
+            )}
+            detail={formatSelectionReadinessDetail(activeSession.selection.readiness)}
           />
           <SettingsRow
             label={i18n.t("workbench.selection.warnings")}
