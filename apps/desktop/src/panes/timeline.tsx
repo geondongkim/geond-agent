@@ -27,7 +27,7 @@ import {
   lifecycleTone
 } from "../lib/workbench-format.js";
 import type { DesktopRunnerMode } from "../demo-workbench.js";
-import { createRunnerPrompt } from "../runs/runner-prompt.js";
+import { getComposerPlaceholder } from "../runs/runner-prompt.js";
 
 export function TimelinePane({
   activeSession,
@@ -195,7 +195,7 @@ export function TimelinePane({
           id="agent-command"
           aria-label={i18n.t("workbench.composer.label")}
           className="composer-input"
-          placeholder={createRunnerPrompt(runnerMode, "", i18n)}
+          placeholder={getComposerPlaceholder(runnerMode, i18n)}
           value={composerPrompt}
           onChange={(event) => setComposerPrompt(event.target.value)}
           onKeyDown={(event) => {

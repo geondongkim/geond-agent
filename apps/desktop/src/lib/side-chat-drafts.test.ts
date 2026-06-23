@@ -37,16 +37,51 @@ describe("side chat drafts", () => {
   it("creates stable local-only draft records from text and source labels", () => {
     const draft = createSideChatDraft("  Follow up on selected evidence.  ", "file.ts", {
       now: 42,
+      nonce: "unit",
       sessionId: "session-a"
     });
 
     expect(draft).toMatchObject({
-      id: expect.stringMatching(/^side-chat-draft-42-/),
+      id: expect.stringMatching(/^side-chat-draft-42-.*-unit$/),
       text: "Follow up on selected evidence.",
       sessionId: "session-a",
       sourceLabel: "file.ts"
     });
     expect(createSideChatDraft("   ")).toBeUndefined();
+  });
+
+  it("redacts secret-looking draft text and source labels before persistence", () => {
+    const anthropicAssignment = ["ANTHROPIC", "_API_KEY=sk-", "abcdefghijklmnopqrstuvwxyz"].join("");
+    const zaiAssignment = ["ZAI", "_API_KEY=sk-", "abcdefghijklmnopqrstuvwxyz"].join("");
+    const apiKeyAssignment = ["API", "_KEY=sk-", "abcdefghijklmnopqrstuvwxyz"].join("");
+
+    expect(
+      createSideChatDraft(anthropicAssignment, "TOKEN=super-secret-value", {
+        now: 1,
+        nonce: "safe",
+        sessionId: "session-a"
+      })
+    ).toMatchObject({
+      text: ["ANTHROPIC", "_API_KEY=[redacted]"].join(""),
+      sourceLabel: "TOKEN=[redacted]"
+    });
+
+    expect(
+      normalizeSideChatDrafts([
+        {
+          id: "draft-secret",
+          text: zaiAssignment,
+          sourceLabel: apiKeyAssignment
+        }
+      ])
+    ).toEqual([
+      {
+        id: "draft-secret",
+        text: ["ZAI", "_API_KEY=[redacted]"].join(""),
+        sessionId: undefined,
+        sourceLabel: ["API", "_KEY=[redacted]"].join("")
+      }
+    ]);
   });
 
   it("filters drafts to the active session while preserving legacy global drafts", () => {

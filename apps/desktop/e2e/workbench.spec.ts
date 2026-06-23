@@ -47,6 +47,14 @@ test("workbench session, settings, persistence, and inspector workflow", async (
   await expect(page.getByRole("tab", { name: "Side chat" })).toBeVisible();
   await expect(page.locator(".session-rail, .timeline-surface, .inspector-surface")).toHaveCount(3);
   await page.keyboard.press("Control+K");
+  await page.getByLabel("Search actions").fill("browser");
+  await page.getByRole("button", { name: /Open browser inspector/ }).click();
+  await expect(page.getByRole("tabpanel", { name: "Browser" })).toBeVisible();
+  await page.keyboard.press("Control+K");
+  await page.getByLabel("Search actions").fill("side chat");
+  await page.getByRole("button", { name: /Open side chat inspector/ }).click();
+  await expect(page.getByRole("tabpanel", { name: "Side chat" })).toBeVisible();
+  await page.keyboard.press("Control+K");
   await page.getByLabel("Search actions").fill("context");
   await page.getByRole("button", { name: /Attach workspace context/ }).click();
   await page.keyboard.press("Control+K");

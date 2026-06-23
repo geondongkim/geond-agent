@@ -27,6 +27,7 @@ import { useWorkbenchRunner } from "./runs/use-workbench-runner.js";
 import {
   createSideChatDraft,
   filterSideChatDraftsForSession,
+  normalizeSideChatDrafts,
   type SideChatDraft
 } from "./lib/side-chat-drafts.js";
 
@@ -150,14 +151,14 @@ export function App({ document }: AppProps) {
     }
 
     setSideChatDrafts((current) => {
-      const next = [...current, draft];
+      const next = normalizeSideChatDrafts([...current, draft]);
       void document.saveSideChatDrafts(next);
       return next;
     });
   };
   const removeSideChatDraft = (draftId: string) => {
     setSideChatDrafts((current) => {
-      const next = current.filter((draft) => draft.id !== draftId);
+      const next = normalizeSideChatDrafts(current.filter((draft) => draft.id !== draftId));
       void document.saveSideChatDrafts(next);
       return next;
     });
@@ -246,10 +247,22 @@ export function App({ document }: AppProps) {
         run: () => openInspectorTab("terminal")
       },
       {
+        id: "show-browser",
+        label: i18n.t("workbench.commandPalette.showBrowser"),
+        detail: i18n.t("workbench.workspacePanel.browser"),
+        run: () => openInspectorTab("browser")
+      },
+      {
         id: "show-files",
         label: i18n.t("workbench.commandPalette.showFiles"),
         detail: i18n.t("workbench.workspacePanel.files"),
         run: () => openInspectorTab("files")
+      },
+      {
+        id: "show-side-chat",
+        label: i18n.t("workbench.commandPalette.showSideChat"),
+        detail: i18n.t("workbench.workspacePanel.chat"),
+        run: () => openInspectorTab("chat")
       },
       {
         id: "show-settings",

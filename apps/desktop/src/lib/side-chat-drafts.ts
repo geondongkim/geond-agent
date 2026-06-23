@@ -1,4 +1,5 @@
 import type { LocalSettingsStore } from "@geond-agent/ui-workbench";
+import { redactSensitiveTextContent } from "@geond-agent/claude-code-bridge";
 
 export const SIDE_CHAT_DRAFTS_SETTINGS_KEY = "geond-agent.workbench.side-chat-drafts";
 const MAX_DRAFTS = 20;
@@ -14,6 +15,7 @@ export interface SideChatDraft {
 
 export interface CreateSideChatDraftOptions {
   readonly now?: number;
+  readonly nonce?: string;
   readonly sessionId?: string;
 }
 
@@ -46,16 +48,20 @@ export function createSideChatDraft(
   sourceLabel?: string,
   options: CreateSideChatDraftOptions | number = {}
 ): SideChatDraft | undefined {
-  const normalizedText = normalizeText(text, MAX_TEXT_LENGTH);
+  const normalizedText = normalizeRedactedText(text, MAX_TEXT_LENGTH);
   if (!normalizedText) {
     return undefined;
   }
 
   const now = typeof options === "number" ? options : options.now ?? Date.now();
+  const nonce =
+    typeof options === "number"
+      ? createDraftNonce()
+      : normalizeText(options.nonce, 32) ?? createDraftNonce();
   const sessionId = typeof options === "number" ? undefined : normalizeText(options.sessionId, 160);
-  const normalizedSourceLabel = normalizeText(sourceLabel, MAX_SOURCE_LABEL_LENGTH);
+  const normalizedSourceLabel = normalizeRedactedText(sourceLabel, MAX_SOURCE_LABEL_LENGTH);
   return {
-    id: `side-chat-draft-${now}-${stableTextSuffix(normalizedText)}`,
+    id: `side-chat-draft-${now}-${stableTextSuffix(normalizedText)}-${nonce}`,
     text: normalizedText,
     sessionId,
     sourceLabel: normalizedSourceLabel
@@ -88,7 +94,7 @@ function normalizeSideChatDraft(value: unknown, index: number): readonly SideCha
     return [];
   }
 
-  const text = normalizeText(value.text, MAX_TEXT_LENGTH);
+  const text = normalizeRedactedText(value.text, MAX_TEXT_LENGTH);
   if (!text) {
     return [];
   }
@@ -98,9 +104,16 @@ function normalizeSideChatDraft(value: unknown, index: number): readonly SideCha
       id: normalizeText(value.id, 160) ?? `side-chat-draft-${index}`,
       text,
       sessionId: normalizeText(value.sessionId, 160),
-      sourceLabel: normalizeText(value.sourceLabel, MAX_SOURCE_LABEL_LENGTH)
+      sourceLabel: normalizeRedactedText(value.sourceLabel, MAX_SOURCE_LABEL_LENGTH)
     }
   ];
+}
+
+function normalizeRedactedText(value: unknown, maxLength: number): string | undefined {
+  return normalizeText(
+    typeof value === "string" ? redactSensitiveTextContent(value) : value,
+    maxLength
+  );
 }
 
 function normalizeText(value: unknown, maxLength: number): string | undefined {
@@ -118,6 +131,10 @@ function stableTextSuffix(value: string): string {
     hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
   }
   return hash.toString(36);
+}
+
+function createDraftNonce(): string {
+  return Math.random().toString(36).slice(2, 10);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
