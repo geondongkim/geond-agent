@@ -64,8 +64,12 @@ describe("projectWorkbenchEvents", () => {
           providerRouteId: "zai.anthropic-compatible",
           modelProfileId: "opus",
           routingMode: "manual",
+          externalSessionId: "claude-session-1",
+          resumedFromExternalSessionId: "claude-session-1",
           commandPreview: "claude --bare -p --verbose --output-format stream-json",
           promptSummary: "Implement the run attempt ledger",
+          trigger: "approval_follow_up",
+          sourceApprovalId: "approval-1",
           startedAt: "2026-06-21T02:00:01.000Z"
         },
         at: "2026-06-21T02:00:01.000Z"
@@ -133,7 +137,20 @@ describe("projectWorkbenchEvents", () => {
       eventCount: 12,
       ignoredRecordCount: 1,
       parseWarningCount: 0,
-      failureKind: "provider_overloaded"
+      failureKind: "provider_overloaded",
+      trigger: "approval_follow_up",
+      sourceApprovalId: "approval-1"
+    });
+    expect(projection.activeSession?.liveRunContinuity).toMatchObject({
+      latestAttemptId: "attempt-1",
+      latestAttemptStatus: "failed",
+      latestExternalSessionId: "claude-session-1",
+      latestStreamQuality: "failed",
+      totalAttemptCount: 1,
+      resumeAttemptCount: 1,
+      approvalFollowUpAttemptCount: 1,
+      cleanStreamAttemptCount: 0,
+      warningStreamAttemptCount: 0
     });
     expect(projection.activeSession?.runnerIssues[0]).toMatchObject({
       id: "issue-attempt-1-provider_overloaded",

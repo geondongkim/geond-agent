@@ -3,6 +3,7 @@ import {
   createWorkbenchSessionStartEvents,
   type UiI18n,
   type WorkbenchEvent,
+  type WorkbenchRunAttemptTrigger,
   type WorkbenchRunAttemptStatus,
   type WorkbenchRunnerIssueKind,
   type WorkbenchRunnerIssueSnapshot,
@@ -18,9 +19,14 @@ export function createRunAttemptStartedEvent(
   request: RunnerRequest,
   mode: DesktopRunnerMode,
   attemptId: string,
-  isResumeRun: boolean
+  isResumeRun: boolean,
+  options: {
+    readonly trigger?: WorkbenchRunAttemptTrigger;
+    readonly sourceApprovalId?: string;
+  } = {}
 ): WorkbenchEvent {
   const at = new Date().toISOString();
+  const trigger = options.trigger ?? (isResumeRun ? "manual_resume" : "manual");
 
   return {
     type: "run.attempt.started",
@@ -41,6 +47,8 @@ export function createRunAttemptStartedEvent(
           ? describeLiveCommandPreview(request)
           : "sanitized Claude Code fixture replay",
       promptSummary: summarizePrompt(request.prompt),
+      trigger,
+      sourceApprovalId: options.sourceApprovalId,
       startedAt: at
     },
     at

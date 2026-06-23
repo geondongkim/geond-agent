@@ -26,7 +26,7 @@ const CLAUDE_DEFAULT_TIMEOUT_MS: u64 = 10 * 60 * 1000;
 const CLAUDE_MAX_TIMEOUT_MS: u64 = 60 * 60 * 1000;
 const PROCESS_OUTPUT_CAP_BYTES: usize = 1024 * 1024;
 const PROCESS_OUTPUT_TRUNCATED_MARKER: &str = "\n... [truncated]\n";
-const EVENT_STORE_SCHEMA_VERSION: i64 = 6;
+const EVENT_STORE_SCHEMA_VERSION: i64 = 7;
 const CLAUDE_ENV_KEYS: &[&str] = &[
     "ANTHROPIC_API_KEY",
     "ANTHROPIC_BASE_URL",
@@ -223,6 +223,8 @@ pub struct WorkbenchRunAttemptRecord {
     parse_warning_count: Option<i64>,
     error_message: Option<String>,
     failure_kind: Option<String>,
+    trigger: Option<String>,
+    source_approval_id: Option<String>,
     source_event_id: Option<i64>,
     updated_at: Option<String>,
 }
@@ -1147,6 +1149,8 @@ fn migrate_event_store(connection: &mut Connection) -> Result<(), String> {
                     parse_warning_count integer,
                     error_message text,
                     failure_kind text,
+                    trigger text,
+                    source_approval_id text,
                     source_event_id integer,
                     updated_at text,
                     primary key (session_id, attempt_id)
@@ -1169,6 +1173,24 @@ fn migrate_event_store(connection: &mut Connection) -> Result<(), String> {
         }
         transaction
             .execute_batch("pragma user_version = 6;")
+            .map_err(to_string)?;
+        transaction.commit().map_err(to_string)?;
+    }
+
+    if version < 7 {
+        let transaction = connection.transaction().map_err(to_string)?;
+        if !column_exists(&transaction, "workbench_run_attempts", "trigger")? {
+            transaction
+                .execute_batch("alter table workbench_run_attempts add column trigger text;")
+                .map_err(to_string)?;
+        }
+        if !column_exists(&transaction, "workbench_run_attempts", "source_approval_id")? {
+            transaction
+                .execute_batch("alter table workbench_run_attempts add column source_approval_id text;")
+                .map_err(to_string)?;
+        }
+        transaction
+            .execute_batch("pragma user_version = 7;")
             .map_err(to_string)?;
         transaction.commit().map_err(to_string)?;
     }
@@ -1660,9 +1682,9 @@ fn materialize_event_views_for_event(
                         external_session_id, resumed_from_external_session_id, command_preview,
                         prompt_summary, started_at, finished_at, exit_code, event_count,
                         ignored_record_count, parse_warning_count, error_message, failure_kind,
-                        source_event_id, updated_at
+                        trigger, source_approval_id, source_event_id, updated_at
                      ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14,
-                               null, null, null, null, null, null, ?15, ?16, ?17)
+                               null, null, null, null, null, null, ?15, ?16, ?17, ?18, ?19)
                      on conflict(session_id, attempt_id) do update set
                         mode = excluded.mode,
                         status = excluded.status,
@@ -1677,6 +1699,11 @@ fn materialize_event_views_for_event(
                         prompt_summary = excluded.prompt_summary,
                         started_at = coalesce(excluded.started_at, workbench_run_attempts.started_at),
                         failure_kind = coalesce(excluded.failure_kind, workbench_run_attempts.failure_kind),
+                        trigger = coalesce(excluded.trigger, workbench_run_attempts.trigger),
+                        source_approval_id = coalesce(
+                            excluded.source_approval_id,
+                            workbench_run_attempts.source_approval_id
+                        ),
                         source_event_id = excluded.source_event_id,
                         updated_at = excluded.updated_at",
                     params![
@@ -1695,6 +1722,8 @@ fn materialize_event_views_for_event(
                         read_string(attempt, "promptSummary"),
                         started_at,
                         read_string(attempt, "failureKind"),
+                        read_string(attempt, "trigger"),
+                        read_string(attempt, "sourceApprovalId"),
                         source_event_id,
                         updated_at,
                     ],
@@ -1984,7 +2013,8 @@ fn list_run_attempt_records(
                     model_profile_id, routing_mode, permission_mode, external_session_id,
                     resumed_from_external_session_id, command_preview, prompt_summary,
                     started_at, finished_at, exit_code, event_count, ignored_record_count,
-                    parse_warning_count, error_message, failure_kind, source_event_id, updated_at
+                    parse_warning_count, error_message, failure_kind, trigger, source_approval_id,
+                    source_event_id, updated_at
              from workbench_run_attempts
              where (?1 is null or session_id = ?1)
              order by coalesce(started_at, updated_at, '') desc, session_id, attempt_id",
@@ -2015,8 +2045,10 @@ fn list_run_attempt_records(
                 parse_warning_count: row.get(18)?,
                 error_message: row.get(19)?,
                 failure_kind: row.get(20)?,
-                source_event_id: row.get(21)?,
-                updated_at: row.get(22)?,
+                trigger: row.get(21)?,
+                source_approval_id: row.get(22)?,
+                source_event_id: row.get(23)?,
+                updated_at: row.get(24)?,
             })
         })
         .map_err(to_string)?;
@@ -3064,8 +3096,11 @@ mod tests {
                 "routingMode": "manual",
                 "permissionMode": "plan",
                 "externalSessionId": "claude-session-1",
+                "resumedFromExternalSessionId": "claude-session-1",
                 "commandPreview": "claude --bare -p --verbose --output-format stream-json",
                 "promptSummary": "Implement run attempt persistence",
+                "trigger": "approval_follow_up",
+                "sourceApprovalId": "approval-1",
                 "startedAt": "2026-06-22T02:00:07.000Z"
             },
             "at": "2026-06-22T02:00:07.000Z"
@@ -3164,6 +3199,18 @@ mod tests {
         assert_eq!(
             run_attempts[0].failure_kind.as_deref(),
             Some("provider_overloaded")
+        );
+        assert_eq!(
+            run_attempts[0].resumed_from_external_session_id.as_deref(),
+            Some("claude-session-1")
+        );
+        assert_eq!(
+            run_attempts[0].trigger.as_deref(),
+            Some("approval_follow_up")
+        );
+        assert_eq!(
+            run_attempts[0].source_approval_id.as_deref(),
+            Some("approval-1")
         );
     }
 

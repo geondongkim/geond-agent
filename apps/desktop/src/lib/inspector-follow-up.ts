@@ -2,6 +2,7 @@ import type {
   SelectionReadinessItem,
   WorkbenchApprovalSnapshot
 } from "@geond-agent/ui-workbench";
+import { deriveRunAttemptStreamQuality } from "@geond-agent/ui-workbench";
 
 import type { InspectorSessionReadModel } from "./inspector-read-model.js";
 import type { ProjectedActiveSession } from "./workbench-types.js";
@@ -51,6 +52,12 @@ export function createRunAttemptFollowUpDraft(
     attempt.modelProfileId ? `Model: ${attempt.modelProfileId}.` : undefined,
     attempt.providerRouteId ? `Provider route: ${attempt.providerRouteId}.` : undefined,
     attempt.externalSessionId ? `External session: ${attempt.externalSessionId}.` : undefined,
+    attempt.resumedFromExternalSessionId
+      ? `Resumed from external session: ${attempt.resumedFromExternalSessionId}.`
+      : undefined,
+    attempt.trigger ? `Trigger: ${attempt.trigger}.` : undefined,
+    attempt.sourceApprovalId ? `Source approval: ${attempt.sourceApprovalId}.` : undefined,
+    `Stream quality: ${deriveRunAttemptStreamQuality(attempt)}.`,
     attempt.exitCode !== undefined ? `Exit code: ${attempt.exitCode}.` : undefined,
     attempt.eventCount !== undefined ? `Normalized events: ${attempt.eventCount}.` : undefined,
     attempt.ignoredRecordCount !== undefined
@@ -95,6 +102,9 @@ export function createSessionReviewFollowUpDraft({
       : undefined,
     activeSession.selection?.readiness
       ? `Route readiness: ${activeSession.selection.readiness.level}. ${activeSession.selection.readiness.summary}`
+      : undefined,
+    activeSession.liveRunContinuity.totalAttemptCount
+      ? `Live continuity: latest=${activeSession.liveRunContinuity.latestAttemptId ?? "unknown"} quality=${activeSession.liveRunContinuity.latestStreamQuality} external=${activeSession.liveRunContinuity.latestExternalSessionId ?? "none"} resumeAttempts=${activeSession.liveRunContinuity.resumeAttemptCount} approvalFollowUps=${activeSession.liveRunContinuity.approvalFollowUpAttemptCount}.`
       : undefined,
     nonReadyItems.length
       ? `Readiness items:\n${nonReadyItems.map(formatReadinessItem).join("\n")}`

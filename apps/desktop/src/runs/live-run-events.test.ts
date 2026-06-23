@@ -97,7 +97,11 @@ describe("desktop live run event factories", () => {
       }),
       "claude-live",
       "attempt-1",
-      true
+      true,
+      {
+        trigger: "approval_follow_up",
+        sourceApprovalId: "approval-1"
+      }
     );
     const updated = createRunAttemptUpdatedEvent("workbench-session-1", "attempt-1", "failed", {
       exitCode: 1,
@@ -130,7 +134,9 @@ describe("desktop live run event factories", () => {
         id: "attempt-1",
         mode: "claude-live",
         status: "running",
-        resumedFromExternalSessionId: "claude-session-1"
+        resumedFromExternalSessionId: "claude-session-1",
+        trigger: "approval_follow_up",
+        sourceApprovalId: "approval-1"
       }
     });
     expect(started.type === "run.attempt.started" ? started.attempt.promptSummary : "").toBe(

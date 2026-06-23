@@ -5,9 +5,11 @@ import { createUiI18n } from "@geond-agent/ui-workbench";
 import {
   formatExternalSessionId,
   formatMessage,
+  formatRunAttemptTriggerLabel,
   formatSelectionReadinessDetail,
   formatSelectionReadinessLevelLabel,
   formatStatusLabel,
+  formatStreamQualityLabel,
   formatUsageCost,
   formatUsageNumber
 } from "./workbench-format.js";
@@ -33,6 +35,17 @@ describe("desktop workbench formatting helpers", () => {
   it("uses localized not-available labels for missing usage metadata", () => {
     expect(formatUsageNumber(createUiI18n("ko"), undefined)).toBe("해당 없음");
     expect(formatUsageCost(createUiI18n("en"), undefined)).toBe("n/a");
+  });
+
+  it("formats run trigger and stream quality labels", () => {
+    expect(formatRunAttemptTriggerLabel(createUiI18n("en"), "approval_follow_up")).toBe(
+      "Approval follow-up"
+    );
+    expect(formatRunAttemptTriggerLabel(createUiI18n("ko"), "manual_resume")).toBe(
+      "수동 이어쓰기"
+    );
+    expect(formatStreamQualityLabel(createUiI18n("en"), "warning")).toBe("Warning");
+    expect(formatStreamQualityLabel(createUiI18n("ko"), "clean")).toBe("정상");
   });
 
   it("formats selection readiness level and non-ready detail", () => {

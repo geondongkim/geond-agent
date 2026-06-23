@@ -132,7 +132,9 @@ describe("inspector read model", () => {
             ignoredRecordCount: 1,
             parseWarningCount: 0,
             errorMessage: undefined,
-            failureKind: "provider_overloaded"
+            failureKind: "provider_overloaded",
+            trigger: "approval_follow_up",
+            sourceApprovalId: "approval-1"
           }
         ]
       },
@@ -151,7 +153,9 @@ describe("inspector read model", () => {
       status: "succeeded",
       modelProfileId: "opus",
       eventCount: 12,
-      failureKind: "provider_overloaded"
+      failureKind: "provider_overloaded",
+      trigger: "approval_follow_up",
+      sourceApprovalId: "approval-1"
     });
   });
 
