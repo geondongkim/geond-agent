@@ -34,6 +34,13 @@ native workbench without weakening the local-first evidence boundary.
   exported through the same save/download path.
 - Recent context now supports favorites. Favorites store only the same label,
   path, kind, timestamp, and boolean marker as recent context.
+- Evidence export manifests describe export-ready documents, session counts,
+  favorite context groups, deferred screenshot/trace slots, and the excluded
+  data classes before a report is shared.
+- Recent context rendering groups items by workspace hint so favorite files are
+  reviewed under the workspace they came from rather than as a flat list.
+- Desktop build now enforces chunk budgets after Vite emits assets so bundle
+  growth is caught in `pnpm build`, `pnpm verify`, and CI.
 
 ## Dogfood Notes
 
@@ -77,6 +84,12 @@ Follow-up implemented from the dogfood result:
   `--resume` values before launching Claude Code.
 - Workspace report export and context favorites close the first pass of the
   evidence/report and picker ergonomics TODOs.
+- The export panel now includes evidence bundle, issue report, workspace report,
+  and export manifest actions, each preserving the metadata-only boundary.
+- Export manifests make screenshot and structured trace collection explicit
+  future evidence types instead of silently implying they already exist.
+- Chunk budget monitoring moved from manual Vite warning inspection into the
+  desktop build script.
 
 ## Verification Checklist
 
@@ -89,9 +102,11 @@ Follow-up implemented from the dogfood result:
 
 ## Remaining TODO
 
-- Add a first-class issue/report export panel that can bundle multiple sessions
-  with screenshots or structured traces when those evidence types exist.
-- Add save-dialog export for richer evidence bundles once screenshots and
-  structured traces exist.
-- Add chunk budget monitoring to CI instead of relying only on Vite warnings.
-- Continue workspace/file picker polish with per-workspace recent grouping.
+- Dogfood the export panel against real live Claude cancel/retry/resume runs and
+  confirm the report/manifest wording is enough without raw logs.
+- Add explicit screenshot and structured trace capture/export after consent and
+  redaction rules are designed.
+- Add a multi-session issue/report bundle once screenshots and structured traces
+  exist.
+- Continue workspace/file picker polish with favorites, recency, and workspace
+  switcher integration.

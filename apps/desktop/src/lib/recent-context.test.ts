@@ -3,6 +3,7 @@ import type { LocalSettingsStore } from "@geond-agent/ui-workbench";
 
 import {
   createRecentContextItem,
+  groupRecentContextByWorkspace,
   loadRecentContextItems,
   mergeRecentContextItem,
   normalizeRecentContextItems,
@@ -109,6 +110,38 @@ describe("recent context", () => {
       id: "file:a",
       kind: "file",
       path: "/workspace/geond-agent/docs/architecture.md",
+      favorite: true
+    });
+  });
+
+  it("groups favorite files under their workspace hint", () => {
+    const workspace = {
+      id: "workspace:a",
+      kind: "workspace" as const,
+      label: "geond-agent",
+      path: "/workspace/geond-agent",
+      updatedAt: "2026-06-24T00:00:00.000Z",
+      favorite: false
+    };
+    const favoriteFile = {
+      id: "file:a",
+      kind: "file" as const,
+      label: "architecture.md",
+      path: "/workspace/geond-agent/docs/architecture.md",
+      updatedAt: "2026-06-24T00:01:00.000Z",
+      favorite: true
+    };
+
+    const groups = groupRecentContextByWorkspace([favoriteFile], [workspace, favoriteFile]);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).toMatchObject({
+      label: "geond-agent",
+      path: "/workspace/geond-agent",
+      favoriteCount: 1
+    });
+    expect(groups[0]?.items[0]).toMatchObject({
+      label: "architecture.md",
       favorite: true
     });
   });
