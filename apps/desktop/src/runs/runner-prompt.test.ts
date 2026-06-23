@@ -2,14 +2,15 @@ import { createUiI18n } from "@geond-agent/ui-workbench";
 import { describe, expect, it } from "vitest";
 
 import {
+  buildDispatchPrompt,
   createRunnerEvidencePromptSection,
-  createRunnerPrompt
+  getComposerPlaceholder
 } from "./runner-prompt.js";
 import type { ProjectedActiveSession } from "../lib/workbench-types.js";
 
 describe("runner prompt evidence context", () => {
   it("appends metadata-only context and diff evidence to explicit prompts", () => {
-    const prompt = createRunnerPrompt("claude-live", "Fix the selected bug.", createUiI18n("en"), {
+    const prompt = buildDispatchPrompt("claude-live", "Fix the selected bug.", createUiI18n("en"), {
       activeSession: createActiveSession()
     });
 
@@ -26,9 +27,17 @@ describe("runner prompt evidence context", () => {
   });
 
   it("keeps fallback prompts usable when no evidence is selected", () => {
-    const prompt = createRunnerPrompt("fixture", "   ", createUiI18n("en"));
+    const prompt = buildDispatchPrompt("fixture", "   ", createUiI18n("en"));
 
     expect(prompt).toBe("Review the current workspace and continue the implementation.");
+  });
+
+  it("keeps composer placeholders separate from evidence-bearing dispatch prompts", () => {
+    const placeholder = getComposerPlaceholder("claude-live", createUiI18n("en"));
+
+    expect(placeholder).toBe("Run a concise geond-agent workbench smoke session. Do not modify files.");
+    expect(placeholder).not.toContain("Workbench evidence context");
+    expect(placeholder).not.toContain("apps/desktop/src/app.tsx");
   });
 
   it("limits evidence lines before dispatching to a backend", () => {

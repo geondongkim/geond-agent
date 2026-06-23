@@ -20,7 +20,7 @@ import {
   createLiveRunFailureEvents,
   createLiveRunPreludeEvents
 } from "./live-run-events.js";
-import { createRunnerPrompt } from "./runner-prompt.js";
+import { buildDispatchPrompt } from "./runner-prompt.js";
 import { listenToClaudeCodeStream } from "./stream-listener.js";
 
 export interface StartSessionOptions {
@@ -89,7 +89,7 @@ export function useWorkbenchRunner({
       (workspacePath === "__all__" ? document.activeWorkspace.path : workspacePath);
     const prompt =
       options.promptOverride ??
-      createRunnerPrompt(mode, composerPrompt, i18n, {
+      buildDispatchPrompt(mode, composerPrompt, i18n, {
         activeSession: controllerSnapshot.projection.activeSession
       });
     const request = document.createRunnerRequest({

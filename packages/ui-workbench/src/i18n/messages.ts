@@ -172,7 +172,9 @@ export type UiMessageKey =
   | "workbench.commandPalette.attachFileContext"
   | "workbench.commandPalette.showReview"
   | "workbench.commandPalette.showTerminal"
+  | "workbench.commandPalette.showBrowser"
   | "workbench.commandPalette.showFiles"
+  | "workbench.commandPalette.showSideChat"
   | "workbench.commandPalette.showSettings"
   | "workbench.commandPalette.toggleLeft"
   | "workbench.commandPalette.toggleRight"
@@ -251,6 +253,12 @@ export type UiMessageKey =
   | "workbench.sideChat.followUpPolicy"
   | "workbench.followUp.queueReview"
   | "workbench.followUp.queueTerminal"
+  | "workbench.followUp.browserDraft.title"
+  | "workbench.followUp.browserDraft.workspace"
+  | "workbench.followUp.browserDraft.attachedContext"
+  | "workbench.followUp.browserDraft.changedFiles"
+  | "workbench.followUp.browserDraft.terminalOutputs"
+  | "workbench.followUp.browserDraft.instruction"
   | "workbench.settings.languageSection"
   | "workbench.settings.routingSection"
   | "workbench.settings.inputSection"
@@ -449,7 +457,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.commandPalette.attachFileContext": "Attach file evidence",
     "workbench.commandPalette.showReview": "Open review inspector",
     "workbench.commandPalette.showTerminal": "Open terminal inspector",
+    "workbench.commandPalette.showBrowser": "Open browser inspector",
     "workbench.commandPalette.showFiles": "Open files inspector",
+    "workbench.commandPalette.showSideChat": "Open side chat inspector",
     "workbench.commandPalette.showSettings": "Open settings inspector",
     "workbench.commandPalette.toggleLeft": "Toggle session sidebar",
     "workbench.commandPalette.toggleRight": "Toggle workspace panel",
@@ -528,6 +538,12 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.sideChat.followUpPolicy": "Follow-up policy",
     "workbench.followUp.queueReview": "Queue follow-up",
     "workbench.followUp.queueTerminal": "Queue terminal follow-up",
+    "workbench.followUp.browserDraft.title": "Review browser/local validation for {title}.",
+    "workbench.followUp.browserDraft.workspace": "Workspace: {workspace}.",
+    "workbench.followUp.browserDraft.attachedContext": "Attached context: {count}.",
+    "workbench.followUp.browserDraft.changedFiles": "Changed files: {count}.",
+    "workbench.followUp.browserDraft.terminalOutputs": "Terminal outputs available: {count}.",
+    "workbench.followUp.browserDraft.instruction": "Check the UI state, file evidence, terminal output, and pending approvals before dispatching a follow-up.",
     "workbench.settings.languageSection": "Language",
     "workbench.settings.routingSection": "Backend and model route",
     "workbench.settings.inputSection": "Composer and review",
@@ -723,7 +739,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.commandPalette.attachFileContext": "파일 증거 첨부",
     "workbench.commandPalette.showReview": "검토 인스펙터 열기",
     "workbench.commandPalette.showTerminal": "터미널 인스펙터 열기",
+    "workbench.commandPalette.showBrowser": "브라우저 인스펙터 열기",
     "workbench.commandPalette.showFiles": "파일 인스펙터 열기",
+    "workbench.commandPalette.showSideChat": "사이드 채팅 인스펙터 열기",
     "workbench.commandPalette.showSettings": "설정 인스펙터 열기",
     "workbench.commandPalette.toggleLeft": "세션 사이드바 토글",
     "workbench.commandPalette.toggleRight": "워크스페이스 패널 토글",
@@ -802,6 +820,12 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.sideChat.followUpPolicy": "후속 요청 정책",
     "workbench.followUp.queueReview": "후속 초안 추가",
     "workbench.followUp.queueTerminal": "터미널 후속 초안 추가",
+    "workbench.followUp.browserDraft.title": "{title}의 브라우저/로컬 검증을 검토하세요.",
+    "workbench.followUp.browserDraft.workspace": "워크스페이스: {workspace}.",
+    "workbench.followUp.browserDraft.attachedContext": "첨부된 컨텍스트: {count}개.",
+    "workbench.followUp.browserDraft.changedFiles": "변경 파일: {count}개.",
+    "workbench.followUp.browserDraft.terminalOutputs": "사용 가능한 터미널 출력: {count}개.",
+    "workbench.followUp.browserDraft.instruction": "후속 요청을 실행하기 전에 UI 상태, 파일 증거, 터미널 출력, 대기 중인 승인을 확인하세요.",
     "workbench.settings.languageSection": "언어",
     "workbench.settings.routingSection": "백엔드와 모델 라우트",
     "workbench.settings.inputSection": "입력과 검토",

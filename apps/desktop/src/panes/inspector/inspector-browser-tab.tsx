@@ -5,6 +5,7 @@ import { Button } from "../../components/ui/button.js";
 import { TabsContent } from "../../components/ui/tabs.js";
 import { EmptyState } from "../../components/workbench/empty-state.js";
 import type { InspectorSessionReadModel } from "../../lib/inspector-read-model.js";
+import { formatMessage } from "../../lib/workbench-format.js";
 import type { ProjectedActiveSession } from "../../lib/workbench-types.js";
 
 export function InspectorBrowserTab({
@@ -30,7 +31,7 @@ export function InspectorBrowserTab({
       return;
     }
 
-    enqueueSideChatDraft(createBrowserFollowUpDraft(activeSession, outputs), activeSession.title);
+    enqueueSideChatDraft(createBrowserFollowUpDraft(activeSession, outputs, i18n), activeSession.title);
   }
 
   return (
@@ -122,14 +123,30 @@ function BrowserMetric({
 
 function createBrowserFollowUpDraft(
   activeSession: ProjectedActiveSession,
-  outputs: InspectorSessionReadModel["commandOutputs"]
+  outputs: InspectorSessionReadModel["commandOutputs"],
+  i18n: UiI18n
 ): string {
+  const changedFileCount = activeSession.diffs.reduce(
+    (count, diff) => count + diff.files.length,
+    0
+  );
+
   return [
-    `Review browser/local validation for ${activeSession.title}.`,
-    `Workspace: ${activeSession.workspacePath ?? "All workspaces"}.`,
-    `Attached context: ${activeSession.contextAttachments.length}.`,
-    `Changed files: ${activeSession.diffs.reduce((count, diff) => count + diff.files.length, 0)}.`,
-    `Terminal outputs available: ${outputs.length}.`,
-    "Check the UI state, file evidence, terminal output, and pending approvals before dispatching a follow-up."
+    formatMessage(i18n.t("workbench.followUp.browserDraft.title"), {
+      title: activeSession.title
+    }),
+    formatMessage(i18n.t("workbench.followUp.browserDraft.workspace"), {
+      workspace: activeSession.workspacePath ?? i18n.t("workbench.workspace.all")
+    }),
+    formatMessage(i18n.t("workbench.followUp.browserDraft.attachedContext"), {
+      count: activeSession.contextAttachments.length
+    }),
+    formatMessage(i18n.t("workbench.followUp.browserDraft.changedFiles"), {
+      count: changedFileCount
+    }),
+    formatMessage(i18n.t("workbench.followUp.browserDraft.terminalOutputs"), {
+      count: outputs.length
+    }),
+    i18n.t("workbench.followUp.browserDraft.instruction")
   ].join("\n");
 }

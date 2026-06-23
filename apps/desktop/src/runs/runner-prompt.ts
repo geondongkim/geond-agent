@@ -8,7 +8,13 @@ export interface RunnerPromptContext {
   readonly maxEvidenceItems?: number;
 }
 
-export function createRunnerPrompt(
+export function getComposerPlaceholder(mode: DesktopRunnerMode, i18n: UiI18n): string {
+  return mode === "claude-live"
+    ? i18n.t("workbench.composer.livePlaceholder")
+    : i18n.t("workbench.composer.placeholder");
+}
+
+export function buildDispatchPrompt(
   mode: DesktopRunnerMode,
   prompt: string,
   i18n: UiI18n,
@@ -19,10 +25,7 @@ export function createRunnerPrompt(
     return appendEvidenceContext(trimmed, context);
   }
 
-  const fallback = mode === "claude-live"
-    ? i18n.t("workbench.composer.livePlaceholder")
-    : i18n.t("workbench.composer.placeholder");
-  return appendEvidenceContext(fallback, context);
+  return appendEvidenceContext(getComposerPlaceholder(mode, i18n), context);
 }
 
 export function createRunnerEvidencePromptSection({
