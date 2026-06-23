@@ -177,6 +177,7 @@ export type UiMessageKey =
   | "workbench.runner.resumingClaude"
   | "workbench.runner.appendedEvents"
   | "workbench.runner.failed"
+  | "workbench.runner.readinessBlocked"
   | "workbench.runner.mode"
   | "workbench.runner.fixture"
   | "workbench.runner.claudeLive"
@@ -498,6 +499,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runner.resumingClaude": "Resuming Claude Code session...",
     "workbench.runner.appendedEvents": "Appended {count} events from {executable} stream-json {mode} run #{index}.",
     "workbench.runner.failed": "Runner failed.",
+    "workbench.runner.readinessBlocked": "Claude Code live run is blocked before process launch: {detail}",
     "workbench.runner.mode": "Runner mode",
     "workbench.runner.fixture": "Local fixture",
     "workbench.runner.claudeLive": "Claude Code live",
@@ -816,6 +818,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runner.resumingClaude": "Claude Code 세션 이어쓰기 중...",
     "workbench.runner.appendedEvents": "{executable} stream-json {mode} 실행 #{index}에서 이벤트 {count}개를 추가했습니다.",
     "workbench.runner.failed": "실행기가 실패했습니다.",
+    "workbench.runner.readinessBlocked": "프로세스 시작 전 Claude Code live 실행이 차단되었습니다: {detail}",
     "workbench.runner.mode": "Runner 모드",
     "workbench.runner.fixture": "로컬 fixture",
     "workbench.runner.claudeLive": "Claude Code live",

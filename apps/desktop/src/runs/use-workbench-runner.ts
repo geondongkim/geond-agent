@@ -12,6 +12,7 @@ import {
 
 import { cancelTauriClaudeCodeStream } from "../claude-runner.js";
 import type { DesktopDemoDocument, DesktopRunnerMode } from "../demo-workbench.js";
+import { createSelectionSnapshotFromRequest } from "../lib/selection-snapshot.js";
 import type { ProjectedSessionListItem } from "../lib/workbench-types.js";
 import { formatMessage } from "../lib/workbench-format.js";
 import {
@@ -19,9 +20,11 @@ import {
   createLiveRunCompletionEvents,
   createLiveRunFailureEvents,
   createLiveRunPreludeEvents,
+  createLiveRunReadinessBlockedEvents,
   createRunAttemptStartedEvent,
   createRunAttemptUpdatedEvent
 } from "./live-run-events.js";
+import { formatLiveRunReadinessBlockMessage } from "./live-run-readiness.js";
 import { buildDispatchPrompt } from "./runner-prompt.js";
 import { listenToClaudeCodeStream } from "./stream-listener.js";
 
@@ -109,6 +112,13 @@ export function useWorkbenchRunner({
       workspacePath: selectedWorkspacePath
     });
     const attemptId = createRunAttemptId(mode, sessionId);
+    const selectionSnapshot =
+      mode === "claude-live"
+        ? createSelectionSnapshotFromRequest(request, i18n, selectionCatalog)
+        : undefined;
+    const liveReadinessBlockMessage = selectionSnapshot
+      ? formatLiveRunReadinessBlockMessage(selectionSnapshot, i18n)
+      : undefined;
     const streamedEventKeys = new Set<string>();
     const appendEvents = async (
       events: readonly WorkbenchEvent[],
@@ -151,9 +161,6 @@ export function useWorkbenchRunner({
       await appendEvents([createRunAttemptStartedEvent(request, mode, attemptId, isResumeRun)]);
 
       if (mode === "claude-live") {
-        unlistenStream = await listenToClaudeCodeStream(request, i18n, (events) =>
-          appendEvents(events, { markAsStreamed: true })
-        );
         const preludeEvents = createLiveRunPreludeEvents(
           request,
           title,
@@ -162,6 +169,22 @@ export function useWorkbenchRunner({
           selectionCatalog
         );
         await appendEvents(preludeEvents);
+
+        if (liveReadinessBlockMessage) {
+          const blockedEvents = [
+            ...createLiveRunReadinessBlockedEvents(sessionId, liveReadinessBlockMessage),
+            createRunAttemptUpdatedEvent(sessionId, attemptId, "failed", {
+              errorMessage: liveReadinessBlockMessage
+            })
+          ];
+          await appendEvents(blockedEvents);
+          setRunnerStatus(liveReadinessBlockMessage);
+          return;
+        }
+
+        unlistenStream = await listenToClaudeCodeStream(request, i18n, (events) =>
+          appendEvents(events, { markAsStreamed: true })
+        );
       }
 
       const result = await document.runSession(mode, request);
