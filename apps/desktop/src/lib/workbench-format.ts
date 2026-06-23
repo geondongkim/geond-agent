@@ -1,4 +1,5 @@
 import type {
+  ProjectedLiveRunGuidanceKind,
   SelectionReadinessLevel,
   UiI18n,
   WorkbenchContextAttachmentKind,
@@ -213,6 +214,75 @@ export function formatStreamQualityLabel(
       return i18n.t("workbench.streamQuality.failed");
     case "cancelled":
       return i18n.t("workbench.streamQuality.cancelled");
+  }
+}
+
+export function formatLiveRunGuidanceLabel(
+  i18n: UiI18n,
+  kind: ProjectedLiveRunGuidanceKind
+): string {
+  switch (kind) {
+    case "idle":
+      return i18n.t("workbench.guidance.idle");
+    case "running":
+      return i18n.t("workbench.guidance.running");
+    case "healthy":
+      return i18n.t("workbench.guidance.healthy");
+    case "stream_warning":
+      return i18n.t("workbench.guidance.streamWarning");
+    case "resume_available":
+      return i18n.t("workbench.guidance.resumeAvailable");
+    case "retry_later":
+      return i18n.t("workbench.guidance.retryLater");
+    case "switch_route":
+      return i18n.t("workbench.guidance.switchRoute");
+    case "lower_model":
+      return i18n.t("workbench.guidance.lowerModel");
+    case "check_key":
+      return i18n.t("workbench.guidance.checkKey");
+    case "inspect_terminal":
+      return i18n.t("workbench.guidance.inspectTerminal");
+  }
+}
+
+export function formatLiveRunGuidanceDetail(
+  i18n: UiI18n,
+  kind: ProjectedLiveRunGuidanceKind
+): string {
+  switch (kind) {
+    case "idle":
+      return i18n.t("workbench.guidance.detail.idle");
+    case "running":
+      return i18n.t("workbench.guidance.detail.running");
+    case "healthy":
+      return i18n.t("workbench.guidance.detail.healthy");
+    case "stream_warning":
+      return i18n.t("workbench.guidance.detail.streamWarning");
+    case "resume_available":
+      return i18n.t("workbench.guidance.detail.resumeAvailable");
+    case "retry_later":
+      return i18n.t("workbench.guidance.detail.retryLater");
+    case "switch_route":
+      return i18n.t("workbench.guidance.detail.switchRoute");
+    case "lower_model":
+      return i18n.t("workbench.guidance.detail.lowerModel");
+    case "check_key":
+      return i18n.t("workbench.guidance.detail.checkKey");
+    case "inspect_terminal":
+      return i18n.t("workbench.guidance.detail.inspectTerminal");
+  }
+}
+
+export function liveRunGuidanceTone(severity: string): string {
+  switch (severity) {
+    case "success":
+      return "status-ok";
+    case "warning":
+      return "status-warn";
+    case "error":
+      return "status-danger";
+    default:
+      return "status-neutral";
   }
 }
 

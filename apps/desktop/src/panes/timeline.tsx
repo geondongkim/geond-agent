@@ -23,6 +23,8 @@ import { cn } from "../lib/cn.js";
 import type { ProjectedActiveSession } from "../lib/workbench-types.js";
 import {
   formatContextKindLabel,
+  formatLiveRunGuidanceDetail,
+  formatLiveRunGuidanceLabel,
   formatMessage,
   formatStatusLabel,
   lifecycleTone
@@ -151,11 +153,11 @@ export function TimelinePane({
           <div className="flex min-w-0 items-start gap-3">
             <AlertTriangle className="mt-0.5 shrink-0 text-[color:var(--danger)]" size={18} />
             <div className="min-w-0">
-              <p className="text-sm font-semibold">{i18n.t("workbench.recovery.title")}</p>
+              <p className="text-sm font-semibold">
+                {formatLiveRunGuidanceLabel(i18n, recoveryState.guidance.kind)}
+              </p>
               <p className="mt-1 text-xs leading-5 text-[color:var(--ink-soft)]">
-                {recoveryState.canResume
-                  ? i18n.t("workbench.recovery.resumeDetail")
-                  : i18n.t("workbench.recovery.checkDetail")}
+                {formatLiveRunGuidanceDetail(i18n, recoveryState.guidance.kind)}
               </p>
             </div>
           </div>
@@ -485,11 +487,17 @@ function getRecoveryState(
   activeSession: ProjectedActiveSession | undefined,
   canResume: boolean,
   runnerBusy: boolean
-): { readonly canResume: boolean } | undefined {
+): {
+  readonly canResume: boolean;
+  readonly guidance: ProjectedActiveSession["liveRunGuidance"];
+} | undefined {
   if (!activeSession || runnerBusy) {
     return undefined;
   }
 
+  const guidanceNeedsAttention = !["idle", "running", "healthy"].includes(
+    activeSession.liveRunGuidance.kind
+  );
   const hasInterruptedOrFailedCommand = activeSession.commandOutputs.some(
     (command) => command.status === "failed" || command.status === "interrupted"
   );
@@ -497,10 +505,24 @@ function getRecoveryState(
     (attempt) => attempt.status === "failed" || attempt.status === "cancelled"
   );
   const needsRecovery =
+    guidanceNeedsAttention ||
     activeSession.lifecycle === "failed" ||
     activeSession.lifecycle === "paused" ||
     hasInterruptedOrFailedCommand ||
     hasRecoverableRunAttempt;
+  const guidance = guidanceNeedsAttention
+    ? activeSession.liveRunGuidance
+    : {
+        ...activeSession.liveRunGuidance,
+        kind: canResume ? "resume_available" as const : "inspect_terminal" as const,
+        severity: "warning" as const,
+        canResume
+      };
 
-  return needsRecovery ? { canResume } : undefined;
+  return needsRecovery
+    ? {
+        canResume,
+        guidance
+      }
+    : undefined;
 }

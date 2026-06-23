@@ -152,6 +152,16 @@ describe("projectWorkbenchEvents", () => {
       cleanStreamAttemptCount: 0,
       warningStreamAttemptCount: 0
     });
+    expect(projection.activeSession?.liveRunGuidance).toMatchObject({
+      kind: "retry_later",
+      severity: "error",
+      canResume: true,
+      latestAttemptId: "attempt-1",
+      latestIssueKind: "provider_overloaded",
+      suggestedAction: "retry_later",
+      routeHealth: "degraded",
+      streamQuality: "failed"
+    });
     expect(projection.activeSession?.runnerIssues[0]).toMatchObject({
       id: "issue-attempt-1-provider_overloaded",
       kind: "provider_overloaded",
@@ -171,6 +181,80 @@ describe("projectWorkbenchEvents", () => {
     expect(projection.activeSession?.timeline.at(-1)).toMatchObject({
       kind: "issue",
       status: "provider_overloaded"
+    });
+  });
+
+  it("derives live run guidance for healthy and warning streams", () => {
+    const healthyProjection = projectWorkbenchEvents([
+      ...createWorkbenchSessionStartEvents({
+        sessionId: "session-healthy",
+        title: "Healthy session",
+        at: "2026-06-21T03:00:00.000Z"
+      }),
+      {
+        type: "run.attempt.started",
+        sessionId: "session-healthy",
+        attempt: {
+          id: "attempt-clean",
+          mode: "claude-live",
+          status: "running",
+          externalSessionId: "claude-session-clean",
+          startedAt: "2026-06-21T03:00:01.000Z"
+        },
+        at: "2026-06-21T03:00:01.000Z"
+      },
+      {
+        type: "run.attempt.updated",
+        sessionId: "session-healthy",
+        attemptId: "attempt-clean",
+        status: "succeeded",
+        eventCount: 8,
+        ignoredRecordCount: 0,
+        parseWarningCount: 0,
+        finishedAt: "2026-06-21T03:00:05.000Z",
+        at: "2026-06-21T03:00:05.000Z"
+      }
+    ]);
+    const warningProjection = projectWorkbenchEvents([
+      ...createWorkbenchSessionStartEvents({
+        sessionId: "session-warning",
+        title: "Warning session",
+        at: "2026-06-21T04:00:00.000Z"
+      }),
+      {
+        type: "run.attempt.started",
+        sessionId: "session-warning",
+        attempt: {
+          id: "attempt-warning",
+          mode: "claude-live",
+          status: "running",
+          externalSessionId: "claude-session-warning",
+          startedAt: "2026-06-21T04:00:01.000Z"
+        },
+        at: "2026-06-21T04:00:01.000Z"
+      },
+      {
+        type: "run.attempt.updated",
+        sessionId: "session-warning",
+        attemptId: "attempt-warning",
+        status: "succeeded",
+        eventCount: 8,
+        ignoredRecordCount: 1,
+        parseWarningCount: 1,
+        finishedAt: "2026-06-21T04:00:05.000Z",
+        at: "2026-06-21T04:00:05.000Z"
+      }
+    ]);
+
+    expect(healthyProjection.activeSession?.liveRunGuidance).toMatchObject({
+      kind: "healthy",
+      severity: "success",
+      streamQuality: "clean"
+    });
+    expect(warningProjection.activeSession?.liveRunGuidance).toMatchObject({
+      kind: "stream_warning",
+      severity: "warning",
+      streamQuality: "warning"
     });
   });
 

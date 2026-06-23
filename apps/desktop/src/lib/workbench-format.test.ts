@@ -4,12 +4,15 @@ import { createUiI18n } from "@geond-agent/ui-workbench";
 
 import {
   formatExternalSessionId,
+  formatLiveRunGuidanceDetail,
+  formatLiveRunGuidanceLabel,
   formatMessage,
   formatRunAttemptTriggerLabel,
   formatSelectionReadinessDetail,
   formatSelectionReadinessLevelLabel,
   formatStatusLabel,
   formatStreamQualityLabel,
+  liveRunGuidanceTone,
   formatUsageCost,
   formatUsageNumber
 } from "./workbench-format.js";
@@ -46,6 +49,16 @@ describe("desktop workbench formatting helpers", () => {
     );
     expect(formatStreamQualityLabel(createUiI18n("en"), "warning")).toBe("Warning");
     expect(formatStreamQualityLabel(createUiI18n("ko"), "clean")).toBe("정상");
+  });
+
+  it("formats live run guidance labels, detail, and tone", () => {
+    expect(formatLiveRunGuidanceLabel(createUiI18n("en"), "retry_later")).toBe("Retry later");
+    expect(formatLiveRunGuidanceLabel(createUiI18n("ko"), "healthy")).toBe("다음 단계 진행 가능");
+    expect(formatLiveRunGuidanceDetail(createUiI18n("en"), "resume_available")).toContain(
+      "linked external session"
+    );
+    expect(liveRunGuidanceTone("success")).toBe("status-ok");
+    expect(liveRunGuidanceTone("error")).toBe("status-danger");
   });
 
   it("formats selection readiness level and non-ready detail", () => {

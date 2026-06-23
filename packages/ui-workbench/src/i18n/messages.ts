@@ -122,6 +122,27 @@ export type UiMessageKey =
   | "workbench.streamQuality.warning"
   | "workbench.streamQuality.failed"
   | "workbench.streamQuality.cancelled"
+  | "workbench.guidance.title"
+  | "workbench.guidance.idle"
+  | "workbench.guidance.running"
+  | "workbench.guidance.healthy"
+  | "workbench.guidance.streamWarning"
+  | "workbench.guidance.resumeAvailable"
+  | "workbench.guidance.retryLater"
+  | "workbench.guidance.switchRoute"
+  | "workbench.guidance.lowerModel"
+  | "workbench.guidance.checkKey"
+  | "workbench.guidance.inspectTerminal"
+  | "workbench.guidance.detail.idle"
+  | "workbench.guidance.detail.running"
+  | "workbench.guidance.detail.healthy"
+  | "workbench.guidance.detail.streamWarning"
+  | "workbench.guidance.detail.resumeAvailable"
+  | "workbench.guidance.detail.retryLater"
+  | "workbench.guidance.detail.switchRoute"
+  | "workbench.guidance.detail.lowerModel"
+  | "workbench.guidance.detail.checkKey"
+  | "workbench.guidance.detail.inspectTerminal"
   | "workbench.issue.title"
   | "workbench.issue.latest"
   | "workbench.issue.routeHealth"
@@ -505,6 +526,27 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.streamQuality.warning": "Warning",
     "workbench.streamQuality.failed": "Failed",
     "workbench.streamQuality.cancelled": "Cancelled",
+    "workbench.guidance.title": "Run guidance",
+    "workbench.guidance.idle": "No live run yet",
+    "workbench.guidance.running": "Live run in progress",
+    "workbench.guidance.healthy": "Ready for next step",
+    "workbench.guidance.streamWarning": "Stream warnings captured",
+    "workbench.guidance.resumeAvailable": "Resume available",
+    "workbench.guidance.retryLater": "Retry later",
+    "workbench.guidance.switchRoute": "Switch route",
+    "workbench.guidance.lowerModel": "Lower model",
+    "workbench.guidance.checkKey": "Check local setup",
+    "workbench.guidance.inspectTerminal": "Inspect terminal",
+    "workbench.guidance.detail.idle": "Start a fixture or Claude live run to collect continuity evidence.",
+    "workbench.guidance.detail.running": "The current stream is active. Watch terminal output before issuing another run.",
+    "workbench.guidance.detail.healthy": "The latest run completed with a clean stream. Continue with the next task or review evidence.",
+    "workbench.guidance.detail.streamWarning": "The run completed, but ignored records or parse warnings were captured. Review terminal evidence before continuing.",
+    "workbench.guidance.detail.resumeAvailable": "A linked external session exists. Resume it with a scoped follow-up instead of starting from scratch.",
+    "workbench.guidance.detail.retryLater": "The provider route looks retryable but unstable. Wait, lower the model, or switch route manually.",
+    "workbench.guidance.detail.switchRoute": "A different provider route may be healthier. Change the route in settings before retrying.",
+    "workbench.guidance.detail.lowerModel": "The selected model may be too expensive or unstable for this route. Try a lower alias.",
+    "workbench.guidance.detail.checkKey": "Local route readiness or auth needs attention. Check local-only environment settings.",
+    "workbench.guidance.detail.inspectTerminal": "Inspect terminal evidence before retrying so the next run preserves useful context.",
     "workbench.issue.title": "Runtime issues",
     "workbench.issue.latest": "Latest issue",
     "workbench.issue.routeHealth": "Route health",
@@ -885,6 +927,27 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.streamQuality.warning": "경고",
     "workbench.streamQuality.failed": "실패",
     "workbench.streamQuality.cancelled": "취소됨",
+    "workbench.guidance.title": "실행 안내",
+    "workbench.guidance.idle": "아직 live 실행 없음",
+    "workbench.guidance.running": "Live 실행 중",
+    "workbench.guidance.healthy": "다음 단계 진행 가능",
+    "workbench.guidance.streamWarning": "스트림 경고 기록됨",
+    "workbench.guidance.resumeAvailable": "이어쓰기 가능",
+    "workbench.guidance.retryLater": "나중에 재시도",
+    "workbench.guidance.switchRoute": "경로 전환",
+    "workbench.guidance.lowerModel": "모델 낮추기",
+    "workbench.guidance.checkKey": "로컬 설정 확인",
+    "workbench.guidance.inspectTerminal": "터미널 확인",
+    "workbench.guidance.detail.idle": "연속성 evidence를 쌓으려면 fixture 또는 Claude live 실행을 시작하세요.",
+    "workbench.guidance.detail.running": "현재 스트림이 활성 상태입니다. 다른 실행을 시작하기 전 터미널 출력을 확인하세요.",
+    "workbench.guidance.detail.healthy": "최근 실행이 정상 스트림으로 완료되었습니다. 다음 작업을 진행하거나 evidence를 검토하세요.",
+    "workbench.guidance.detail.streamWarning": "실행은 완료됐지만 무시된 레코드 또는 파싱 경고가 있습니다. 계속하기 전 터미널 evidence를 확인하세요.",
+    "workbench.guidance.detail.resumeAvailable": "연결된 외부 세션이 있습니다. 처음부터 다시 시작하지 말고 범위를 좁힌 follow-up으로 이어쓰세요.",
+    "workbench.guidance.detail.retryLater": "프로바이더 경로는 재시도 가능하지만 불안정합니다. 기다리거나 모델을 낮추거나 수동으로 경로를 바꾸세요.",
+    "workbench.guidance.detail.switchRoute": "다른 프로바이더 경로가 더 안정적일 수 있습니다. 설정에서 경로를 바꾼 뒤 재시도하세요.",
+    "workbench.guidance.detail.lowerModel": "선택한 모델이 이 경로에서 비싸거나 불안정할 수 있습니다. 낮은 alias를 시도하세요.",
+    "workbench.guidance.detail.checkKey": "로컬 경로 준비 상태 또는 인증 설정을 확인해야 합니다. local-only 환경 설정을 점검하세요.",
+    "workbench.guidance.detail.inspectTerminal": "다음 실행이 유용한 맥락을 보존하도록 재시도 전 터미널 evidence를 확인하세요.",
     "workbench.issue.title": "런타임 문제",
     "workbench.issue.latest": "최근 문제",
     "workbench.issue.routeHealth": "경로 상태",
