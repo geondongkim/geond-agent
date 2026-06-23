@@ -38,6 +38,47 @@ export function createTerminalFollowUpDraft(
     .join("\n");
 }
 
+export function createRunAttemptFollowUpDraft(
+  attempt: InspectorSessionReadModel["runAttempts"][number]
+): string {
+  return [
+    `Review the run attempt ${attempt.id}.`,
+    `Status: ${attempt.status}.`,
+    `Mode: ${attempt.mode}.`,
+    attempt.modelProfileId ? `Model: ${attempt.modelProfileId}.` : undefined,
+    attempt.providerRouteId ? `Provider route: ${attempt.providerRouteId}.` : undefined,
+    attempt.externalSessionId ? `External session: ${attempt.externalSessionId}.` : undefined,
+    attempt.exitCode !== undefined ? `Exit code: ${attempt.exitCode}.` : undefined,
+    attempt.eventCount !== undefined ? `Normalized events: ${attempt.eventCount}.` : undefined,
+    attempt.ignoredRecordCount !== undefined
+      ? `Ignored records: ${attempt.ignoredRecordCount}.`
+      : undefined,
+    attempt.parseWarningCount !== undefined
+      ? `Parse warnings: ${attempt.parseWarningCount}.`
+      : undefined,
+    attempt.promptSummary ? `Previous prompt summary: ${attempt.promptSummary}` : undefined,
+    attempt.commandPreview ? `Command preview: ${attempt.commandPreview}` : undefined,
+    attempt.errorMessage ? `Error: ${attempt.errorMessage}` : undefined,
+    getRunAttemptInstruction(attempt.status)
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join("\n");
+}
+
 function formatDiffFile(file: ProjectedActiveSession["diffs"][number]["files"][number]): string {
   return `- ${file.path}: ${file.changeKind} +${file.additions ?? 0} / -${file.deletions ?? 0}`;
+}
+
+function getRunAttemptInstruction(status: string): string {
+  if (status === "failed" || status === "cancelled") {
+    return [
+      "Diagnose the failed or cancelled run, preserve completed work,",
+      "and continue from the safest next step without exposing secrets or raw local files."
+    ].join(" ");
+  }
+
+  return [
+    "Review whether the run needs a follow-up, preserve useful context,",
+    "and avoid repeating completed work."
+  ].join(" ");
 }

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   createApprovalFollowUpDraft,
   createDiffFollowUpDraft,
+  createRunAttemptFollowUpDraft,
   createTerminalFollowUpDraft
 } from "./inspector-follow-up.js";
 
@@ -45,5 +46,28 @@ describe("inspector follow-up drafts", () => {
         chunkCount: 1
       })
     ).toContain("Preview:\npnpm verify failed");
+  });
+
+  it("creates run attempt recovery follow-up text", () => {
+    const draft = createRunAttemptFollowUpDraft({
+      id: "attempt-1",
+      mode: "claude-live",
+      status: "failed",
+      modelProfileId: "opus",
+      providerRouteId: "zai.anthropic-compatible",
+      externalSessionId: "claude-session-1",
+      commandPreview: "claude --bare -p --verbose --output-format stream-json",
+      promptSummary: "Implement the recovery flow",
+      exitCode: 1,
+      eventCount: 12,
+      ignoredRecordCount: 1,
+      parseWarningCount: 2,
+      errorMessage: "runner failed"
+    });
+
+    expect(draft).toContain("Status: failed.");
+    expect(draft).toContain("External session: claude-session-1.");
+    expect(draft).toContain("Parse warnings: 2.");
+    expect(draft).toContain("continue from the safest next step");
   });
 });

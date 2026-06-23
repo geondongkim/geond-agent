@@ -371,10 +371,14 @@ function getRecoveryState(
   const hasInterruptedOrFailedCommand = activeSession.commandOutputs.some(
     (command) => command.status === "failed" || command.status === "interrupted"
   );
+  const hasRecoverableRunAttempt = activeSession.runAttempts.some(
+    (attempt) => attempt.status === "failed" || attempt.status === "cancelled"
+  );
   const needsRecovery =
     activeSession.lifecycle === "failed" ||
     activeSession.lifecycle === "paused" ||
-    hasInterruptedOrFailedCommand;
+    hasInterruptedOrFailedCommand ||
+    hasRecoverableRunAttempt;
 
   return needsRecovery ? { canResume } : undefined;
 }

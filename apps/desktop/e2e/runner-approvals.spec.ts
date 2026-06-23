@@ -22,6 +22,16 @@ test("runner dispatch and approval keyboard paths remain reviewable", async ({ p
   await expect(updatedReviewPanel.getByText("Run attempts")).toBeVisible();
   await expect(updatedReviewPanel.getByText("Mode: fixture")).toBeVisible();
   await expect(updatedReviewPanel.getByText("succeeded").first()).toBeVisible();
+  await updatedReviewPanel.getByRole("button", { name: "Queue run follow-up" }).click();
+  await page.getByRole("tab", { name: "Side chat" }).click();
+  const runAttemptDraftsPanel = page.getByRole("tabpanel", { name: "Side chat" });
+  await expect(runAttemptDraftsPanel.getByText("Review the run attempt")).toBeVisible();
+  await runAttemptDraftsPanel
+    .locator(".side-chat-draft-card")
+    .filter({ hasText: "Review the run attempt" })
+    .getByRole("button", { name: "Remove" })
+    .click();
+  await page.getByRole("tab", { name: "Review" }).click();
   await expect(updatedReviewPanel.getByText("glm-4.7")).toBeVisible();
   await expect(updatedReviewPanel.getByText("Manual")).toBeVisible();
   await expect(updatedReviewPanel.getByText("System")).toBeVisible();
