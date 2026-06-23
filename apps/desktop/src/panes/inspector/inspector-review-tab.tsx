@@ -492,7 +492,7 @@ export function InspectorReviewTab({
               {activeSession.approvals.map((approval) => (
                 <div
                   key={approval.id}
-                  className="inspector-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--accent)]"
+                  className="inspector-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/35"
                   role="group"
                   tabIndex={approval.status === "pending" ? 0 : undefined}
                   aria-label={formatMessage(i18n.t("workbench.approvals.ariaLabel"), {
