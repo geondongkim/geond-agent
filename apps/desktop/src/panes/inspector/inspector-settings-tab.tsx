@@ -2,6 +2,7 @@ import type {
   UiI18n,
   WorkbenchCatalogOption,
   WorkbenchRuntimeSnapshot,
+  WorkbenchSelectionReadiness,
   WorkbenchSessionDefaults,
   WorkbenchSettingsLabels
 } from "@geond-agent/ui-workbench";
@@ -11,10 +12,15 @@ import { TabsContent } from "../../components/ui/tabs.js";
 import { SettingsRow } from "../../components/workbench/settings-row.js";
 import { SettingsSelect } from "../../components/workbench/settings-select.js";
 import type { DesktopRunnerMode } from "../../demo-workbench.js";
+import {
+  createClaudeFirstRunChecklist,
+  type FirstRunChecklistLevel
+} from "../../lib/first-run-checklist.js";
 
 export function InspectorSettingsTab({
   agentLanguageOptions,
   backendOptions,
+  bridgeCommand,
   composerEnterBehaviorOptions,
   followUpPolicyOptions,
   i18n,
@@ -26,6 +32,7 @@ export function InspectorSettingsTab({
   routingModeOptions,
   runtimeSnapshot,
   runnerMode,
+  selectionReadiness,
   sessionDefaults,
   settingsLabels,
   updateAgentResponseLanguage,
@@ -35,6 +42,7 @@ export function InspectorSettingsTab({
 }: {
   readonly agentLanguageOptions: readonly { readonly value: string; readonly label: string }[];
   readonly backendOptions: readonly WorkbenchCatalogOption[];
+  readonly bridgeCommand: string;
   readonly composerEnterBehaviorOptions: readonly { readonly value: string; readonly label: string }[];
   readonly followUpPolicyOptions: readonly { readonly value: string; readonly label: string }[];
   readonly i18n: UiI18n;
@@ -46,6 +54,7 @@ export function InspectorSettingsTab({
   readonly routingModeOptions: readonly { readonly value: string; readonly label: string }[];
   readonly runtimeSnapshot: WorkbenchRuntimeSnapshot;
   readonly runnerMode: DesktopRunnerMode;
+  readonly selectionReadiness?: WorkbenchSelectionReadiness;
   readonly sessionDefaults: WorkbenchSessionDefaults;
   readonly settingsLabels: WorkbenchSettingsLabels;
   readonly updateAgentResponseLanguage: (language: string) => void;
@@ -53,9 +62,36 @@ export function InspectorSettingsTab({
   readonly updateSessionDefaults: (patch: Partial<WorkbenchSessionDefaults>) => void;
   readonly updateUiLanguage: (language: string) => void;
 }) {
+  const firstRunChecklist = createClaudeFirstRunChecklist({
+    bridgeCommand,
+    i18n,
+    modelAliasOptions,
+    persistenceNotes,
+    providerRouteOptions,
+    runnerMode,
+    selectionReadiness,
+    sessionDefaults
+  });
+
   return (
     <TabsContent value="settings" className="border-0 bg-transparent p-0">
       <div className="settings-sections">
+        <SettingsSection title={i18n.t("workbench.settings.firstRunSection")}>
+          <SettingsRow
+            label={i18n.t("workbench.settings.firstRunSection")}
+            value={formatFirstRunLevel(i18n, firstRunChecklist.level)}
+            detail={firstRunChecklist.summary}
+          />
+          {firstRunChecklist.items.map((item) => (
+            <SettingsRow
+              key={item.id}
+              label={item.label}
+              value={`${formatFirstRunLevel(i18n, item.level)} - ${item.value}`}
+              detail={item.detail}
+            />
+          ))}
+        </SettingsSection>
+
         <SettingsSection title={i18n.t("workbench.settings.languageSection")}>
           <SettingsSelect
             label={settingsLabels.fields.uiLanguage}
@@ -193,4 +229,15 @@ function runnerModeOptions(i18n: UiI18n) {
     { value: "claude-live", label: i18n.t("workbench.runner.claudeLive") },
     { value: "fixture", label: i18n.t("workbench.runner.fixture") }
   ] as const;
+}
+
+function formatFirstRunLevel(i18n: UiI18n, level: FirstRunChecklistLevel): string {
+  switch (level) {
+    case "ready":
+      return i18n.t("workbench.firstRun.levelReady");
+    case "attention":
+      return i18n.t("workbench.firstRun.levelAttention");
+    case "blocked":
+      return i18n.t("workbench.firstRun.levelBlocked");
+  }
 }

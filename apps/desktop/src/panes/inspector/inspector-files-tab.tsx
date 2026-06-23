@@ -15,6 +15,7 @@ import { TabsContent } from "../../components/ui/tabs.js";
 import { EmptyState } from "../../components/workbench/empty-state.js";
 import { cn } from "../../lib/cn.js";
 import {
+  createEvidenceBundleDraft,
   createEvidenceFollowUpDraft,
   createFileEvidencePreviewModel,
   findFileEvidenceSelection,
@@ -60,6 +61,17 @@ export function InspectorFilesTab({
     enqueueSideChatDraft(createEvidenceFollowUpDraft(selectedEvidence), sourceLabel);
   }
 
+  function queueEvidenceBundle() {
+    if (!activeSession) {
+      return;
+    }
+
+    enqueueSideChatDraft(
+      createEvidenceBundleDraft({ activeSession, inspectorData }),
+      activeSession.title
+    );
+  }
+
   return (
     <TabsContent value="files" className="border-0 bg-transparent p-0">
       <div className="file-evidence-hero">
@@ -91,7 +103,16 @@ export function InspectorFilesTab({
         <p className="mt-3 border-t border-white/[0.055] px-1 pt-3 text-xs leading-5 text-[color:var(--ink-soft)]">
           {i18n.t("workbench.files.providerPromptBoundary")}
         </p>
-        <div className="mt-3 flex justify-end">
+        <div className="mt-3 flex justify-end gap-2">
+          <Button
+            variant="ghost"
+            className="gap-2"
+            onClick={queueEvidenceBundle}
+            disabled={!activeSession}
+          >
+            <MessageSquarePlus size={14} />
+            {i18n.t("workbench.files.queueEvidenceBundle")}
+          </Button>
           <Button
             variant="outline"
             className="gap-2"

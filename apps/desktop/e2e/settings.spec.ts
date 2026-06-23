@@ -40,6 +40,11 @@ test("settings and pinned session preferences persist across reload", async ({ p
   await expect(page.getByRole("button", { name: "Unpin session" })).toBeVisible();
 
   await page.getByRole("tab", { name: "Settings" }).click();
+  const settingsPanel = page.getByRole("tabpanel", { name: "Settings" });
+  await expect(settingsPanel.getByRole("heading", { name: "First-run checklist" })).toBeVisible();
+  await expect(settingsPanel.getByText("Runner mode", { exact: true }).first()).toBeVisible();
+  await expect(settingsPanel.getByText("Bridge command", { exact: true }).first()).toBeVisible();
+  await expect(settingsPanel.getByText("Persistence boundary", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Language", { exact: true })).toBeVisible();
   await expect(page.getByText("Backend and model route", { exact: true })).toBeVisible();
   await expect(page.getByText("Composer and review", { exact: true })).toBeVisible();

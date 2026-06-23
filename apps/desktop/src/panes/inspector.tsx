@@ -242,6 +242,7 @@ export function InspectorPane({
         <InspectorSettingsTab
           agentLanguageOptions={agentLanguageOptions}
           backendOptions={backendOptions}
+          bridgeCommand={bridgeCommand}
           composerEnterBehaviorOptions={composerEnterBehaviorOptions}
           followUpPolicyOptions={followUpPolicyOptions}
           i18n={i18n}
@@ -253,6 +254,7 @@ export function InspectorPane({
           routingModeOptions={routingModeOptions}
           runtimeSnapshot={runtimeSnapshot}
           runnerMode={runnerMode}
+          selectionReadiness={activeSession?.selection?.readiness}
           sessionDefaults={sessionDefaults}
           settingsLabels={settingsLabels}
           updateAgentResponseLanguage={updateAgentResponseLanguage}
