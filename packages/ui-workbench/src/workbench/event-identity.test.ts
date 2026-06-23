@@ -113,4 +113,29 @@ describe("workbenchEventIdentity", () => {
 
     expect(workbenchEventIdentity(first)).not.toBe(workbenchEventIdentity(second));
   });
+
+  it("deduplicates run attempt updates by attempt, status, timestamp, and summary", () => {
+    const first: WorkbenchEvent = {
+      type: "run.attempt.updated",
+      sessionId: "session-1",
+      attemptId: "attempt-1",
+      status: "succeeded",
+      eventCount: 12,
+      ignoredRecordCount: 1,
+      parseWarningCount: 0,
+      exitCode: 0,
+      at: "2026-06-22T00:00:00.000Z"
+    };
+    const second: WorkbenchEvent = {
+      ...first
+    };
+    const failed: WorkbenchEvent = {
+      ...first,
+      status: "failed",
+      errorMessage: "runner failed"
+    };
+
+    expect(workbenchEventIdentity(first)).toBe(workbenchEventIdentity(second));
+    expect(workbenchEventIdentity(first)).not.toBe(workbenchEventIdentity(failed));
+  });
 });

@@ -15,10 +15,13 @@ test("runner dispatch and approval keyboard paths remain reviewable", async ({ p
   await dispatchFixtureRun(page, "Inspect workbench event replay and keep the run local.");
   await expect(page.getByText("2 total")).toBeVisible();
   await expect(page.getByRole("button", { name: /Local demo session 2/ })).toBeVisible();
-  await expect(page.locator(".run-status-strip").filter({ hasText: /Appended 15 events/ })).toBeVisible();
+  await expect(page.locator(".run-status-strip").filter({ hasText: /Appended 16 events/ })).toBeVisible();
 
   await page.getByRole("tab", { name: "Review" }).click();
   const updatedReviewPanel = page.getByRole("tabpanel", { name: "Review" });
+  await expect(updatedReviewPanel.getByText("Run attempts")).toBeVisible();
+  await expect(updatedReviewPanel.getByText("Mode: fixture")).toBeVisible();
+  await expect(updatedReviewPanel.getByText("succeeded").first()).toBeVisible();
   await expect(updatedReviewPanel.getByText("glm-4.7")).toBeVisible();
   await expect(updatedReviewPanel.getByText("Manual")).toBeVisible();
   await expect(updatedReviewPanel.getByText("System")).toBeVisible();

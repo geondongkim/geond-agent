@@ -26,7 +26,7 @@ const CLAUDE_DEFAULT_TIMEOUT_MS: u64 = 10 * 60 * 1000;
 const CLAUDE_MAX_TIMEOUT_MS: u64 = 60 * 60 * 1000;
 const PROCESS_OUTPUT_CAP_BYTES: usize = 1024 * 1024;
 const PROCESS_OUTPUT_TRUNCATED_MARKER: &str = "\n... [truncated]\n";
-const EVENT_STORE_SCHEMA_VERSION: i64 = 4;
+const EVENT_STORE_SCHEMA_VERSION: i64 = 5;
 const CLAUDE_ENV_KEYS: &[&str] = &[
     "ANTHROPIC_API_KEY",
     "ANTHROPIC_BASE_URL",
@@ -41,6 +41,7 @@ const MATERIALIZED_EVENT_TABLES: &[&str] = &[
     "workbench_command_outputs",
     "workbench_diff_summaries",
     "workbench_usage_metadata",
+    "workbench_run_attempts",
 ];
 
 #[derive(Debug, Deserialize)]
@@ -198,6 +199,33 @@ pub struct WorkbenchUsageMetadataRecord {
     updated_at: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkbenchRunAttemptRecord {
+    session_id: String,
+    attempt_id: String,
+    mode: String,
+    status: String,
+    backend_adapter_id: Option<String>,
+    provider_route_id: Option<String>,
+    model_profile_id: Option<String>,
+    routing_mode: Option<String>,
+    permission_mode: Option<String>,
+    external_session_id: Option<String>,
+    resumed_from_external_session_id: Option<String>,
+    command_preview: Option<String>,
+    prompt_summary: Option<String>,
+    started_at: Option<String>,
+    finished_at: Option<String>,
+    exit_code: Option<i64>,
+    event_count: Option<i64>,
+    ignored_record_count: Option<i64>,
+    parse_warning_count: Option<i64>,
+    error_message: Option<String>,
+    source_event_id: Option<i64>,
+    updated_at: Option<String>,
+}
+
 type ProcessHandle = Arc<Mutex<Child>>;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -217,6 +245,7 @@ pub fn run() {
             list_workbench_command_outputs,
             list_workbench_diff_summaries,
             list_workbench_usage_metadata,
+            list_workbench_run_attempts,
             delete_workbench_session_events,
             list_workspaces,
             run_claude_code_stream_json,
@@ -444,6 +473,15 @@ fn list_workbench_usage_metadata(
 ) -> Result<Vec<WorkbenchUsageMetadataRecord>, String> {
     let connection = open_event_store(&app)?;
     list_usage_metadata_records(&connection, session_id.as_deref())
+}
+
+#[tauri::command]
+fn list_workbench_run_attempts(
+    app: AppHandle,
+    session_id: Option<String>,
+) -> Result<Vec<WorkbenchRunAttemptRecord>, String> {
+    let connection = open_event_store(&app)?;
+    list_run_attempt_records(&connection, session_id.as_deref())
 }
 
 #[tauri::command]
@@ -1082,6 +1120,44 @@ fn migrate_event_store(connection: &mut Connection) -> Result<(), String> {
         transaction.commit().map_err(to_string)?;
     }
 
+    if version < 5 {
+        let transaction = connection.transaction().map_err(to_string)?;
+        transaction
+            .execute_batch(
+                "create table if not exists workbench_run_attempts (
+                    session_id text not null,
+                    attempt_id text not null,
+                    mode text not null,
+                    status text not null,
+                    backend_adapter_id text,
+                    provider_route_id text,
+                    model_profile_id text,
+                    routing_mode text,
+                    permission_mode text,
+                    external_session_id text,
+                    resumed_from_external_session_id text,
+                    command_preview text,
+                    prompt_summary text,
+                    started_at text,
+                    finished_at text,
+                    exit_code integer,
+                    event_count integer,
+                    ignored_record_count integer,
+                    parse_warning_count integer,
+                    error_message text,
+                    source_event_id integer,
+                    updated_at text,
+                    primary key (session_id, attempt_id)
+                );
+                create index if not exists idx_workbench_run_attempts_session
+                    on workbench_run_attempts(session_id, started_at, updated_at);
+                pragma user_version = 5;",
+            )
+            .map_err(to_string)?;
+        backfill_materialized_event_views_from_events(&transaction)?;
+        transaction.commit().map_err(to_string)?;
+    }
+
     Ok(())
 }
 
@@ -1552,6 +1628,111 @@ fn materialize_event_views_for_event(
                 )
                 .map_err(to_string)?;
         }
+        "run.attempt.started" => {
+            let Some(attempt) = event.get("attempt") else {
+                return Ok(());
+            };
+            let Some(attempt_id) = read_string(attempt, "id") else {
+                return Ok(());
+            };
+            let started_at = read_string(attempt, "startedAt").or_else(|| updated_at.clone());
+
+            connection
+                .execute(
+                    "insert into workbench_run_attempts (
+                        session_id, attempt_id, mode, status, backend_adapter_id,
+                        provider_route_id, model_profile_id, routing_mode, permission_mode,
+                        external_session_id, resumed_from_external_session_id, command_preview,
+                        prompt_summary, started_at, finished_at, exit_code, event_count,
+                        ignored_record_count, parse_warning_count, error_message, source_event_id,
+                        updated_at
+                     ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14,
+                               null, null, null, null, null, null, ?15, ?16)
+                     on conflict(session_id, attempt_id) do update set
+                        mode = excluded.mode,
+                        status = excluded.status,
+                        backend_adapter_id = excluded.backend_adapter_id,
+                        provider_route_id = excluded.provider_route_id,
+                        model_profile_id = excluded.model_profile_id,
+                        routing_mode = excluded.routing_mode,
+                        permission_mode = excluded.permission_mode,
+                        external_session_id = excluded.external_session_id,
+                        resumed_from_external_session_id = excluded.resumed_from_external_session_id,
+                        command_preview = excluded.command_preview,
+                        prompt_summary = excluded.prompt_summary,
+                        started_at = coalesce(excluded.started_at, workbench_run_attempts.started_at),
+                        source_event_id = excluded.source_event_id,
+                        updated_at = excluded.updated_at",
+                    params![
+                        session_id,
+                        attempt_id,
+                        read_string(attempt, "mode").unwrap_or_else(|| "claude-live".to_string()),
+                        read_string(attempt, "status").unwrap_or_else(|| "running".to_string()),
+                        read_string(attempt, "backendAdapterId"),
+                        read_string(attempt, "providerRouteId"),
+                        read_string(attempt, "modelProfileId"),
+                        read_string(attempt, "routingMode"),
+                        read_string(attempt, "permissionMode"),
+                        read_string(attempt, "externalSessionId"),
+                        read_string(attempt, "resumedFromExternalSessionId"),
+                        read_string(attempt, "commandPreview"),
+                        read_string(attempt, "promptSummary"),
+                        started_at,
+                        source_event_id,
+                        updated_at,
+                    ],
+                )
+                .map_err(to_string)?;
+        }
+        "run.attempt.updated" => {
+            let Some(attempt_id) = read_string(event, "attemptId") else {
+                return Ok(());
+            };
+            let finished_at = read_string(event, "finishedAt").or_else(|| updated_at.clone());
+
+            connection
+                .execute(
+                    "insert into workbench_run_attempts (
+                        session_id, attempt_id, mode, status, backend_adapter_id,
+                        provider_route_id, model_profile_id, routing_mode, permission_mode,
+                        external_session_id, resumed_from_external_session_id, command_preview,
+                        prompt_summary, started_at, finished_at, exit_code, event_count,
+                        ignored_record_count, parse_warning_count, error_message, source_event_id,
+                        updated_at
+                     ) values (?1, ?2, 'claude-live', ?3, null, null, null, null, null, null,
+                               null, null, null, null, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+                     on conflict(session_id, attempt_id) do update set
+                        status = excluded.status,
+                        finished_at = excluded.finished_at,
+                        exit_code = coalesce(excluded.exit_code, workbench_run_attempts.exit_code),
+                        event_count = coalesce(excluded.event_count, workbench_run_attempts.event_count),
+                        ignored_record_count = coalesce(
+                            excluded.ignored_record_count,
+                            workbench_run_attempts.ignored_record_count
+                        ),
+                        parse_warning_count = coalesce(
+                            excluded.parse_warning_count,
+                            workbench_run_attempts.parse_warning_count
+                        ),
+                        error_message = coalesce(excluded.error_message, workbench_run_attempts.error_message),
+                        source_event_id = excluded.source_event_id,
+                        updated_at = excluded.updated_at",
+                    params![
+                        session_id,
+                        attempt_id,
+                        read_string(event, "status").unwrap_or_else(|| "failed".to_string()),
+                        finished_at,
+                        read_i64(event, "exitCode"),
+                        read_i64(event, "eventCount"),
+                        read_i64(event, "ignoredRecordCount"),
+                        read_i64(event, "parseWarningCount"),
+                        read_string(event, "errorMessage"),
+                        source_event_id,
+                        updated_at,
+                    ],
+                )
+                .map_err(to_string)?;
+        }
         _ => {}
     }
 
@@ -1768,6 +1949,54 @@ fn list_usage_metadata_records(
                 note: row.get(12)?,
                 source_event_id: row.get(13)?,
                 updated_at: row.get(14)?,
+            })
+        })
+        .map_err(to_string)?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(to_string)
+}
+
+fn list_run_attempt_records(
+    connection: &Connection,
+    session_id: Option<&str>,
+) -> Result<Vec<WorkbenchRunAttemptRecord>, String> {
+    let mut statement = connection
+        .prepare(
+            "select session_id, attempt_id, mode, status, backend_adapter_id, provider_route_id,
+                    model_profile_id, routing_mode, permission_mode, external_session_id,
+                    resumed_from_external_session_id, command_preview, prompt_summary,
+                    started_at, finished_at, exit_code, event_count, ignored_record_count,
+                    parse_warning_count, error_message, source_event_id, updated_at
+             from workbench_run_attempts
+             where (?1 is null or session_id = ?1)
+             order by coalesce(started_at, updated_at, '') desc, session_id, attempt_id",
+        )
+        .map_err(to_string)?;
+
+    let rows = statement
+        .query_map(params![session_id], |row| {
+            Ok(WorkbenchRunAttemptRecord {
+                session_id: row.get(0)?,
+                attempt_id: row.get(1)?,
+                mode: row.get(2)?,
+                status: row.get(3)?,
+                backend_adapter_id: row.get(4)?,
+                provider_route_id: row.get(5)?,
+                model_profile_id: row.get(6)?,
+                routing_mode: row.get(7)?,
+                permission_mode: row.get(8)?,
+                external_session_id: row.get(9)?,
+                resumed_from_external_session_id: row.get(10)?,
+                command_preview: row.get(11)?,
+                prompt_summary: row.get(12)?,
+                started_at: row.get(13)?,
+                finished_at: row.get(14)?,
+                exit_code: row.get(15)?,
+                event_count: row.get(16)?,
+                ignored_record_count: row.get(17)?,
+                parse_warning_count: row.get(18)?,
+                error_message: row.get(19)?,
+                source_event_id: row.get(20)?,
+                updated_at: row.get(21)?,
             })
         })
         .map_err(to_string)?;
@@ -2348,6 +2577,37 @@ fn workbench_event_identity(event: &Value) -> String {
                 read_string(event, "at").unwrap_or_default(),
             ])
         }
+        "run.attempt.started" => {
+            let attempt = event.get("attempt");
+            join_identity_parts([
+                event_type,
+                session_id,
+                attempt
+                    .and_then(|value| read_string(value, "id"))
+                    .unwrap_or_default(),
+                read_string(event, "at").unwrap_or_default(),
+            ])
+        }
+        "run.attempt.updated" => join_identity_parts([
+            event_type,
+            session_id,
+            read_string(event, "attemptId").unwrap_or_default(),
+            read_string(event, "status").unwrap_or_default(),
+            read_string(event, "at").unwrap_or_default(),
+            read_i64(event, "exitCode")
+                .map(|value| value.to_string())
+                .unwrap_or_default(),
+            read_i64(event, "eventCount")
+                .map(|value| value.to_string())
+                .unwrap_or_default(),
+            read_i64(event, "ignoredRecordCount")
+                .map(|value| value.to_string())
+                .unwrap_or_default(),
+            read_i64(event, "parseWarningCount")
+                .map(|value| value.to_string())
+                .unwrap_or_default(),
+            read_string(event, "errorMessage").unwrap_or_default(),
+        ]),
         "approval.requested" => {
             let approval = event.get("approval");
             join_identity_parts([
@@ -2771,6 +3031,37 @@ mod tests {
             },
             "at": "2026-06-22T02:00:06.000Z"
         });
+        let run_started = serde_json::json!({
+            "type": "run.attempt.started",
+            "sessionId": "session-views",
+            "attempt": {
+                "id": "attempt-1",
+                "mode": "claude-live",
+                "status": "running",
+                "backendAdapterId": "claude-code.external-cli-acp",
+                "providerRouteId": "zai.anthropic-compatible",
+                "modelProfileId": "opus",
+                "routingMode": "manual",
+                "permissionMode": "plan",
+                "externalSessionId": "claude-session-1",
+                "commandPreview": "claude --bare -p --verbose --output-format stream-json",
+                "promptSummary": "Implement run attempt persistence",
+                "startedAt": "2026-06-22T02:00:07.000Z"
+            },
+            "at": "2026-06-22T02:00:07.000Z"
+        });
+        let run_updated = serde_json::json!({
+            "type": "run.attempt.updated",
+            "sessionId": "session-views",
+            "attemptId": "attempt-1",
+            "status": "succeeded",
+            "finishedAt": "2026-06-22T02:00:08.000Z",
+            "exitCode": 0,
+            "eventCount": 12,
+            "ignoredRecordCount": 1,
+            "parseWarningCount": 0,
+            "at": "2026-06-22T02:00:08.000Z"
+        });
 
         append_events_to_store(
             &mut connection,
@@ -2783,6 +3074,8 @@ mod tests {
                 command_stderr,
                 diff,
                 usage,
+                run_started,
+                run_updated,
             ],
         )
         .expect("append materialized event view records");
@@ -2797,6 +3090,8 @@ mod tests {
             list_diff_summary_records(&connection, Some("session-views")).expect("list diffs");
         let usage = list_usage_metadata_records(&connection, Some("session-views"))
             .expect("list usage metadata");
+        let run_attempts = list_run_attempt_records(&connection, Some("session-views"))
+            .expect("list run attempts");
 
         assert_eq!(contexts.len(), 1);
         assert_eq!(contexts[0].title, "geond-agent");
@@ -2827,6 +3122,18 @@ mod tests {
         assert_eq!(usage[0].model.as_deref(), Some("glm-5.2"));
         assert_eq!(usage[0].input_tokens, Some(120));
         assert_eq!(usage[0].cost_usd, Some(0.0123));
+        assert_eq!(run_attempts.len(), 1);
+        assert_eq!(run_attempts[0].attempt_id, "attempt-1");
+        assert_eq!(run_attempts[0].mode, "claude-live");
+        assert_eq!(run_attempts[0].status, "succeeded");
+        assert_eq!(
+            run_attempts[0].backend_adapter_id.as_deref(),
+            Some("claude-code.external-cli-acp")
+        );
+        assert_eq!(run_attempts[0].model_profile_id.as_deref(), Some("opus"));
+        assert_eq!(run_attempts[0].event_count, Some(12));
+        assert_eq!(run_attempts[0].ignored_record_count, Some(1));
+        assert_eq!(run_attempts[0].parse_warning_count, Some(0));
     }
 
     #[test]

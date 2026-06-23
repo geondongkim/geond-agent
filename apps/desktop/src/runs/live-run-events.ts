@@ -3,11 +3,75 @@ import {
   createWorkbenchSessionStartEvents,
   type UiI18n,
   type WorkbenchEvent,
+  type WorkbenchRunAttemptStatus,
   type WorkbenchSelectionCatalog
 } from "@geond-agent/ui-workbench";
+import { redactSensitiveTextContent } from "@geond-agent/claude-code-bridge";
 
 import { createSelectionSnapshotFromRequest, describeLiveCommandPreview } from "../lib/selection-snapshot.js";
+import type { DesktopRunnerMode } from "../demo-workbench.js";
 import type { RunnerRequest, RunnerResult } from "./types.js";
+
+export function createRunAttemptStartedEvent(
+  request: RunnerRequest,
+  mode: DesktopRunnerMode,
+  attemptId: string,
+  isResumeRun: boolean
+): WorkbenchEvent {
+  const at = new Date().toISOString();
+
+  return {
+    type: "run.attempt.started",
+    sessionId: request.sessionId,
+    attempt: {
+      id: attemptId,
+      mode,
+      status: "running",
+      backendAdapterId: request.backendAdapterId,
+      providerRouteId: request.providerRouteId,
+      modelProfileId: request.modelProfileId ?? request.modelAlias,
+      routingMode: request.routingMode,
+      permissionMode: request.permissionMode,
+      externalSessionId: request.externalSessionId,
+      resumedFromExternalSessionId: isResumeRun ? request.externalSessionId : undefined,
+      commandPreview:
+        mode === "claude-live"
+          ? describeLiveCommandPreview(request)
+          : "sanitized Claude Code fixture replay",
+      promptSummary: summarizePrompt(request.prompt),
+      startedAt: at
+    },
+    at
+  };
+}
+
+export function createRunAttemptUpdatedEvent(
+  sessionId: string,
+  attemptId: string,
+  status: WorkbenchRunAttemptStatus,
+  summary: {
+    readonly exitCode?: number;
+    readonly eventCount?: number;
+    readonly ignoredRecordCount?: number;
+    readonly parseWarningCount?: number;
+    readonly errorMessage?: string;
+  } = {}
+): WorkbenchEvent {
+  const at = new Date().toISOString();
+
+  return {
+    type: "run.attempt.updated",
+    sessionId,
+    attemptId,
+    status,
+    finishedAt: at,
+    ...summary,
+    errorMessage: summary.errorMessage
+      ? redactSensitiveTextContent(summary.errorMessage)
+      : undefined,
+    at
+  };
+}
 
 export function createLiveRunPreludeEvents(
   request: RunnerRequest,
@@ -187,4 +251,13 @@ function getRunnerExitCode(result: RunnerResult): number | undefined {
   }
 
   return result.exitCode;
+}
+
+function summarizePrompt(prompt: string): string {
+  const redacted = redactSensitiveTextContent(prompt).replace(/\s+/g, " ").trim();
+  if (redacted.length <= 160) {
+    return redacted;
+  }
+
+  return `${redacted.slice(0, 160)}...`;
 }

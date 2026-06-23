@@ -68,11 +68,90 @@ export function InspectorReviewTab({
 
   const diffs = inspectorData?.diffs ?? activeSession.diffs;
   const usageReports = inspectorData?.usageReports ?? activeSession.usageReports;
+  const runAttempts = inspectorData?.runAttempts ?? activeSession.runAttempts;
   const latestUsage = usageReports.at(-1);
 
   return (
     <TabsContent value="review" className="border-0 bg-transparent p-0">
       <div className="space-y-3">
+        <section className="review-section">
+          <div className="review-section-heading">
+            <h3>{i18n.t("workbench.runAttempts.title")}</h3>
+            <span className="metric-pill">{runAttempts.length}</span>
+          </div>
+          {runAttempts.length ? (
+            <div className="space-y-2">
+              {runAttempts.map((attempt) => (
+                <div key={attempt.id} className="inspector-card">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">
+                        {attempt.modelProfileId ?? attempt.mode}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-[color:var(--ink-soft)]">
+                        {i18n.t("workbench.runAttempts.mode")}: {attempt.mode}
+                        {attempt.externalSessionId
+                          ? ` / ${i18n.t("workbench.runAttempts.resume")}: ${formatExternalSessionId(
+                              attempt.externalSessionId
+                            )}`
+                          : ""}
+                      </p>
+                    </div>
+                    <span className={cn("status-pill", runAttemptTone(attempt.status))}>
+                      {formatStatusLabel(i18n, attempt.status)}
+                    </span>
+                  </div>
+                  <div className="usage-grid mt-3">
+                    <UsageMetric
+                      label={i18n.t("workbench.runAttempts.events")}
+                      value={formatUsageNumber(i18n, attempt.eventCount)}
+                    />
+                    <UsageMetric
+                      label={i18n.t("workbench.runAttempts.ignored")}
+                      value={formatUsageNumber(i18n, attempt.ignoredRecordCount)}
+                    />
+                    <UsageMetric
+                      label={i18n.t("workbench.runAttempts.parseWarnings")}
+                      value={formatUsageNumber(i18n, attempt.parseWarningCount)}
+                    />
+                    <UsageMetric
+                      label={i18n.t("workbench.runAttempts.exitCode")}
+                      value={formatUsageNumber(i18n, attempt.exitCode)}
+                    />
+                  </div>
+                  <div className="mt-3 space-y-2 text-xs leading-5 text-[color:var(--ink-soft)]">
+                    {attempt.startedAt ? (
+                      <p>
+                        {i18n.t("workbench.runAttempts.started")}: {formatAttemptTime(attempt.startedAt)}
+                      </p>
+                    ) : null}
+                    {attempt.finishedAt ? (
+                      <p>
+                        {i18n.t("workbench.runAttempts.finished")}: {formatAttemptTime(attempt.finishedAt)}
+                      </p>
+                    ) : null}
+                    {attempt.promptSummary ? (
+                      <p>
+                        {i18n.t("workbench.runAttempts.prompt")}: {attempt.promptSummary}
+                      </p>
+                    ) : null}
+                    {attempt.commandPreview ? (
+                      <p className="font-mono text-[color:var(--inverse-soft)]">
+                        {i18n.t("workbench.runAttempts.command")}: {attempt.commandPreview}
+                      </p>
+                    ) : null}
+                    {attempt.errorMessage ? (
+                      <p className="text-[color:var(--danger)]">{attempt.errorMessage}</p>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState text={i18n.t("workbench.empty.runAttempts")} />
+          )}
+        </section>
+
         <section className="review-section">
           <div className="review-section-heading">
             <h3>{i18n.t("workbench.approvals.title")}</h3>
@@ -320,6 +399,35 @@ export function InspectorReviewTab({
       </div>
     </TabsContent>
   );
+}
+
+function runAttemptTone(status: string): string {
+  switch (status) {
+    case "running":
+      return "status-warn";
+    case "succeeded":
+      return "status-ok";
+    case "failed":
+      return "status-danger";
+    case "cancelled":
+      return "status-neutral";
+    default:
+      return "status-neutral";
+  }
+}
+
+function formatAttemptTime(value: string): string {
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  }).format(parsed);
 }
 
 function getApprovalRisk(

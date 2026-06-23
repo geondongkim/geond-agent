@@ -78,6 +78,31 @@ export interface WorkbenchUsageMetadataRecord {
   readonly updatedAt?: string;
 }
 
+export interface WorkbenchRunAttemptRecord {
+  readonly sessionId: string;
+  readonly attemptId: string;
+  readonly mode: string;
+  readonly status: string;
+  readonly backendAdapterId?: string;
+  readonly providerRouteId?: string;
+  readonly modelProfileId?: string;
+  readonly routingMode?: string;
+  readonly permissionMode?: string;
+  readonly externalSessionId?: string;
+  readonly resumedFromExternalSessionId?: string;
+  readonly commandPreview?: string;
+  readonly promptSummary?: string;
+  readonly startedAt?: string;
+  readonly finishedAt?: string;
+  readonly exitCode?: number;
+  readonly eventCount?: number;
+  readonly ignoredRecordCount?: number;
+  readonly parseWarningCount?: number;
+  readonly errorMessage?: string;
+  readonly sourceEventId?: number;
+  readonly updatedAt?: string;
+}
+
 export interface DesktopMaterializedEventStore {
   readonly driver: "tauri-sqlite" | "memory-fallback";
   readonly listContextAttachments: (
@@ -93,6 +118,7 @@ export interface DesktopMaterializedEventStore {
   readonly listUsageMetadata: (
     sessionId?: string
   ) => Promise<readonly WorkbenchUsageMetadataRecord[]>;
+  readonly listRunAttempts: (sessionId?: string) => Promise<readonly WorkbenchRunAttemptRecord[]>;
 }
 
 export interface DesktopMaterializedEventSeed {
@@ -101,6 +127,7 @@ export interface DesktopMaterializedEventSeed {
   readonly commandOutputs?: readonly WorkbenchCommandOutputRecord[];
   readonly diffSummaries?: readonly WorkbenchDiffSummaryRecord[];
   readonly usageMetadata?: readonly WorkbenchUsageMetadataRecord[];
+  readonly runAttempts?: readonly WorkbenchRunAttemptRecord[];
 }
 
 export function createDesktopMaterializedEventStore(
@@ -117,7 +144,9 @@ export function createDesktopMaterializedEventStore(
     listDiffSummaries: async (sessionId) =>
       invokeList("list_workbench_diff_summaries", sessionId, fallback.listDiffSummaries),
     listUsageMetadata: async (sessionId) =>
-      invokeList("list_workbench_usage_metadata", sessionId, fallback.listUsageMetadata)
+      invokeList("list_workbench_usage_metadata", sessionId, fallback.listUsageMetadata),
+    listRunAttempts: async (sessionId) =>
+      invokeList("list_workbench_run_attempts", sessionId, fallback.listRunAttempts)
   };
 }
 
@@ -129,6 +158,7 @@ export function createMemoryMaterializedEventStore(
   const commandOutputs = [...(seed.commandOutputs ?? [])];
   const diffSummaries = [...(seed.diffSummaries ?? [])];
   const usageMetadata = [...(seed.usageMetadata ?? [])];
+  const runAttempts = [...(seed.runAttempts ?? [])];
 
   return {
     driver: "memory-fallback",
@@ -136,7 +166,8 @@ export function createMemoryMaterializedEventStore(
     listToolCalls: async (sessionId) => filterSession(toolCalls, sessionId),
     listCommandOutputs: async (sessionId) => filterSession(commandOutputs, sessionId),
     listDiffSummaries: async (sessionId) => filterSession(diffSummaries, sessionId),
-    listUsageMetadata: async (sessionId) => filterSession(usageMetadata, sessionId)
+    listUsageMetadata: async (sessionId) => filterSession(usageMetadata, sessionId),
+    listRunAttempts: async (sessionId) => filterSession(runAttempts, sessionId)
   };
 }
 

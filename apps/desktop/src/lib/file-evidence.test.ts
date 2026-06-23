@@ -87,7 +87,8 @@ describe("file evidence preview model", () => {
         sessionId: "session-a",
         source: "materialized",
         toolCalls: [],
-        usageReports: []
+        usageReports: [],
+        runAttempts: []
       } as InspectorSessionReadModel
     });
 

@@ -70,4 +70,40 @@ describe("Claude Code stream content redaction", () => {
       "echo [redacted]"
     );
   });
+
+  it("redacts run attempt prompt summaries and error messages", () => {
+    const secretEnvName = ["ANTHROPIC", "API", "KEY"].join("_");
+    const token = ["sk", "e".repeat(28)].join("-");
+    const started = redactWorkbenchEventContent({
+      type: "run.attempt.started",
+      sessionId: "session-redaction",
+      attempt: {
+        id: "attempt-1",
+        mode: "claude-live",
+        status: "running",
+        promptSummary: `Use ${secretEnvName}=${token}`,
+        commandPreview: `claude --env ${secretEnvName}=${token}`
+      },
+      at: "2026-06-22T00:00:00.000Z"
+    });
+    const updated = redactWorkbenchEventContent({
+      type: "run.attempt.updated",
+      sessionId: "session-redaction",
+      attemptId: "attempt-1",
+      status: "failed",
+      errorMessage: `stderr echoed ${secretEnvName}=${token}`,
+      at: "2026-06-22T00:00:01.000Z"
+    });
+
+    expect(started.type === "run.attempt.started" ? started.attempt.promptSummary : "").toBe(
+      `Use ${secretEnvName}=[redacted]`
+    );
+    expect(started.type === "run.attempt.started" ? started.attempt.commandPreview : "").toBe(
+      `claude --env ${secretEnvName}=[redacted]`
+    );
+    expect(updated.type === "run.attempt.updated" ? updated.errorMessage : "").toBe(
+      `${"stderr echoed"} ${secretEnvName}=[redacted]`
+    );
+    expect(JSON.stringify([started, updated])).not.toContain(token);
+  });
 });

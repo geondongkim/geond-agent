@@ -46,6 +46,55 @@ describe("projectWorkbenchEvents", () => {
     expect(projection.activeSession?.usageReports[0]?.model).toBe("glm-4.7");
   });
 
+  it("projects run attempt events into a replayable attempt ledger", () => {
+    const projection = projectWorkbenchEvents([
+      ...createWorkbenchSessionStartEvents({
+        sessionId: "session-run",
+        title: "Run attempt session",
+        at: "2026-06-21T02:00:00.000Z"
+      }),
+      {
+        type: "run.attempt.started",
+        sessionId: "session-run",
+        attempt: {
+          id: "attempt-1",
+          mode: "claude-live",
+          status: "running",
+          backendAdapterId: "claude-code.external-cli-acp",
+          providerRouteId: "zai.anthropic-compatible",
+          modelProfileId: "opus",
+          routingMode: "manual",
+          commandPreview: "claude --bare -p --verbose --output-format stream-json",
+          promptSummary: "Implement the run attempt ledger",
+          startedAt: "2026-06-21T02:00:01.000Z"
+        },
+        at: "2026-06-21T02:00:01.000Z"
+      },
+      {
+        type: "run.attempt.updated",
+        sessionId: "session-run",
+        attemptId: "attempt-1",
+        status: "succeeded",
+        eventCount: 12,
+        ignoredRecordCount: 1,
+        parseWarningCount: 0,
+        exitCode: 0,
+        finishedAt: "2026-06-21T02:00:05.000Z",
+        at: "2026-06-21T02:00:05.000Z"
+      }
+    ]);
+
+    expect(projection.activeSession?.runAttempts).toHaveLength(1);
+    expect(projection.activeSession?.runAttempts[0]).toMatchObject({
+      id: "attempt-1",
+      status: "succeeded",
+      eventCount: 12,
+      ignoredRecordCount: 1,
+      parseWarningCount: 0
+    });
+    expect(projection.activeSession?.timeline.map((entry) => entry.kind)).toContain("run");
+  });
+
   it("marks completed adapter-linked sessions as resumable", () => {
     const projection = projectWorkbenchEvents([
       ...ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS,
