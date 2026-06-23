@@ -60,6 +60,83 @@ export function createProjectionInspectorSessionReadModel(
   };
 }
 
+export function createInspectorEvidenceSignature(
+  activeSession: ProjectedActiveSession | undefined
+): string {
+  if (!activeSession) {
+    return "none";
+  }
+
+  return [
+    `session:${activeSession.id}`,
+    createListSignature(activeSession.contextAttachments, (attachment) =>
+      [
+        attachment.id,
+        attachment.kind,
+        attachment.title,
+        attachment.contentState,
+        attachment.path,
+        attachment.attachedAt
+      ].join(":")
+    ),
+    createListSignature(activeSession.toolCalls, (toolCall) =>
+      [
+        toolCall.id,
+        toolCall.name,
+        toolCall.status,
+        createTextSignature(toolCall.inputSummary),
+        createTextSignature(toolCall.outputSummary)
+      ].join(":")
+    ),
+    createListSignature(activeSession.commandOutputs, (command) =>
+      [
+        command.id,
+        command.status,
+        command.exitCode ?? "none",
+        command.chunkCount,
+        createTextSignature(command.preview)
+      ].join(":")
+    ),
+    createListSignature(activeSession.diffs, (diff) =>
+      [
+        diff.id,
+        diff.title,
+        diff.files.length,
+        createTextSignature(diff.summary),
+        diff.files
+          .map((file) =>
+            [file.path, file.changeKind, file.additions ?? 0, file.deletions ?? 0].join(":")
+          )
+          .join(",")
+      ].join(":")
+    ),
+    createListSignature(activeSession.usageReports, (usage) =>
+      [
+        usage.id,
+        usage.source,
+        usage.model,
+        usage.inputTokens ?? 0,
+        usage.outputTokens ?? 0,
+        usage.costUsd ?? 0
+      ].join(":")
+    ),
+    createListSignature(activeSession.runAttempts, (attempt) =>
+      [
+        attempt.id,
+        attempt.mode,
+        attempt.status,
+        attempt.externalSessionId,
+        attempt.eventCount ?? 0,
+        attempt.ignoredRecordCount ?? 0,
+        attempt.parseWarningCount ?? 0,
+        attempt.exitCode ?? "none",
+        attempt.finishedAt,
+        createTextSignature(attempt.errorMessage)
+      ].join(":")
+    )
+  ].join("|");
+}
+
 export function createMaterializedInspectorSessionReadModel(
   records: MaterializedInspectorRecords,
   fallback: ProjectedActiveSession | undefined
@@ -154,6 +231,32 @@ export function createMaterializedInspectorSessionReadModel(
     usageReports: usageReports.length > 0 ? usageReports : fallback?.usageReports ?? [],
     runAttempts: runAttempts.length > 0 ? runAttempts : fallback?.runAttempts ?? []
   };
+}
+
+function createListSignature<T>(
+  items: readonly T[],
+  serialize: (item: T) => string
+): string {
+  return `${items.length}[${items.map(serialize).join(";")}]`;
+}
+
+function createTextSignature(value: string | undefined): string {
+  if (!value) {
+    return "0:0";
+  }
+
+  return `${value.length}:${fnv1a32(value)}`;
+}
+
+function fnv1a32(value: string): string {
+  let hash = 0x811c9dc5;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+
+  return (hash >>> 0).toString(16).padStart(8, "0");
 }
 
 function normalizeContextKind(value: string): WorkbenchContextAttachmentKind {

@@ -16,6 +16,7 @@ import { InspectorPane } from "./panes/inspector.js";
 import { SessionRailPane } from "./panes/session-rail.js";
 import { TimelinePane } from "./panes/timeline.js";
 import {
+  createInspectorEvidenceSignature,
   createMaterializedInspectorSessionReadModel,
   createProjectionInspectorSessionReadModel,
   type InspectorSessionReadModel
@@ -93,6 +94,10 @@ export function App({ document }: AppProps) {
     sessionQuery,
     workspacePath
   });
+  const inspectorEvidenceSignature = useMemo(
+    () => createInspectorEvidenceSignature(activeSession),
+    [activeSession]
+  );
   const inspectorData =
     materializedInspectorData?.sessionId === activeSession?.id
       ? materializedInspectorData
@@ -355,7 +360,7 @@ export function App({ document }: AppProps) {
     return () => {
       cancelled = true;
     };
-  }, [activeSession, controllerSnapshot.events.length, document]);
+  }, [activeSession?.id, document, inspectorEvidenceSignature]);
 
   function openInspectorTab(tab: string) {
     updateLayoutPreference({

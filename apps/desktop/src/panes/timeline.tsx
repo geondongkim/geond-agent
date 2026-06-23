@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import type { UiI18n, WorkbenchSessionDefaults } from "@geond-agent/ui-workbench";
 import {
   AlertTriangle,
@@ -28,6 +29,7 @@ import {
 } from "../lib/workbench-format.js";
 import type { DesktopRunnerMode } from "../demo-workbench.js";
 import { getComposerPlaceholder } from "../runs/runner-prompt.js";
+import { createTimelineRenderWindow } from "../lib/timeline-window.js";
 
 export function TimelinePane({
   activeSession,
@@ -73,12 +75,32 @@ export function TimelinePane({
   readonly togglePinnedSession: () => void;
 }) {
   const contextAttachments = activeSession?.contextAttachments ?? [];
+  const timelineEntries = activeSession?.timeline ?? [];
+  const [showFullTimeline, setShowFullTimeline] = useState(false);
+  const compactTimelineWindow = useMemo(
+    () => createTimelineRenderWindow(timelineEntries),
+    [timelineEntries]
+  );
+  const timelineWindow = showFullTimeline
+    ? {
+        totalCount: timelineEntries.length,
+        visibleCount: timelineEntries.length,
+        hiddenMiddleCount: 0,
+        headEntries: timelineEntries,
+        tailEntries: []
+      }
+    : compactTimelineWindow;
+  const canToggleTimelineWindow = compactTimelineWindow.hiddenMiddleCount > 0;
   const visibleContextAttachments = contextAttachments.slice(-3);
   const hiddenContextAttachmentCount = Math.max(
     contextAttachments.length - visibleContextAttachments.length,
     0
   );
   const recoveryState = getRecoveryState(activeSession, canResumeActiveSession, runnerBusy);
+
+  useEffect(() => {
+    setShowFullTimeline(false);
+  }, [activeSession?.id]);
 
   return (
     <section className="timeline-surface">
@@ -160,10 +182,33 @@ export function TimelinePane({
       ) : null}
 
       <div className="event-stream pt-3">
-        {activeSession?.timeline.length ? (
-          activeSession.timeline.map((entry) => (
-            <TimelineEventCard key={entry.id} entry={entry} i18n={i18n} />
-          ))
+        {timelineEntries.length ? (
+          <>
+            {canToggleTimelineWindow && showFullTimeline ? (
+              <TimelineWindowDivider
+                compactTimelineWindow={compactTimelineWindow}
+                i18n={i18n}
+                showFullTimeline={showFullTimeline}
+                timelineEntries={timelineEntries}
+                toggle={() => setShowFullTimeline((current) => !current)}
+              />
+            ) : null}
+            {timelineWindow.headEntries.map((entry) => (
+              <TimelineEventCard key={entry.id} entry={entry} i18n={i18n} />
+            ))}
+            {canToggleTimelineWindow && !showFullTimeline ? (
+              <TimelineWindowDivider
+                compactTimelineWindow={compactTimelineWindow}
+                i18n={i18n}
+                showFullTimeline={showFullTimeline}
+                timelineEntries={timelineEntries}
+                toggle={() => setShowFullTimeline((current) => !current)}
+              />
+            ) : null}
+            {timelineWindow.tailEntries.map((entry) => (
+              <TimelineEventCard key={entry.id} entry={entry} i18n={i18n} />
+            ))}
+          </>
         ) : (
           <EmptyState text={i18n.t("workbench.timeline.empty")} />
         )}
@@ -356,6 +401,46 @@ export function TimelinePane({
         </div>
       </div>
     </section>
+  );
+}
+
+function TimelineWindowDivider({
+  compactTimelineWindow,
+  i18n,
+  showFullTimeline,
+  timelineEntries,
+  toggle
+}: {
+  readonly compactTimelineWindow: ReturnType<typeof createTimelineRenderWindow>;
+  readonly i18n: UiI18n;
+  readonly showFullTimeline: boolean;
+  readonly timelineEntries: readonly ProjectedActiveSession["timeline"][number][];
+  readonly toggle: () => void;
+}) {
+  return (
+    <div className="timeline-window-divider" role="status" aria-live="polite">
+      <span>
+        {showFullTimeline
+          ? formatMessage(i18n.t("workbench.timeline.showingFull"), {
+              total: timelineEntries.length
+            })
+          : formatMessage(i18n.t("workbench.timeline.windowed"), {
+              hidden: compactTimelineWindow.hiddenMiddleCount,
+              total: compactTimelineWindow.totalCount,
+              visible: compactTimelineWindow.visibleCount
+            })}
+      </span>
+      <button
+        type="button"
+        aria-expanded={showFullTimeline}
+        className="timeline-window-toggle"
+        onClick={toggle}
+      >
+        {showFullTimeline
+          ? i18n.t("workbench.timeline.showCompact")
+          : i18n.t("workbench.timeline.showFull")}
+      </button>
+    </div>
   );
 }
 
