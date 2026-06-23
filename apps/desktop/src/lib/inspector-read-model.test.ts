@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { projectWorkbenchEvents, type WorkbenchEvent } from "@geond-agent/ui-workbench";
 import {
   createInspectorEvidenceSignature,
   createMaterializedInspectorSessionReadModel,
@@ -241,5 +242,86 @@ describe("inspector read model", () => {
 
     expect("read alpha").toHaveLength("read bravo".length);
     expect(second).not.toBe(first);
+  });
+
+  it("keeps materialized refresh signatures stable across projected assistant stream updates", () => {
+    const baseEvents: readonly WorkbenchEvent[] = [
+      {
+        type: "session.lifecycle",
+        sessionId: "session-stream",
+        lifecycle: "started",
+        title: "Streaming session",
+        at: "2026-06-23T00:00:00.000Z"
+      },
+      {
+        type: "context.attached",
+        sessionId: "session-stream",
+        attachment: {
+          id: "context-workspace",
+          kind: "workspace",
+          title: "geond-agent",
+          provenance: "desktop",
+          contentState: "metadata-only",
+          attachedAt: "2026-06-23T00:00:01.000Z"
+        },
+        at: "2026-06-23T00:00:01.000Z"
+      },
+      {
+        type: "command.output",
+        sessionId: "session-stream",
+        commandId: "cmd-verify",
+        stream: "stdout",
+        text: "pnpm verify",
+        status: "running",
+        at: "2026-06-23T00:00:02.000Z"
+      }
+    ];
+    const first = createInspectorEvidenceSignature(
+      projectWorkbenchEvents(baseEvents).activeSession
+    );
+    const assistantOnly = createInspectorEvidenceSignature(
+      projectWorkbenchEvents([
+        ...baseEvents,
+        {
+          type: "assistant.text.delta",
+          sessionId: "session-stream",
+          messageId: "assistant-1",
+          text: "Thinking through the implementation...",
+          at: "2026-06-23T00:00:03.000Z"
+        },
+        {
+          type: "assistant.text.delta",
+          sessionId: "session-stream",
+          messageId: "assistant-1",
+          text: "More streamed assistant text.",
+          at: "2026-06-23T00:00:04.000Z"
+        }
+      ]).activeSession
+    );
+    const commandEvidenceChanged = createInspectorEvidenceSignature(
+      projectWorkbenchEvents([
+        ...baseEvents,
+        {
+          type: "assistant.text.delta",
+          sessionId: "session-stream",
+          messageId: "assistant-1",
+          text: "Thinking through the implementation...",
+          at: "2026-06-23T00:00:03.000Z"
+        },
+        {
+          type: "command.output",
+          sessionId: "session-stream",
+          commandId: "cmd-verify",
+          stream: "stdout",
+          text: "all checks passed",
+          status: "succeeded",
+          exitCode: 0,
+          at: "2026-06-23T00:00:05.000Z"
+        }
+      ]).activeSession
+    );
+
+    expect(assistantOnly).toBe(first);
+    expect(commandEvidenceChanged).not.toBe(first);
   });
 });

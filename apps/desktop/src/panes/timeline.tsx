@@ -29,7 +29,12 @@ import {
 } from "../lib/workbench-format.js";
 import type { DesktopRunnerMode } from "../demo-workbench.js";
 import { getComposerPlaceholder } from "../runs/runner-prompt.js";
-import { createTimelineRenderWindow } from "../lib/timeline-window.js";
+import {
+  EXPANDED_TIMELINE_INITIAL_VISIBLE_EVENTS,
+  createExpandedTimelineRenderWindow,
+  createTimelineRenderWindow,
+  getNextExpandedTimelineBudget
+} from "../lib/timeline-window.js";
 
 export function TimelinePane({
   activeSession,
@@ -76,20 +81,22 @@ export function TimelinePane({
 }) {
   const contextAttachments = activeSession?.contextAttachments ?? [];
   const timelineEntries = activeSession?.timeline ?? [];
-  const [showFullTimeline, setShowFullTimeline] = useState(false);
+  const [timelineExpanded, setTimelineExpanded] = useState(false);
+  const [expandedTimelineBudget, setExpandedTimelineBudget] = useState(
+    EXPANDED_TIMELINE_INITIAL_VISIBLE_EVENTS
+  );
   const compactTimelineWindow = useMemo(
     () => createTimelineRenderWindow(timelineEntries),
     [timelineEntries]
   );
-  const timelineWindow = showFullTimeline
-    ? {
-        totalCount: timelineEntries.length,
-        visibleCount: timelineEntries.length,
-        hiddenMiddleCount: 0,
-        headEntries: timelineEntries,
-        tailEntries: []
-      }
-    : compactTimelineWindow;
+  const expandedTimelineWindow = useMemo(
+    () =>
+      createExpandedTimelineRenderWindow(timelineEntries, {
+        budget: expandedTimelineBudget
+      }),
+    [expandedTimelineBudget, timelineEntries]
+  );
+  const timelineWindow = timelineExpanded ? expandedTimelineWindow : compactTimelineWindow;
   const canToggleTimelineWindow = compactTimelineWindow.hiddenMiddleCount > 0;
   const visibleContextAttachments = contextAttachments.slice(-3);
   const hiddenContextAttachmentCount = Math.max(
@@ -99,7 +106,8 @@ export function TimelinePane({
   const recoveryState = getRecoveryState(activeSession, canResumeActiveSession, runnerBusy);
 
   useEffect(() => {
-    setShowFullTimeline(false);
+    setTimelineExpanded(false);
+    setExpandedTimelineBudget(EXPANDED_TIMELINE_INITIAL_VISIBLE_EVENTS);
   }, [activeSession?.id]);
 
   return (
@@ -184,25 +192,33 @@ export function TimelinePane({
       <div className="event-stream pt-3">
         {timelineEntries.length ? (
           <>
-            {canToggleTimelineWindow && showFullTimeline ? (
+            {canToggleTimelineWindow && timelineExpanded ? (
               <TimelineWindowDivider
                 compactTimelineWindow={compactTimelineWindow}
+                expandedTimelineWindow={expandedTimelineWindow}
                 i18n={i18n}
-                showFullTimeline={showFullTimeline}
+                increaseBudget={() =>
+                  setExpandedTimelineBudget((budget) => getNextExpandedTimelineBudget(budget))
+                }
+                timelineExpanded={timelineExpanded}
                 timelineEntries={timelineEntries}
-                toggle={() => setShowFullTimeline((current) => !current)}
+                toggle={() => setTimelineExpanded((current) => !current)}
               />
             ) : null}
             {timelineWindow.headEntries.map((entry) => (
               <TimelineEventCard key={entry.id} entry={entry} i18n={i18n} />
             ))}
-            {canToggleTimelineWindow && !showFullTimeline ? (
+            {canToggleTimelineWindow && !timelineExpanded ? (
               <TimelineWindowDivider
                 compactTimelineWindow={compactTimelineWindow}
+                expandedTimelineWindow={expandedTimelineWindow}
                 i18n={i18n}
-                showFullTimeline={showFullTimeline}
+                increaseBudget={() =>
+                  setExpandedTimelineBudget((budget) => getNextExpandedTimelineBudget(budget))
+                }
+                timelineExpanded={timelineExpanded}
                 timelineEntries={timelineEntries}
-                toggle={() => setShowFullTimeline((current) => !current)}
+                toggle={() => setTimelineExpanded((current) => !current)}
               />
             ) : null}
             {timelineWindow.tailEntries.map((entry) => (
@@ -406,40 +422,61 @@ export function TimelinePane({
 
 function TimelineWindowDivider({
   compactTimelineWindow,
+  expandedTimelineWindow,
   i18n,
-  showFullTimeline,
+  increaseBudget,
+  timelineExpanded,
   timelineEntries,
   toggle
 }: {
   readonly compactTimelineWindow: ReturnType<typeof createTimelineRenderWindow>;
+  readonly expandedTimelineWindow: ReturnType<typeof createExpandedTimelineRenderWindow>;
   readonly i18n: UiI18n;
-  readonly showFullTimeline: boolean;
+  readonly increaseBudget: () => void;
+  readonly timelineExpanded: boolean;
   readonly timelineEntries: readonly ProjectedActiveSession["timeline"][number][];
   readonly toggle: () => void;
 }) {
   return (
     <div className="timeline-window-divider" role="status" aria-live="polite">
       <span>
-        {showFullTimeline
-          ? formatMessage(i18n.t("workbench.timeline.showingFull"), {
-              total: timelineEntries.length
-            })
+        {timelineExpanded
+          ? expandedTimelineWindow.hardCapReached
+            ? formatMessage(i18n.t("workbench.timeline.hardCapReached"), {
+                total: timelineEntries.length,
+                visible: expandedTimelineWindow.visibleCount
+              })
+            : formatMessage(i18n.t("workbench.timeline.showingExpanded"), {
+                total: timelineEntries.length,
+                visible: expandedTimelineWindow.visibleCount
+              })
           : formatMessage(i18n.t("workbench.timeline.windowed"), {
               hidden: compactTimelineWindow.hiddenMiddleCount,
               total: compactTimelineWindow.totalCount,
               visible: compactTimelineWindow.visibleCount
             })}
       </span>
-      <button
-        type="button"
-        aria-expanded={showFullTimeline}
-        className="timeline-window-toggle"
-        onClick={toggle}
-      >
-        {showFullTimeline
-          ? i18n.t("workbench.timeline.showCompact")
-          : i18n.t("workbench.timeline.showFull")}
-      </button>
+      <span className="timeline-window-actions">
+        {timelineExpanded && expandedTimelineWindow.canIncreaseBudget ? (
+          <button
+            type="button"
+            className="timeline-window-toggle"
+            onClick={increaseBudget}
+          >
+            {i18n.t("workbench.timeline.loadMore")}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          aria-expanded={timelineExpanded}
+          className="timeline-window-toggle"
+          onClick={toggle}
+        >
+          {timelineExpanded
+            ? i18n.t("workbench.timeline.showCompact")
+            : i18n.t("workbench.timeline.expand")}
+        </button>
+      </span>
     </div>
   );
 }

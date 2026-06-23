@@ -44,9 +44,13 @@ export type UiMessageKey =
   | "workbench.timeline.title"
   | "workbench.timeline.empty"
   | "workbench.timeline.windowed"
+  | "workbench.timeline.expand"
   | "workbench.timeline.showFull"
   | "workbench.timeline.showCompact"
   | "workbench.timeline.showingFull"
+  | "workbench.timeline.showingExpanded"
+  | "workbench.timeline.loadMore"
+  | "workbench.timeline.hardCapReached"
   | "workbench.inspector.title"
   | "workbench.inspector.diff"
   | "workbench.inspector.terminal"
@@ -351,9 +355,15 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.timeline.empty": "No events yet.",
     "workbench.timeline.windowed":
       "Showing {visible} of {total} events. {hidden} middle events are compacted for performance.",
+    "workbench.timeline.expand": "Expand timeline",
     "workbench.timeline.showFull": "Show full timeline",
     "workbench.timeline.showCompact": "Keep compact",
     "workbench.timeline.showingFull": "Showing all {total} events.",
+    "workbench.timeline.showingExpanded":
+      "Expanded timeline budget: rendering {visible} of {total} events.",
+    "workbench.timeline.loadMore": "Load more",
+    "workbench.timeline.hardCapReached":
+      "Rendering cap reached at {visible} of {total} events.",
     "workbench.inspector.title": "Inspector",
     "workbench.inspector.diff": "Diff",
     "workbench.inspector.terminal": "Terminal",
@@ -655,9 +665,15 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.timeline.empty": "아직 이벤트가 없습니다.",
     "workbench.timeline.windowed":
       "전체 {total}개 중 {visible}개 이벤트를 표시합니다. 중간 {hidden}개는 성능을 위해 접었습니다.",
+    "workbench.timeline.expand": "타임라인 확장",
     "workbench.timeline.showFull": "전체 타임라인 보기",
     "workbench.timeline.showCompact": "간결하게 보기",
     "workbench.timeline.showingFull": "전체 {total}개 이벤트를 표시 중입니다.",
+    "workbench.timeline.showingExpanded":
+      "확장된 타임라인 예산으로 전체 {total}개 중 {visible}개 이벤트를 렌더링합니다.",
+    "workbench.timeline.loadMore": "더 보기",
+    "workbench.timeline.hardCapReached":
+      "렌더링 상한에 도달했습니다. 전체 {total}개 중 {visible}개 이벤트를 표시합니다.",
     "workbench.inspector.title": "인스펙터",
     "workbench.inspector.diff": "변경 사항",
     "workbench.inspector.terminal": "터미널",

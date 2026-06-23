@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { WorkbenchTimelineEntry } from "@geond-agent/ui-workbench";
 
-import { createTimelineRenderWindow } from "./timeline-window.js";
+import {
+  EXPANDED_TIMELINE_HARD_CAP_EVENTS,
+  EXPANDED_TIMELINE_INITIAL_VISIBLE_EVENTS,
+  EXPANDED_TIMELINE_VISIBLE_EVENT_STEP,
+  createExpandedTimelineRenderWindow,
+  createTimelineRenderWindow,
+  getNextExpandedTimelineBudget
+} from "./timeline-window.js";
 
 function makeEntry(index: number): WorkbenchTimelineEntry {
   return {
@@ -46,5 +53,39 @@ describe("createTimelineRenderWindow", () => {
     expect(window.visibleCount).toBe(1);
     expect(window.headEntries).toEqual([]);
     expect(window.tailEntries.map((entry) => entry.id)).toEqual(["event-4"]);
+  });
+
+  it("uses an expanded budget instead of rendering every event in full view", () => {
+    const entries = Array.from({ length: 5000 }, (_, index) => makeEntry(index + 1));
+    const window = createExpandedTimelineRenderWindow(entries);
+
+    expect(window.totalCount).toBe(5000);
+    expect(window.visibleCount).toBe(EXPANDED_TIMELINE_INITIAL_VISIBLE_EVENTS);
+    expect(window.hiddenMiddleCount).toBe(5000 - EXPANDED_TIMELINE_INITIAL_VISIBLE_EVENTS);
+    expect(window.canIncreaseBudget).toBe(true);
+    expect(window.hardCapReached).toBe(false);
+    expect(window.headEntries[0]?.id).toBe("event-1");
+    expect(window.tailEntries[window.tailEntries.length - 1]?.id).toBe("event-5000");
+  });
+
+  it("caps expanded full-view rendering at the hard cap", () => {
+    const entries = Array.from({ length: 5000 }, (_, index) => makeEntry(index + 1));
+    const window = createExpandedTimelineRenderWindow(entries, {
+      budget: EXPANDED_TIMELINE_HARD_CAP_EVENTS + EXPANDED_TIMELINE_VISIBLE_EVENT_STEP
+    });
+
+    expect(window.visibleCount).toBe(EXPANDED_TIMELINE_HARD_CAP_EVENTS);
+    expect(window.canIncreaseBudget).toBe(false);
+    expect(window.hardCapReached).toBe(true);
+    expect(window.hiddenMiddleCount).toBe(5000 - EXPANDED_TIMELINE_HARD_CAP_EVENTS);
+  });
+
+  it("increments expanded budgets up to the hard cap", () => {
+    expect(getNextExpandedTimelineBudget(EXPANDED_TIMELINE_INITIAL_VISIBLE_EVENTS)).toBe(
+      EXPANDED_TIMELINE_INITIAL_VISIBLE_EVENTS + EXPANDED_TIMELINE_VISIBLE_EVENT_STEP
+    );
+    expect(getNextExpandedTimelineBudget(EXPANDED_TIMELINE_HARD_CAP_EVENTS)).toBe(
+      EXPANDED_TIMELINE_HARD_CAP_EVENTS
+    );
   });
 });
