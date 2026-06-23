@@ -57,6 +57,9 @@ describe("inspector follow-up drafts", () => {
       modelProfileId: "opus",
       providerRouteId: "zai.anthropic-compatible",
       externalSessionId: "claude-session-1",
+      resumedFromExternalSessionId: "claude-session-1",
+      trigger: "approval_follow_up",
+      sourceApprovalId: "approval-1",
       commandPreview: "claude --bare -p --verbose --output-format stream-json",
       promptSummary: "Implement the recovery flow",
       exitCode: 1,
@@ -68,6 +71,9 @@ describe("inspector follow-up drafts", () => {
 
     expect(draft).toContain("Status: failed.");
     expect(draft).toContain("External session: claude-session-1.");
+    expect(draft).toContain("Trigger: approval_follow_up.");
+    expect(draft).toContain("Source approval: approval-1.");
+    expect(draft).toContain("Stream quality: failed.");
     expect(draft).toContain("Parse warnings: 2.");
     expect(draft).toContain("continue from the safest next step");
   });
@@ -139,6 +145,17 @@ describe("inspector follow-up drafts", () => {
         ],
         runnerIssues: [],
         providerRouteHealth: [],
+        liveRunContinuity: {
+          latestAttemptId: "attempt-1",
+          latestAttemptStatus: "failed",
+          latestExternalSessionId: "claude-session-1",
+          latestStreamQuality: "warning",
+          totalAttemptCount: 1,
+          resumeAttemptCount: 1,
+          approvalFollowUpAttemptCount: 0,
+          cleanStreamAttemptCount: 0,
+          warningStreamAttemptCount: 1
+        },
         approvals: [
           {
             id: "approval-1",
@@ -155,6 +172,7 @@ describe("inspector follow-up drafts", () => {
 
     expect(draft).toContain("Review the current workbench session");
     expect(draft).toContain("Route readiness: blocked");
+    expect(draft).toContain("Live continuity:");
     expect(draft).toContain("Approval subjects:");
     expect(draft).toContain("Run attempts:");
     expect(draft).toContain("Terminal evidence:");

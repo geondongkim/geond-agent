@@ -2,7 +2,9 @@ import type {
   SelectionReadinessLevel,
   UiI18n,
   WorkbenchContextAttachmentKind,
-  WorkbenchSelectionReadiness
+  WorkbenchRunAttemptTrigger,
+  WorkbenchSelectionReadiness,
+  WorkbenchStreamQuality
 } from "@geond-agent/ui-workbench";
 
 export const lifecycleTone = {
@@ -175,6 +177,42 @@ export function formatRouteHealthLabel(
       return i18n.t("workbench.issue.health.unknown");
     default:
       return status;
+  }
+}
+
+export function formatRunAttemptTriggerLabel(
+  i18n: UiI18n,
+  trigger: WorkbenchRunAttemptTrigger | undefined
+): string {
+  switch (trigger) {
+    case "manual":
+      return i18n.t("workbench.runAttempts.triggerManual");
+    case "manual_resume":
+      return i18n.t("workbench.runAttempts.triggerManualResume");
+    case "approval_follow_up":
+      return i18n.t("workbench.runAttempts.triggerApprovalFollowUp");
+    case "readiness_blocked":
+      return i18n.t("workbench.runAttempts.triggerReadinessBlocked");
+    default:
+      return i18n.t("workbench.status.unknown");
+  }
+}
+
+export function formatStreamQualityLabel(
+  i18n: UiI18n,
+  quality: WorkbenchStreamQuality
+): string {
+  switch (quality) {
+    case "pending":
+      return i18n.t("workbench.streamQuality.pending");
+    case "clean":
+      return i18n.t("workbench.streamQuality.clean");
+    case "warning":
+      return i18n.t("workbench.streamQuality.warning");
+    case "failed":
+      return i18n.t("workbench.streamQuality.failed");
+    case "cancelled":
+      return i18n.t("workbench.streamQuality.cancelled");
   }
 }
 

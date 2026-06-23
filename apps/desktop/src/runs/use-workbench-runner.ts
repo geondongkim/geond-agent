@@ -4,6 +4,7 @@ import {
   type UiI18n,
   type WorkbenchEvent,
   type WorkbenchPermissionMode,
+  type WorkbenchRunAttemptTrigger,
   type WorkbenchRuntimeSnapshot,
   type WorkbenchSessionControllerSnapshot,
   type WorkbenchSessionDefaults,
@@ -40,6 +41,8 @@ export interface StartSessionOptions {
   readonly externalSessionId?: string;
   readonly promptOverride?: string;
   readonly permissionModeOverride?: WorkbenchPermissionMode;
+  readonly trigger?: WorkbenchRunAttemptTrigger;
+  readonly sourceApprovalId?: string;
 }
 
 export type StartWorkbenchSession = (
@@ -163,7 +166,12 @@ export function useWorkbenchRunner({
 
     let unlistenStream: (() => void) | undefined;
     try {
-      await appendEvents([createRunAttemptStartedEvent(request, mode, attemptId, isResumeRun)]);
+      await appendEvents([
+        createRunAttemptStartedEvent(request, mode, attemptId, isResumeRun, {
+          trigger: options.trigger,
+          sourceApprovalId: options.sourceApprovalId
+        })
+      ]);
 
       if (mode === "claude-live") {
         const preludeEvents = createLiveRunPreludeEvents(

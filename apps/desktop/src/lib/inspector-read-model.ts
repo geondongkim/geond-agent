@@ -5,6 +5,7 @@ import type {
   WorkbenchContextAttachmentProvenance,
   WorkbenchContextAttachmentRange,
   WorkbenchDiffFileSnapshot,
+  WorkbenchRunAttemptTrigger,
   WorkbenchRunAttemptStatus,
   WorkbenchRunnerIssueKind,
   WorkbenchToolCallStatus
@@ -133,6 +134,8 @@ export function createInspectorEvidenceSignature(
         attempt.exitCode ?? "none",
         attempt.finishedAt,
         attempt.failureKind,
+        attempt.trigger,
+        attempt.sourceApprovalId,
         createTextSignature(attempt.errorMessage)
       ].join(":")
     ),
@@ -225,7 +228,9 @@ export function createMaterializedInspectorSessionReadModel(
     ignoredRecordCount: record.ignoredRecordCount,
     parseWarningCount: record.parseWarningCount,
     errorMessage: record.errorMessage,
-    failureKind: normalizeRunnerIssueKind(record.failureKind)
+    failureKind: normalizeRunnerIssueKind(record.failureKind),
+    trigger: normalizeRunAttemptTrigger(record.trigger),
+    sourceApprovalId: record.sourceApprovalId
   }));
   const hasMaterializedRows =
     contextAttachments.length +
@@ -316,6 +321,18 @@ function normalizeRunAttemptStatus(value: string): WorkbenchRunAttemptStatus {
   return isOneOf(value, ["running", "succeeded", "failed", "cancelled"])
     ? value
     : "failed";
+}
+
+function normalizeRunAttemptTrigger(
+  value: string | undefined
+): WorkbenchRunAttemptTrigger | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return isOneOf(value, ["manual", "manual_resume", "approval_follow_up", "readiness_blocked"])
+    ? value
+    : undefined;
 }
 
 function normalizeRunnerIssueKind(

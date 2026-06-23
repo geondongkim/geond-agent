@@ -9,6 +9,7 @@ import type {
   WorkbenchRuntimeSnapshot,
   WorkbenchSessionDefaults
 } from "@geond-agent/ui-workbench";
+import { deriveRunAttemptStreamQuality } from "@geond-agent/ui-workbench";
 
 import { Button } from "../../components/ui/button.js";
 import { TabsContent } from "../../components/ui/tabs.js";
@@ -29,6 +30,8 @@ import {
   formatSelectionReadinessDetail,
   formatSelectionReadinessLevelLabel,
   formatStatusLabel,
+  formatRunAttemptTriggerLabel,
+  formatStreamQualityLabel,
   formatUsageCost,
   formatUsageNumber,
   formatUsageSourceLabel
@@ -91,6 +94,7 @@ export function InspectorReviewTab({
   const runAttempts = inspectorData?.runAttempts ?? activeSession.runAttempts;
   const runnerIssues = activeSession.runnerIssues;
   const providerRouteHealth = activeSession.providerRouteHealth;
+  const liveRunContinuity = activeSession.liveRunContinuity;
   const latestUsage = usageReports.at(-1);
   const currentProviderRoute = findCurrentProviderRouteOption(
     providerRouteOptions,
@@ -192,6 +196,60 @@ export function InspectorReviewTab({
             </div>
           </section>
         ) : null}
+
+        <section className="review-section">
+          <div className="review-section-heading">
+            <h3>{i18n.t("workbench.continuity.title")}</h3>
+            <span
+              className={cn(
+                "status-pill",
+                streamQualityTone(liveRunContinuity.latestStreamQuality)
+              )}
+            >
+              {formatStreamQualityLabel(i18n, liveRunContinuity.latestStreamQuality)}
+            </span>
+          </div>
+          <div className="inspector-card">
+            <div className="usage-grid">
+              <UsageMetric
+                label={i18n.t("workbench.continuity.externalSession")}
+                value={
+                  liveRunContinuity.latestExternalSessionId
+                    ? formatExternalSessionId(liveRunContinuity.latestExternalSessionId)
+                    : i18n.t("workbench.continuity.noExternalSession")
+                }
+              />
+              <UsageMetric
+                label={i18n.t("workbench.continuity.latestAttempt")}
+                value={
+                  liveRunContinuity.latestAttemptId
+                    ? `${formatShortId(liveRunContinuity.latestAttemptId)} / ${
+                        liveRunContinuity.latestAttemptStatus
+                          ? formatStatusLabel(i18n, liveRunContinuity.latestAttemptStatus)
+                          : i18n.t("workbench.status.unknown")
+                      }`
+                    : i18n.t("workbench.status.notAvailable")
+                }
+              />
+              <UsageMetric
+                label={i18n.t("workbench.continuity.resumeAttempts")}
+                value={formatUsageNumber(i18n, liveRunContinuity.resumeAttemptCount)}
+              />
+              <UsageMetric
+                label={i18n.t("workbench.continuity.approvalFollowUps")}
+                value={formatUsageNumber(i18n, liveRunContinuity.approvalFollowUpAttemptCount)}
+              />
+              <UsageMetric
+                label={i18n.t("workbench.continuity.cleanStreams")}
+                value={formatUsageNumber(i18n, liveRunContinuity.cleanStreamAttemptCount)}
+              />
+              <UsageMetric
+                label={i18n.t("workbench.continuity.warningStreams")}
+                value={formatUsageNumber(i18n, liveRunContinuity.warningStreamAttemptCount)}
+              />
+            </div>
+          </div>
+        </section>
 
         <section className="review-section">
           <div className="review-section-heading">
@@ -304,6 +362,25 @@ export function InspectorReviewTab({
                       value={
                         attempt.failureKind
                           ? formatStatusLabel(i18n, attempt.failureKind)
+                          : i18n.t("workbench.status.notAvailable")
+                      }
+                    />
+                    <UsageMetric
+                      label={i18n.t("workbench.runAttempts.streamQuality")}
+                      value={formatStreamQualityLabel(
+                        i18n,
+                        deriveRunAttemptStreamQuality(attempt)
+                      )}
+                    />
+                    <UsageMetric
+                      label={i18n.t("workbench.runAttempts.trigger")}
+                      value={formatRunAttemptTriggerLabel(i18n, attempt.trigger)}
+                    />
+                    <UsageMetric
+                      label={i18n.t("workbench.runAttempts.sourceApproval")}
+                      value={
+                        attempt.sourceApprovalId
+                          ? formatShortId(attempt.sourceApprovalId)
                           : i18n.t("workbench.status.notAvailable")
                       }
                     />
@@ -679,6 +756,22 @@ function runAttemptTone(status: string): string {
       return "status-warn";
     case "succeeded":
       return "status-ok";
+    case "failed":
+      return "status-danger";
+    case "cancelled":
+      return "status-neutral";
+    default:
+      return "status-neutral";
+  }
+}
+
+function streamQualityTone(quality: string): string {
+  switch (quality) {
+    case "clean":
+      return "status-ok";
+    case "warning":
+    case "pending":
+      return "status-warn";
     case "failed":
       return "status-danger";
     case "cancelled":

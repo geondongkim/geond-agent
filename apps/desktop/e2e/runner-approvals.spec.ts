@@ -33,7 +33,7 @@ test("runner dispatch and approval keyboard paths remain reviewable", async ({ p
     .click();
   await page.getByRole("tab", { name: "Review" }).click();
   await expect(updatedReviewPanel.getByText("glm-4.7")).toBeVisible();
-  await expect(updatedReviewPanel.getByText("Manual")).toBeVisible();
+  await expect(updatedReviewPanel.getByText("Manual", { exact: true })).toBeVisible();
   await expect(updatedReviewPanel.getByText("System")).toBeVisible();
 
   await page.getByRole("tab", { name: "Terminal" }).click();

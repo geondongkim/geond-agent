@@ -3,9 +3,11 @@ import type {
   CommandStatus,
   WorkbenchEvent,
   WorkbenchProviderRouteHealthStatus,
+  WorkbenchRunAttemptSnapshot,
   WorkbenchRunnerIssueKind,
   WorkbenchRunnerIssueSuggestedAction,
-  WorkbenchSessionLifecycle
+  WorkbenchSessionLifecycle,
+  WorkbenchStreamQuality
 } from "./events.js";
 import {
   createEmptyWorkbenchState,
@@ -98,6 +100,20 @@ export interface ProjectedProviderRouteHealth {
   readonly modelProfileIds: readonly string[];
 }
 
+export interface ProjectedLiveRunContinuity {
+  readonly latestAttemptId?: string;
+  readonly latestAttemptStatus?: WorkbenchRunAttemptSnapshot["status"];
+  readonly latestExternalSessionId?: string;
+  readonly latestStreamQuality: WorkbenchStreamQuality;
+  readonly totalAttemptCount: number;
+  readonly resumeAttemptCount: number;
+  readonly approvalFollowUpAttemptCount: number;
+  readonly cleanStreamAttemptCount: number;
+  readonly warningStreamAttemptCount: number;
+  readonly latestStartedAt?: string;
+  readonly latestFinishedAt?: string;
+}
+
 export interface ProjectedWorkbenchSession {
   readonly id: string;
   readonly title: string;
@@ -115,6 +131,7 @@ export interface ProjectedWorkbenchSession {
   readonly runAttempts: readonly WorkbenchSessionSnapshot["runAttempts"][string][];
   readonly runnerIssues: readonly WorkbenchSessionSnapshot["runnerIssues"][string][];
   readonly providerRouteHealth: readonly ProjectedProviderRouteHealth[];
+  readonly liveRunContinuity: ProjectedLiveRunContinuity;
   readonly approvals: readonly WorkbenchSessionSnapshot["approvals"][string][];
   readonly notices: WorkbenchSessionSnapshot["notices"];
   readonly timeline: readonly WorkbenchTimelineEntry[];
@@ -260,6 +277,7 @@ function projectActiveSession(
   events: readonly WorkbenchEvent[]
 ): ProjectedWorkbenchSession {
   const runnerIssues = Object.values(session.runnerIssues).sort(compareRunnerIssuesByRecency);
+  const runAttempts = Object.values(session.runAttempts).sort(compareRunAttemptsByRecency);
 
   return {
     id: session.id,
@@ -275,12 +293,72 @@ function projectActiveSession(
     commandOutputs: Object.values(session.commandOutputs).map(projectCommandOutput),
     diffs: Object.values(session.diffs),
     usageReports: Object.values(session.usageReports),
-    runAttempts: Object.values(session.runAttempts).sort(compareRunAttemptsByRecency),
+    runAttempts,
     runnerIssues,
     providerRouteHealth: projectProviderRouteHealth(runnerIssues),
+    liveRunContinuity: projectLiveRunContinuity(runAttempts),
     approvals: Object.values(session.approvals),
     notices: session.notices,
     timeline: events.map(projectTimelineEntry).filter((entry): entry is WorkbenchTimelineEntry => entry !== undefined)
+  };
+}
+
+export function deriveRunAttemptStreamQuality(
+  attempt: WorkbenchRunAttemptSnapshot
+): WorkbenchStreamQuality {
+  if (attempt.status === "cancelled") {
+    return "cancelled";
+  }
+  if (attempt.status === "failed" || attempt.failureKind) {
+    return "failed";
+  }
+  if (attempt.status === "running") {
+    return "pending";
+  }
+  if ((attempt.ignoredRecordCount ?? 0) > 0 || (attempt.parseWarningCount ?? 0) > 0) {
+    return "warning";
+  }
+
+  return "clean";
+}
+
+function projectLiveRunContinuity(
+  runAttempts: readonly WorkbenchRunAttemptSnapshot[]
+): ProjectedLiveRunContinuity {
+  const latestAttempt = runAttempts[0];
+  const qualityCounts = runAttempts.reduce(
+    (counts, attempt) => {
+      const quality = deriveRunAttemptStreamQuality(attempt);
+      if (quality === "clean") {
+        counts.clean += 1;
+      }
+      if (quality === "warning") {
+        counts.warning += 1;
+      }
+      return counts;
+    },
+    { clean: 0, warning: 0 }
+  );
+
+  return {
+    latestAttemptId: latestAttempt?.id,
+    latestAttemptStatus: latestAttempt?.status,
+    latestExternalSessionId:
+      latestAttempt?.externalSessionId ?? latestAttempt?.resumedFromExternalSessionId,
+    latestStreamQuality: latestAttempt
+      ? deriveRunAttemptStreamQuality(latestAttempt)
+      : "pending",
+    totalAttemptCount: runAttempts.length,
+    resumeAttemptCount: runAttempts.filter(
+      (attempt) => attempt.trigger === "manual_resume" || Boolean(attempt.resumedFromExternalSessionId)
+    ).length,
+    approvalFollowUpAttemptCount: runAttempts.filter(
+      (attempt) => attempt.trigger === "approval_follow_up"
+    ).length,
+    cleanStreamAttemptCount: qualityCounts.clean,
+    warningStreamAttemptCount: qualityCounts.warning,
+    latestStartedAt: latestAttempt?.startedAt,
+    latestFinishedAt: latestAttempt?.finishedAt
   };
 }
 

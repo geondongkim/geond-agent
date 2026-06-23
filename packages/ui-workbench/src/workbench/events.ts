@@ -59,6 +59,12 @@ export interface WorkbenchUsageSnapshot {
 }
 
 export type WorkbenchRunAttemptStatus = "running" | "succeeded" | "failed" | "cancelled";
+export type WorkbenchRunAttemptTrigger =
+  | "manual"
+  | "manual_resume"
+  | "approval_follow_up"
+  | "readiness_blocked";
+export type WorkbenchStreamQuality = "pending" | "clean" | "warning" | "failed" | "cancelled";
 export type WorkbenchRunnerIssueKind =
   | "provider_overloaded"
   | "provider_auth"
@@ -101,6 +107,8 @@ export interface WorkbenchRunAttemptSnapshot {
   readonly parseWarningCount?: number;
   readonly errorMessage?: string;
   readonly failureKind?: WorkbenchRunnerIssueKind;
+  readonly trigger?: WorkbenchRunAttemptTrigger;
+  readonly sourceApprovalId?: string;
 }
 
 export interface WorkbenchRunnerIssueSnapshot {

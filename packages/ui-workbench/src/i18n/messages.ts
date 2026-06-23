@@ -99,9 +99,29 @@ export type UiMessageKey =
   | "workbench.runAttempts.parseWarnings"
   | "workbench.runAttempts.exitCode"
   | "workbench.runAttempts.failureKind"
+  | "workbench.runAttempts.trigger"
+  | "workbench.runAttempts.triggerManual"
+  | "workbench.runAttempts.triggerManualResume"
+  | "workbench.runAttempts.triggerApprovalFollowUp"
+  | "workbench.runAttempts.triggerReadinessBlocked"
+  | "workbench.runAttempts.streamQuality"
+  | "workbench.runAttempts.sourceApproval"
   | "workbench.runAttempts.prompt"
   | "workbench.runAttempts.command"
   | "workbench.runAttempts.resume"
+  | "workbench.continuity.title"
+  | "workbench.continuity.externalSession"
+  | "workbench.continuity.latestAttempt"
+  | "workbench.continuity.resumeAttempts"
+  | "workbench.continuity.approvalFollowUps"
+  | "workbench.continuity.cleanStreams"
+  | "workbench.continuity.warningStreams"
+  | "workbench.continuity.noExternalSession"
+  | "workbench.streamQuality.pending"
+  | "workbench.streamQuality.clean"
+  | "workbench.streamQuality.warning"
+  | "workbench.streamQuality.failed"
+  | "workbench.streamQuality.cancelled"
   | "workbench.issue.title"
   | "workbench.issue.latest"
   | "workbench.issue.routeHealth"
@@ -462,9 +482,29 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runAttempts.parseWarnings": "Parse warnings",
     "workbench.runAttempts.exitCode": "Exit",
     "workbench.runAttempts.failureKind": "Failure kind",
+    "workbench.runAttempts.trigger": "Trigger",
+    "workbench.runAttempts.triggerManual": "Manual run",
+    "workbench.runAttempts.triggerManualResume": "Manual resume",
+    "workbench.runAttempts.triggerApprovalFollowUp": "Approval follow-up",
+    "workbench.runAttempts.triggerReadinessBlocked": "Readiness blocked",
+    "workbench.runAttempts.streamQuality": "Stream quality",
+    "workbench.runAttempts.sourceApproval": "Source approval",
     "workbench.runAttempts.prompt": "Prompt",
     "workbench.runAttempts.command": "Command",
     "workbench.runAttempts.resume": "Resume",
+    "workbench.continuity.title": "Live run continuity",
+    "workbench.continuity.externalSession": "External session",
+    "workbench.continuity.latestAttempt": "Latest attempt",
+    "workbench.continuity.resumeAttempts": "Resume attempts",
+    "workbench.continuity.approvalFollowUps": "Approval follow-ups",
+    "workbench.continuity.cleanStreams": "Clean streams",
+    "workbench.continuity.warningStreams": "Warning streams",
+    "workbench.continuity.noExternalSession": "No linked external session",
+    "workbench.streamQuality.pending": "Pending",
+    "workbench.streamQuality.clean": "Clean",
+    "workbench.streamQuality.warning": "Warning",
+    "workbench.streamQuality.failed": "Failed",
+    "workbench.streamQuality.cancelled": "Cancelled",
     "workbench.issue.title": "Runtime issues",
     "workbench.issue.latest": "Latest issue",
     "workbench.issue.routeHealth": "Route health",
@@ -822,9 +862,29 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runAttempts.parseWarnings": "파싱 경고",
     "workbench.runAttempts.exitCode": "종료 코드",
     "workbench.runAttempts.failureKind": "실패 종류",
+    "workbench.runAttempts.trigger": "실행 원인",
+    "workbench.runAttempts.triggerManual": "수동 실행",
+    "workbench.runAttempts.triggerManualResume": "수동 이어쓰기",
+    "workbench.runAttempts.triggerApprovalFollowUp": "승인 후 이어쓰기",
+    "workbench.runAttempts.triggerReadinessBlocked": "준비 상태 차단",
+    "workbench.runAttempts.streamQuality": "스트림 품질",
+    "workbench.runAttempts.sourceApproval": "출처 승인",
     "workbench.runAttempts.prompt": "프롬프트",
     "workbench.runAttempts.command": "명령",
     "workbench.runAttempts.resume": "이어쓰기",
+    "workbench.continuity.title": "Live 실행 연속성",
+    "workbench.continuity.externalSession": "외부 세션",
+    "workbench.continuity.latestAttempt": "최근 실행",
+    "workbench.continuity.resumeAttempts": "이어쓰기 시도",
+    "workbench.continuity.approvalFollowUps": "승인 후 이어쓰기",
+    "workbench.continuity.cleanStreams": "정상 스트림",
+    "workbench.continuity.warningStreams": "경고 스트림",
+    "workbench.continuity.noExternalSession": "연결된 외부 세션 없음",
+    "workbench.streamQuality.pending": "진행 중",
+    "workbench.streamQuality.clean": "정상",
+    "workbench.streamQuality.warning": "경고",
+    "workbench.streamQuality.failed": "실패",
+    "workbench.streamQuality.cancelled": "취소됨",
     "workbench.issue.title": "런타임 문제",
     "workbench.issue.latest": "최근 문제",
     "workbench.issue.routeHealth": "경로 상태",

@@ -79,7 +79,8 @@ export function useWorkbenchActions({
 
     void startSession("claude-live", {
       resumeSessionId: activeSession.id,
-      externalSessionId: activeExternalSession.externalSessionId
+      externalSessionId: activeExternalSession.externalSessionId,
+      trigger: "manual_resume"
     });
   };
 
@@ -170,7 +171,9 @@ export function useWorkbenchActions({
         permissionModeOverride: selectClaudeCodeApprovalFollowUpPermissionMode(
           approval,
           decision
-        )
+        ),
+        trigger: "approval_follow_up",
+        sourceApprovalId: approval.id
       });
       return;
     }
