@@ -266,6 +266,8 @@ export type UiMessageKey =
   | "workbench.sideChat.followUpPolicy"
   | "workbench.followUp.queueReview"
   | "workbench.followUp.queueTerminal"
+  | "workbench.followUp.queueRunAttempt"
+  | "workbench.followUp.queueRecovery"
   | "workbench.followUp.browserDraft.title"
   | "workbench.followUp.browserDraft.workspace"
   | "workbench.followUp.browserDraft.attachedContext"
@@ -566,6 +568,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.sideChat.followUpPolicy": "Follow-up policy",
     "workbench.followUp.queueReview": "Queue follow-up",
     "workbench.followUp.queueTerminal": "Queue terminal follow-up",
+    "workbench.followUp.queueRunAttempt": "Queue run follow-up",
+    "workbench.followUp.queueRecovery": "Queue recovery",
     "workbench.followUp.browserDraft.title": "Review browser/local validation for {title}.",
     "workbench.followUp.browserDraft.workspace": "Workspace: {workspace}.",
     "workbench.followUp.browserDraft.attachedContext": "Attached context: {count}.",
@@ -863,6 +867,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.sideChat.followUpPolicy": "후속 요청 정책",
     "workbench.followUp.queueReview": "후속 초안 추가",
     "workbench.followUp.queueTerminal": "터미널 후속 초안 추가",
+    "workbench.followUp.queueRunAttempt": "실행 후속 초안 추가",
+    "workbench.followUp.queueRecovery": "복구 초안 추가",
     "workbench.followUp.browserDraft.title": "{title}의 브라우저/로컬 검증을 검토하세요.",
     "workbench.followUp.browserDraft.workspace": "워크스페이스: {workspace}.",
     "workbench.followUp.browserDraft.attachedContext": "첨부된 컨텍스트: {count}개.",

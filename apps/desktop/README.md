@@ -60,10 +60,12 @@ renderer, written to the SQLite event store, or committed to the repository.
 Each Claude run attempt is tracked as redacted metadata: runner mode, backend
 selection, model alias/profile, command preview, prompt summary, external
 session id when present, event counts, parse warnings, exit code, and final
-status. The renderer keeps a browser `localStorage` and in-memory event-store
-fallback for Vite-only development. It must not persist provider secrets, raw
-Claude logs, account state, private local tool session files, or raw private
-file contents from context attachments.
+status. The Review inspector can turn that redacted attempt evidence into a
+side-chat recovery draft, which the user may move into the composer before
+running or resuming Claude. The renderer keeps a browser `localStorage` and
+in-memory event-store fallback for Vite-only development. It must not persist
+provider secrets, raw Claude logs, account state, private local tool session
+files, or raw private file contents from context attachments.
 
 ## Verification
 

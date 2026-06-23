@@ -1,5 +1,5 @@
 import type { KeyboardEvent } from "react";
-import { MessageSquarePlus } from "lucide-react";
+import { MessageSquarePlus, Terminal } from "lucide-react";
 
 import type {
   ApprovalDecision,
@@ -29,7 +29,8 @@ import {
 import type { InspectorSessionReadModel } from "../../lib/inspector-read-model.js";
 import {
   createApprovalFollowUpDraft,
-  createDiffFollowUpDraft
+  createDiffFollowUpDraft,
+  createRunAttemptFollowUpDraft
 } from "../../lib/inspector-follow-up.js";
 import type { ProjectedActiveSession } from "../../lib/workbench-types.js";
 
@@ -143,6 +144,31 @@ export function InspectorReviewTab({
                     {attempt.errorMessage ? (
                       <p className="text-[color:var(--danger)]">{attempt.errorMessage}</p>
                     ) : null}
+                  </div>
+                  <div className="mt-3 flex flex-wrap justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      className="gap-2"
+                      onClick={() => setInspectorTab("terminal")}
+                    >
+                      <Terminal size={14} />
+                      {i18n.t("workbench.recovery.openTerminal")}
+                    </Button>
+                    <Button
+                      variant={isRecoverableAttempt(attempt.status) ? "outline" : "ghost"}
+                      className="gap-2"
+                      onClick={() =>
+                        enqueueSideChatDraft(
+                          createRunAttemptFollowUpDraft(attempt),
+                          formatRunAttemptSourceLabel(attempt)
+                        )
+                      }
+                    >
+                      <MessageSquarePlus size={14} />
+                      {isRecoverableAttempt(attempt.status)
+                        ? i18n.t("workbench.followUp.queueRecovery")
+                        : i18n.t("workbench.followUp.queueRunAttempt")}
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -414,6 +440,22 @@ function runAttemptTone(status: string): string {
     default:
       return "status-neutral";
   }
+}
+
+function isRecoverableAttempt(status: string): boolean {
+  return status === "failed" || status === "cancelled";
+}
+
+function formatRunAttemptSourceLabel(
+  attempt: ProjectedActiveSession["runAttempts"][number]
+): string {
+  return [attempt.modelProfileId ?? attempt.mode, attempt.status, formatShortId(attempt.id)]
+    .filter((value): value is string => Boolean(value))
+    .join(" / ");
+}
+
+function formatShortId(value: string): string {
+  return value.length > 18 ? `${value.slice(0, 10)}...${value.slice(-4)}` : value;
 }
 
 function formatAttemptTime(value: string): string {
