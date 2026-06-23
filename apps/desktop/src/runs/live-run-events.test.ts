@@ -8,6 +8,7 @@ import {
   createLiveRunFailureEvents,
   createLiveRunPreludeEvents,
   createLiveRunReadinessBlockedEvents,
+  createRunnerIssueDetectedEvent,
   createRunAttemptStartedEvent,
   createRunAttemptUpdatedEvent
 } from "./live-run-events.js";
@@ -103,7 +104,23 @@ describe("desktop live run event factories", () => {
       eventCount: 4,
       ignoredRecordCount: 1,
       parseWarningCount: 2,
-      errorMessage: `stderr echoed ${secretEnvName}=${token}`
+      errorMessage: `stderr echoed ${secretEnvName}=${token}`,
+      failureKind: "provider_overloaded"
+    });
+    const issue = createRunnerIssueDetectedEvent("workbench-session-1", {
+      id: "issue-attempt-1-provider_overloaded",
+      kind: "provider_overloaded",
+      severity: "error",
+      title: "Provider route overloaded",
+      message: `route failed with ${secretEnvName}=${token}`,
+      retryable: true,
+      suggestedAction: "retry_later",
+      backendAdapterId: "claude-code.external-cli-acp",
+      providerRouteId: "zai.anthropic-compatible",
+      modelProfileId: "opus",
+      attemptId: "attempt-1",
+      routeHealth: "degraded",
+      detectedAt: "2026-06-23T00:00:00.000Z"
     });
 
     expect(started).toMatchObject({
@@ -127,18 +144,26 @@ describe("desktop live run event factories", () => {
       eventCount: 4,
       ignoredRecordCount: 1,
       parseWarningCount: 2,
-      exitCode: 1
+      exitCode: 1,
+      failureKind: "provider_overloaded"
     });
     expect(updated.type === "run.attempt.updated" ? updated.errorMessage : "").toBe(
       `${"stderr echoed"} ${secretEnvName}=[redacted]`
     );
+    expect(issue).toMatchObject({
+      type: "runner.issue.detected",
+      issue: {
+        kind: "provider_overloaded",
+        message: `route failed with ${secretEnvName}=[redacted]`
+      }
+    });
     expect(
       createLiveRunFailureEvents("workbench-session-1", `${secretEnvName}=${token}`)[0]
     ).toMatchObject({
       type: "command.output",
       text: `${secretEnvName}=[redacted]`
     });
-    expect(JSON.stringify([started, updated])).not.toContain(token);
+    expect(JSON.stringify([started, updated, issue])).not.toContain(token);
   });
 });
 

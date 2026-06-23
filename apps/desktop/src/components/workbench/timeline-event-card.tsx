@@ -38,7 +38,7 @@ export function TimelineEventCard({
     return <AssistantMessageCard entry={entry} i18n={i18n} />;
   }
 
-  if (entry.kind === "warning" || entry.kind === "error") {
+  if (entry.kind === "issue" || entry.kind === "warning" || entry.kind === "error") {
     return <AlertEventCard entry={entry} i18n={i18n} />;
   }
 
@@ -135,7 +135,13 @@ function AlertEventCard({
   const Icon = entry.kind === "error" ? XCircle : AlertTriangle;
 
   return (
-    <article className={cn("timeline-alert", entry.kind === "error" && "timeline-alert-error")}>
+    <article
+      className={cn(
+        "timeline-alert",
+        (entry.kind === "error" || entry.status === "provider_overloaded") &&
+          "timeline-alert-error"
+      )}
+    >
       <TimelineCardHeader entry={entry} icon={Icon} i18n={i18n} title={entry.title} />
       {entry.body ? (
         <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[color:var(--ink-soft)]">

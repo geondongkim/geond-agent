@@ -20,6 +20,9 @@ import {
   formatApprovalDecision,
   formatExternalSessionId,
   formatMessage,
+  formatIssueSuggestedActionLabel,
+  formatRetryableLabel,
+  formatRouteHealthLabel,
   formatRoutingModeLabel,
   formatSelectionReadinessDetail,
   formatSelectionReadinessLevelLabel,
@@ -73,6 +76,7 @@ export function InspectorReviewTab({
   const diffs = inspectorData?.diffs ?? activeSession.diffs;
   const usageReports = inspectorData?.usageReports ?? activeSession.usageReports;
   const runAttempts = inspectorData?.runAttempts ?? activeSession.runAttempts;
+  const runnerIssues = activeSession.runnerIssues;
   const latestUsage = usageReports.at(-1);
 
   return (
@@ -101,6 +105,50 @@ export function InspectorReviewTab({
             </Button>
           </div>
         </section>
+
+        {runnerIssues.length ? (
+          <section className="review-section">
+            <div className="review-section-heading">
+              <h3>{i18n.t("workbench.issue.title")}</h3>
+              <span className="metric-pill">{runnerIssues.length}</span>
+            </div>
+            <div className="space-y-2">
+              {runnerIssues.map((issue) => (
+                <div key={issue.id} className="inspector-card">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold">{issue.title}</p>
+                      <p className="mt-1 text-xs leading-5 text-[color:var(--ink-soft)]">
+                        {issue.providerRouteId ?? issue.backendAdapterId ?? issue.kind}
+                        {issue.modelProfileId ? ` / ${issue.modelProfileId}` : ""}
+                      </p>
+                    </div>
+                    <span className="status-pill status-danger">
+                      {formatStatusLabel(i18n, issue.kind)}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-[color:var(--ink-soft)]">
+                    {issue.message}
+                  </p>
+                  <div className="usage-grid mt-3">
+                    <UsageMetric
+                      label={i18n.t("workbench.issue.routeHealth")}
+                      value={formatRouteHealthLabel(i18n, issue.routeHealth)}
+                    />
+                    <UsageMetric
+                      label={i18n.t("workbench.issue.retryable")}
+                      value={formatRetryableLabel(i18n, issue.retryable)}
+                    />
+                    <UsageMetric
+                      label={i18n.t("workbench.issue.suggestedAction")}
+                      value={formatIssueSuggestedActionLabel(i18n, issue.suggestedAction)}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section className="review-section">
           <div className="review-section-heading">
@@ -145,6 +193,14 @@ export function InspectorReviewTab({
                     <UsageMetric
                       label={i18n.t("workbench.runAttempts.exitCode")}
                       value={formatUsageNumber(i18n, attempt.exitCode)}
+                    />
+                    <UsageMetric
+                      label={i18n.t("workbench.runAttempts.failureKind")}
+                      value={
+                        attempt.failureKind
+                          ? formatStatusLabel(i18n, attempt.failureKind)
+                          : i18n.t("workbench.status.notAvailable")
+                      }
                     />
                   </div>
                   <div className="mt-3 space-y-2 text-xs leading-5 text-[color:var(--ink-soft)]">

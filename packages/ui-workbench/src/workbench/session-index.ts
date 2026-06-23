@@ -113,6 +113,7 @@ export function applyWorkbenchSessionIndexEvent(
       });
     }
     case "warning":
+    case "runner.issue.detected":
       return putSessionIndexEntry(index, {
         ...session,
         warningCount: session.warningCount + 1,

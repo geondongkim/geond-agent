@@ -137,6 +137,7 @@ describe("inspector follow-up drafts", () => {
             parseWarningCount: 2
           }
         ],
+        runnerIssues: [],
         approvals: [
           {
             id: "approval-1",

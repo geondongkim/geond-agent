@@ -30,6 +30,7 @@ export type WorkbenchTimelineEntryKind =
   | "diff"
   | "usage"
   | "run"
+  | "issue"
   | "approval"
   | "warning"
   | "error";
@@ -96,6 +97,7 @@ export interface ProjectedWorkbenchSession {
   readonly diffs: readonly WorkbenchSessionSnapshot["diffs"][string][];
   readonly usageReports: readonly WorkbenchSessionSnapshot["usageReports"][string][];
   readonly runAttempts: readonly WorkbenchSessionSnapshot["runAttempts"][string][];
+  readonly runnerIssues: readonly WorkbenchSessionSnapshot["runnerIssues"][string][];
   readonly approvals: readonly WorkbenchSessionSnapshot["approvals"][string][];
   readonly notices: WorkbenchSessionSnapshot["notices"];
   readonly timeline: readonly WorkbenchTimelineEntry[];
@@ -255,6 +257,7 @@ function projectActiveSession(
     diffs: Object.values(session.diffs),
     usageReports: Object.values(session.usageReports),
     runAttempts: Object.values(session.runAttempts).sort(compareRunAttemptsByRecency),
+    runnerIssues: Object.values(session.runnerIssues).sort(compareRunnerIssuesByRecency),
     approvals: Object.values(session.approvals),
     notices: session.notices,
     timeline: events.map(projectTimelineEntry).filter((entry): entry is WorkbenchTimelineEntry => entry !== undefined)
@@ -413,7 +416,16 @@ function projectTimelineEntry(event: WorkbenchEvent): WorkbenchTimelineEntry | u
         at: event.at,
         title: `Run attempt ${event.status}`,
         body: describeRunAttemptUpdate(event),
-        status: event.status
+        status: event.failureKind ?? event.status
+      };
+    case "runner.issue.detected":
+      return {
+        id: `${event.type}:${event.issue.id}:${event.at ?? "unknown"}`,
+        kind: "issue",
+        at: event.at,
+        title: event.issue.title,
+        body: describeRunnerIssue(event.issue),
+        status: event.issue.kind
       };
     case "approval.requested":
       return {
@@ -460,6 +472,13 @@ function compareRunAttemptsByRecency(
   return compareMaybeIso(right.startedAt ?? right.finishedAt, left.startedAt ?? left.finishedAt);
 }
 
+function compareRunnerIssuesByRecency(
+  left: WorkbenchSessionSnapshot["runnerIssues"][string],
+  right: WorkbenchSessionSnapshot["runnerIssues"][string]
+): number {
+  return compareMaybeIso(right.detectedAt, left.detectedAt) || left.id.localeCompare(right.id);
+}
+
 function describeRunAttempt(
   attempt: WorkbenchSessionSnapshot["runAttempts"][string]
 ): string {
@@ -478,8 +497,24 @@ function describeRunAttemptUpdate(event: Extract<WorkbenchEvent, { type: "run.at
     event.eventCount !== undefined ? `${event.eventCount} event(s)` : undefined,
     event.ignoredRecordCount !== undefined ? `${event.ignoredRecordCount} ignored` : undefined,
     event.parseWarningCount !== undefined ? `${event.parseWarningCount} parse warning(s)` : undefined,
+    event.failureKind,
     event.exitCode !== undefined ? `exit ${event.exitCode}` : undefined,
     event.errorMessage
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join(" | ");
+}
+
+function describeRunnerIssue(
+  issue: WorkbenchSessionSnapshot["runnerIssues"][string]
+): string {
+  return [
+    issue.message,
+    issue.providerRouteId ? `route: ${issue.providerRouteId}` : undefined,
+    issue.modelProfileId ? `model: ${issue.modelProfileId}` : undefined,
+    issue.retryable ? "retryable" : "not retryable",
+    `action: ${issue.suggestedAction}`,
+    issue.routeHealth ? `health: ${issue.routeHealth}` : undefined
   ]
     .filter((value): value is string => Boolean(value))
     .join(" | ");

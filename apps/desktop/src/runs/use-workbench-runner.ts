@@ -21,9 +21,14 @@ import {
   createLiveRunFailureEvents,
   createLiveRunPreludeEvents,
   createLiveRunReadinessBlockedEvents,
+  createRunnerIssueDetectedEvent,
   createRunAttemptStartedEvent,
   createRunAttemptUpdatedEvent
 } from "./live-run-events.js";
+import {
+  classifyClaudeLiveRunIssue,
+  collectClaudeLiveRunFailureText
+} from "./live-run-issues.js";
 import { formatLiveRunReadinessBlockMessage } from "./live-run-readiness.js";
 import { buildDispatchPrompt } from "./runner-prompt.js";
 import { listenToClaudeCodeStream } from "./stream-listener.js";
@@ -174,7 +179,8 @@ export function useWorkbenchRunner({
           const blockedEvents = [
             ...createLiveRunReadinessBlockedEvents(sessionId, liveReadinessBlockMessage),
             createRunAttemptUpdatedEvent(sessionId, attemptId, "failed", {
-              errorMessage: liveReadinessBlockMessage
+              errorMessage: liveReadinessBlockMessage,
+              failureKind: "readiness_blocked"
             })
           ];
           await appendEvents(blockedEvents);
@@ -202,38 +208,62 @@ export function useWorkbenchRunner({
           : exitCode !== undefined && exitCode !== 0
             ? "failed"
             : "succeeded";
+      const runtimeIssue =
+        mode === "claude-live" && attemptStatus === "failed"
+          ? classifyClaudeLiveRunIssue({
+              request,
+              attemptId,
+              message: collectClaudeLiveRunFailureText(result),
+              i18n
+            })
+          : undefined;
       const resultEvents = [
         ...baseResultEvents,
+        ...(runtimeIssue ? [createRunnerIssueDetectedEvent(sessionId, runtimeIssue)] : []),
         createRunAttemptUpdatedEvent(sessionId, attemptId, attemptStatus, {
           exitCode,
           eventCount: result.events.length,
           ignoredRecordCount: result.ignoredRecords.length,
-          parseWarningCount: getRunnerParseWarningCount(result)
+          parseWarningCount: getRunnerParseWarningCount(result),
+          failureKind: runtimeIssue?.kind
         })
       ];
 
       await appendEvents(resultEvents);
       setIgnoredRecordCount(result.ignoredRecords.length);
       setRunnerStatus(
-        formatMessage(i18n.t("workbench.runner.appendedEvents"), {
-          count: resultEvents.length,
-          executable: result.command.executable,
-          index: nextIndex,
-          mode
-        })
+        runtimeIssue
+          ? `${runtimeIssue.title}: ${runtimeIssue.message}`
+          : formatMessage(i18n.t("workbench.runner.appendedEvents"), {
+              count: resultEvents.length,
+              executable: result.command.executable,
+              index: nextIndex,
+              mode
+            })
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : i18n.t("workbench.runner.failed");
+      const runtimeIssue =
+        mode === "claude-live"
+          ? classifyClaudeLiveRunIssue({
+              request,
+              attemptId,
+              message,
+              i18n
+            })
+          : undefined;
 
       if (mode === "claude-live") {
         const failureEvents = [
           ...createLiveRunFailureEvents(sessionId, message),
+          ...(runtimeIssue ? [createRunnerIssueDetectedEvent(sessionId, runtimeIssue)] : []),
           createRunAttemptUpdatedEvent(
             sessionId,
             attemptId,
             cancelledAttemptIds.current.has(attemptId) ? "cancelled" : "failed",
             {
-              errorMessage: message
+              errorMessage: message,
+              failureKind: runtimeIssue?.kind
             }
           )
         ];
@@ -246,7 +276,7 @@ export function useWorkbenchRunner({
         ]);
       }
 
-      setRunnerStatus(message);
+      setRunnerStatus(runtimeIssue ? `${runtimeIssue.title}: ${runtimeIssue.message}` : message);
     } finally {
       unlistenStream?.();
       cancelledAttemptIds.current.delete(attemptId);

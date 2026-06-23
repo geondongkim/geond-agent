@@ -79,4 +79,34 @@ describe("workbench session index", () => {
     );
     expect(snapshot.events).toHaveLength(ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS.length);
   });
+
+  it("counts detected runner issues as session warning metadata", () => {
+    const entries = listWorkbenchSessionIndexEntries(
+      buildWorkbenchSessionIndex([
+        ...ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS,
+        {
+          type: "runner.issue.detected",
+          sessionId: "eval-task-1",
+          issue: {
+            id: "issue-attempt-1-provider_overloaded",
+            kind: "provider_overloaded",
+            severity: "error",
+            title: "Provider route overloaded",
+            message: "Route returned HTTP 529.",
+            retryable: true,
+            suggestedAction: "retry_later",
+            providerRouteId: "zai.anthropic-compatible",
+            modelProfileId: "opus",
+            routeHealth: "degraded"
+          },
+          at: "2026-06-21T00:00:12.000Z"
+        }
+      ])
+    );
+
+    expect(entries[0]).toMatchObject({
+      id: "eval-task-1",
+      warningCount: 2
+    });
+  });
 });

@@ -134,8 +134,48 @@ describe("workbenchEventIdentity", () => {
       status: "failed",
       errorMessage: "runner failed"
     };
+    const overloaded: WorkbenchEvent = {
+      ...failed,
+      failureKind: "provider_overloaded"
+    };
 
     expect(workbenchEventIdentity(first)).toBe(workbenchEventIdentity(second));
     expect(workbenchEventIdentity(first)).not.toBe(workbenchEventIdentity(failed));
+    expect(workbenchEventIdentity(failed)).not.toBe(workbenchEventIdentity(overloaded));
+  });
+
+  it("deduplicates runner issue events by route, model, issue, and message", () => {
+    const first: WorkbenchEvent = {
+      type: "runner.issue.detected",
+      sessionId: "session-1",
+      issue: {
+        id: "issue-attempt-1-provider_overloaded",
+        kind: "provider_overloaded",
+        severity: "error",
+        title: "Provider route overloaded",
+        message: "Route returned HTTP 529.",
+        retryable: true,
+        suggestedAction: "retry_later",
+        backendAdapterId: "claude-code.external-cli-acp",
+        providerRouteId: "zai.anthropic-compatible",
+        modelProfileId: "opus",
+        attemptId: "attempt-1",
+        routeHealth: "degraded"
+      },
+      at: "2026-06-22T00:00:00.000Z"
+    };
+    const same: WorkbenchEvent = {
+      ...first
+    };
+    const differentRoute: WorkbenchEvent = {
+      ...first,
+      issue: {
+        ...first.issue,
+        providerRouteId: "zai.openai-compatible"
+      }
+    };
+
+    expect(workbenchEventIdentity(first)).toBe(workbenchEventIdentity(same));
+    expect(workbenchEventIdentity(first)).not.toBe(workbenchEventIdentity(differentRoute));
   });
 });

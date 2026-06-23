@@ -4,6 +4,8 @@ import {
   type UiI18n,
   type WorkbenchEvent,
   type WorkbenchRunAttemptStatus,
+  type WorkbenchRunnerIssueKind,
+  type WorkbenchRunnerIssueSnapshot,
   type WorkbenchSelectionCatalog
 } from "@geond-agent/ui-workbench";
 import { redactSensitiveTextContent } from "@geond-agent/claude-code-bridge";
@@ -55,6 +57,7 @@ export function createRunAttemptUpdatedEvent(
     readonly ignoredRecordCount?: number;
     readonly parseWarningCount?: number;
     readonly errorMessage?: string;
+    readonly failureKind?: WorkbenchRunnerIssueKind;
   } = {}
 ): WorkbenchEvent {
   const at = new Date().toISOString();
@@ -69,6 +72,24 @@ export function createRunAttemptUpdatedEvent(
     errorMessage: summary.errorMessage
       ? redactSensitiveTextContent(summary.errorMessage)
       : undefined,
+    at
+  };
+}
+
+export function createRunnerIssueDetectedEvent(
+  sessionId: string,
+  issue: WorkbenchRunnerIssueSnapshot
+): WorkbenchEvent {
+  const at = issue.detectedAt ?? new Date().toISOString();
+
+  return {
+    type: "runner.issue.detected",
+    sessionId,
+    issue: {
+      ...issue,
+      detectedAt: at,
+      message: redactSensitiveTextContent(issue.message)
+    },
     at
   };
 }

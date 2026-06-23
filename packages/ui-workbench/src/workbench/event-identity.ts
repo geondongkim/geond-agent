@@ -74,7 +74,19 @@ export function workbenchEventIdentity(event: WorkbenchEvent): string {
         event.eventCount ?? "",
         event.ignoredRecordCount ?? "",
         event.parseWarningCount ?? "",
+        event.failureKind ?? "",
         event.errorMessage ?? ""
+      ].join(":");
+    case "runner.issue.detected":
+      return [
+        event.type,
+        event.sessionId,
+        event.issue.id,
+        event.issue.kind,
+        event.issue.providerRouteId ?? "",
+        event.issue.modelProfileId ?? "",
+        event.at ?? "",
+        event.issue.message
       ].join(":");
     case "approval.requested":
       return [event.type, event.sessionId, event.approval.id, event.at ?? ""].join(":");

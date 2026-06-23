@@ -137,6 +137,18 @@ export function formatStatusLabel(i18n: UiI18n, status: string): string {
       return i18n.t("workbench.status.failed");
     case "cancelled":
       return i18n.t("workbench.status.cancelled");
+    case "provider_overloaded":
+      return i18n.t("workbench.issue.kind.providerOverloaded");
+    case "provider_auth":
+      return i18n.t("workbench.issue.kind.providerAuth");
+    case "provider_quota":
+      return i18n.t("workbench.issue.kind.providerQuota");
+    case "provider_timeout":
+      return i18n.t("workbench.issue.kind.providerTimeout");
+    case "readiness_blocked":
+      return i18n.t("workbench.issue.kind.readinessBlocked");
+    case "runner_process":
+      return i18n.t("workbench.issue.kind.runnerProcess");
     case "workspace":
     case "file":
     case "selection":
@@ -144,6 +156,51 @@ export function formatStatusLabel(i18n: UiI18n, status: string): string {
       return formatContextKindLabel(i18n, status);
     default:
       return status;
+  }
+}
+
+export function formatRouteHealthLabel(
+  i18n: UiI18n,
+  status: string | undefined
+): string {
+  switch (status) {
+    case "healthy":
+      return i18n.t("workbench.issue.health.healthy");
+    case "degraded":
+      return i18n.t("workbench.issue.health.degraded");
+    case "unavailable":
+      return i18n.t("workbench.issue.health.unavailable");
+    case "unknown":
+    case undefined:
+      return i18n.t("workbench.issue.health.unknown");
+    default:
+      return status;
+  }
+}
+
+export function formatRetryableLabel(i18n: UiI18n, retryable: boolean): string {
+  return retryable
+    ? i18n.t("workbench.issue.retry.yes")
+    : i18n.t("workbench.issue.retry.no");
+}
+
+export function formatIssueSuggestedActionLabel(
+  i18n: UiI18n,
+  action: string
+): string {
+  switch (action) {
+    case "retry_later":
+      return i18n.t("workbench.issue.action.retryLater");
+    case "switch_route":
+      return i18n.t("workbench.issue.action.switchRoute");
+    case "lower_model":
+      return i18n.t("workbench.issue.action.lowerModel");
+    case "check_key":
+      return i18n.t("workbench.issue.action.checkKey");
+    case "inspect_terminal":
+      return i18n.t("workbench.issue.action.inspectTerminal");
+    default:
+      return action;
   }
 }
 
@@ -171,6 +228,8 @@ export function formatTimelineKindLabel(i18n: UiI18n, kind: string): string {
       return i18n.t("workbench.timeline.kind.usage");
     case "run":
       return i18n.t("workbench.timeline.kind.run");
+    case "issue":
+      return i18n.t("workbench.timeline.kind.issue");
     case "approval":
       return i18n.t("workbench.timeline.kind.approval");
     case "warning":
@@ -265,7 +324,13 @@ export function eventDotTone(kind: string, status?: string): string {
     return status === "running" ? "event-dot-command" : "";
   }
 
-  if (kind === "warning" || kind === "error" || status === "failed") {
+  if (
+    kind === "issue" ||
+    kind === "warning" ||
+    kind === "error" ||
+    status === "failed" ||
+    status === "provider_overloaded"
+  ) {
     return "event-dot-warning";
   }
 

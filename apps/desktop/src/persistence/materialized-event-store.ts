@@ -99,6 +99,7 @@ export interface WorkbenchRunAttemptRecord {
   readonly ignoredRecordCount?: number;
   readonly parseWarningCount?: number;
   readonly errorMessage?: string;
+  readonly failureKind?: string;
   readonly sourceEventId?: number;
   readonly updatedAt?: string;
 }
