@@ -88,6 +88,26 @@ describe("projectWorkbenchEvents", () => {
         type: "runner.issue.detected",
         sessionId: "session-run",
         issue: {
+          id: "issue-attempt-0-provider_timeout",
+          kind: "provider_timeout",
+          severity: "error",
+          title: "Provider timeout",
+          message: "Z.ai route timed out before returning a stream.",
+          retryable: true,
+          suggestedAction: "retry_later",
+          backendAdapterId: "claude-code.external-cli-acp",
+          providerRouteId: "zai.anthropic-compatible",
+          modelProfileId: "sonnet",
+          attemptId: "attempt-0",
+          routeHealth: "unavailable",
+          detectedAt: "2026-06-21T02:00:04.000Z"
+        },
+        at: "2026-06-21T02:00:04.000Z"
+      },
+      {
+        type: "runner.issue.detected",
+        sessionId: "session-run",
+        issue: {
           id: "issue-attempt-1-provider_overloaded",
           kind: "provider_overloaded",
           severity: "error",
@@ -119,6 +139,15 @@ describe("projectWorkbenchEvents", () => {
       id: "issue-attempt-1-provider_overloaded",
       kind: "provider_overloaded",
       routeHealth: "degraded"
+    });
+    expect(projection.activeSession?.providerRouteHealth[0]).toMatchObject({
+      providerRouteId: "zai.anthropic-compatible",
+      latestHealth: "degraded",
+      latestIssueKind: "provider_overloaded",
+      issueCount: 2,
+      retryableIssueCount: 2,
+      modelProfileIds: ["opus", "sonnet"],
+      suggestedActions: ["retry_later"]
     });
     expect(projection.activeSession?.timeline.map((entry) => entry.kind)).toContain("run");
     expect(projection.activeSession?.timeline.map((entry) => entry.kind)).toContain("issue");

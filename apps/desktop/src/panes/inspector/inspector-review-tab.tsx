@@ -5,7 +5,9 @@ import type {
   ApprovalDecision,
   UiI18n,
   WorkbenchApprovalSnapshot,
-  WorkbenchRuntimeSnapshot
+  WorkbenchCatalogOption,
+  WorkbenchRuntimeSnapshot,
+  WorkbenchSessionDefaults
 } from "@geond-agent/ui-workbench";
 
 import { Button } from "../../components/ui/button.js";
@@ -38,6 +40,11 @@ import {
   createRunAttemptFollowUpDraft,
   createSessionReviewFollowUpDraft
 } from "../../lib/inspector-follow-up.js";
+import {
+  findAdvisoryProviderRouteFallback,
+  findCurrentProviderRouteOption,
+  shouldOfferProviderRouteFallback
+} from "../../lib/provider-route-advisory.js";
 import type { ProjectedActiveSession } from "../../lib/workbench-types.js";
 
 export function InspectorReviewTab({
@@ -49,9 +56,12 @@ export function InspectorReviewTab({
   i18n,
   ignoredRecordCount,
   inspectorData,
+  providerRouteOptions,
   resolveApproval,
   runtimeSnapshot,
-  setInspectorTab
+  sessionDefaults,
+  setInspectorTab,
+  updateSessionDefaults
 }: {
   readonly activeExternalSession?: ProjectedActiveSession["externalSessions"][string];
   readonly activeSession?: ProjectedActiveSession;
@@ -61,9 +71,12 @@ export function InspectorReviewTab({
   readonly i18n: UiI18n;
   readonly ignoredRecordCount: number;
   readonly inspectorData?: InspectorSessionReadModel;
+  readonly providerRouteOptions: readonly WorkbenchCatalogOption[];
   readonly resolveApproval: (approvalId: string, decision: ApprovalDecision) => void;
   readonly runtimeSnapshot: WorkbenchRuntimeSnapshot;
+  readonly sessionDefaults: WorkbenchSessionDefaults;
   readonly setInspectorTab: (tab: string) => void;
+  readonly updateSessionDefaults: (patch: Partial<WorkbenchSessionDefaults>) => void;
 }) {
   if (!activeSession) {
     return (
@@ -77,7 +90,12 @@ export function InspectorReviewTab({
   const usageReports = inspectorData?.usageReports ?? activeSession.usageReports;
   const runAttempts = inspectorData?.runAttempts ?? activeSession.runAttempts;
   const runnerIssues = activeSession.runnerIssues;
+  const providerRouteHealth = activeSession.providerRouteHealth;
   const latestUsage = usageReports.at(-1);
+  const currentProviderRoute = findCurrentProviderRouteOption(
+    providerRouteOptions,
+    sessionDefaults.defaultProviderRouteId
+  );
 
   return (
     <TabsContent value="review" className="border-0 bg-transparent p-0">
@@ -144,11 +162,98 @@ export function InspectorReviewTab({
                       value={formatIssueSuggestedActionLabel(i18n, issue.suggestedAction)}
                     />
                   </div>
+                  {shouldOfferProviderRouteFallback(issue) ? (
+                    <div className="mt-3 rounded-md border border-[color:var(--border)] bg-[color:var(--panel-muted)] p-3">
+                      <p className="text-xs font-semibold uppercase text-[color:var(--ink-soft)]">
+                        {i18n.t("workbench.routeHealth.advisoryFallback")}
+                      </p>
+                      <p className="mt-2 text-xs leading-5 text-[color:var(--ink-soft)]">
+                        {i18n.t("workbench.routeHealth.advisoryFallbackDetail")}
+                      </p>
+                      <p className="mt-2 truncate font-mono text-[11px] text-[color:var(--inverse-soft)]">
+                        {formatMessage(i18n.t("workbench.routeHealth.currentDefault"), {
+                          route:
+                            currentProviderRoute?.label ??
+                            sessionDefaults.defaultProviderRouteId
+                        })}
+                      </p>
+                      <FallbackRouteButton
+                        i18n={i18n}
+                        issue={issue}
+                        providerRouteOptions={providerRouteOptions}
+                        selectedProviderRouteId={sessionDefaults.defaultProviderRouteId}
+                        setInspectorTab={setInspectorTab}
+                        updateSessionDefaults={updateSessionDefaults}
+                      />
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>
           </section>
         ) : null}
+
+        <section className="review-section">
+          <div className="review-section-heading">
+            <h3>{i18n.t("workbench.routeHealth.title")}</h3>
+            <span className="metric-pill">{providerRouteHealth.length}</span>
+          </div>
+          {providerRouteHealth.length ? (
+            <div className="space-y-2">
+              {providerRouteHealth.map((health) => (
+                <div key={health.providerRouteId} className="inspector-card">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">
+                        {providerRouteOptions.find((route) => route.value === health.providerRouteId)?.label ??
+                          health.providerRouteId}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-[color:var(--ink-soft)]">
+                        {health.latestIssueTitle ?? i18n.t("workbench.status.unknown")}
+                      </p>
+                    </div>
+                    <span className="status-pill status-warn">
+                      {formatRouteHealthLabel(i18n, health.latestHealth)}
+                    </span>
+                  </div>
+                  <div className="usage-grid mt-3">
+                    <UsageMetric
+                      label={i18n.t("workbench.routeHealth.issues")}
+                      value={formatUsageNumber(i18n, health.issueCount)}
+                    />
+                    <UsageMetric
+                      label={i18n.t("workbench.issue.retryable")}
+                      value={formatUsageNumber(i18n, health.retryableIssueCount)}
+                    />
+                    <UsageMetric
+                      label={i18n.t("workbench.routeHealth.latest")}
+                      value={
+                        health.latestIssueKind
+                          ? formatStatusLabel(i18n, health.latestIssueKind)
+                          : i18n.t("workbench.status.unknown")
+                      }
+                    />
+                    <UsageMetric
+                      label={i18n.t("workbench.routeHealth.models")}
+                      value={
+                        health.modelProfileIds.length
+                          ? health.modelProfileIds.join(", ")
+                          : i18n.t("workbench.status.notAvailable")
+                      }
+                    />
+                  </div>
+                  {health.latestIssueMessage ? (
+                    <p className="mt-3 text-xs leading-5 text-[color:var(--ink-soft)]">
+                      {health.latestIssueMessage}
+                    </p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState text={i18n.t("workbench.routeHealth.noHistory")} />
+          )}
+        </section>
 
         <section className="review-section">
           <div className="review-section-heading">
@@ -515,6 +620,56 @@ export function InspectorReviewTab({
         </section>
       </div>
     </TabsContent>
+  );
+}
+
+function FallbackRouteButton({
+  i18n,
+  issue,
+  providerRouteOptions,
+  selectedProviderRouteId,
+  setInspectorTab,
+  updateSessionDefaults
+}: {
+  readonly i18n: UiI18n;
+  readonly issue: ProjectedActiveSession["runnerIssues"][number];
+  readonly providerRouteOptions: readonly WorkbenchCatalogOption[];
+  readonly selectedProviderRouteId: string;
+  readonly setInspectorTab: (tab: string) => void;
+  readonly updateSessionDefaults: (patch: Partial<WorkbenchSessionDefaults>) => void;
+}) {
+  const fallbackRoute = findAdvisoryProviderRouteFallback({
+    issue,
+    providerRouteOptions
+  });
+
+  if (!fallbackRoute) {
+    return (
+      <p className="mt-3 text-xs leading-5 text-[color:var(--ink-muted)]">
+        {i18n.t("workbench.routeHealth.fallbackUnavailable")}
+      </p>
+    );
+  }
+
+  const fallbackAlreadySelected = fallbackRoute.value === selectedProviderRouteId;
+
+  return (
+    <div className="mt-3 flex justify-end">
+      <Button
+        variant={fallbackAlreadySelected ? "ghost" : "outline"}
+        disabled={fallbackAlreadySelected}
+        onClick={() => {
+          void updateSessionDefaults({ defaultProviderRouteId: fallbackRoute.value });
+          setInspectorTab("settings");
+        }}
+      >
+        {fallbackAlreadySelected
+          ? i18n.t("workbench.routeHealth.fallbackAlreadySelected")
+          : formatMessage(i18n.t("workbench.routeHealth.switchToFallback"), {
+              route: fallbackRoute.label
+            })}
+      </Button>
+    </div>
   );
 }
 

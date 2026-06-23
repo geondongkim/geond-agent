@@ -129,6 +129,18 @@ export type UiMessageKey =
   | "workbench.issue.providerQuotaMessage"
   | "workbench.issue.providerTimeoutMessage"
   | "workbench.issue.runnerProcessMessage"
+  | "workbench.routeHealth.title"
+  | "workbench.routeHealth.route"
+  | "workbench.routeHealth.issues"
+  | "workbench.routeHealth.latest"
+  | "workbench.routeHealth.models"
+  | "workbench.routeHealth.noHistory"
+  | "workbench.routeHealth.advisoryFallback"
+  | "workbench.routeHealth.advisoryFallbackDetail"
+  | "workbench.routeHealth.currentDefault"
+  | "workbench.routeHealth.switchToFallback"
+  | "workbench.routeHealth.fallbackAlreadySelected"
+  | "workbench.routeHealth.fallbackUnavailable"
   | "workbench.approvals.title"
   | "workbench.approvals.requiredTitle"
   | "workbench.approvals.requiredDetail"
@@ -480,6 +492,18 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.issue.providerQuotaMessage": "The selected provider route reported quota or rate limit pressure. Retry later, lower the model, or switch route.",
     "workbench.issue.providerTimeoutMessage": "The selected provider route timed out. Retry later or inspect terminal output for network details.",
     "workbench.issue.runnerProcessMessage": "The local runner process failed before a provider-specific issue could be classified. Inspect terminal output.",
+    "workbench.routeHealth.title": "Route health history",
+    "workbench.routeHealth.route": "Route",
+    "workbench.routeHealth.issues": "Issues",
+    "workbench.routeHealth.latest": "Latest",
+    "workbench.routeHealth.models": "Models",
+    "workbench.routeHealth.noHistory": "No provider route incidents have been recorded for this session.",
+    "workbench.routeHealth.advisoryFallback": "Advisory fallback",
+    "workbench.routeHealth.advisoryFallbackDetail": "Manual only: update the default provider route for the next run. geond-agent does not automatically switch routes.",
+    "workbench.routeHealth.currentDefault": "Current default: {route}",
+    "workbench.routeHealth.switchToFallback": "Use {route} next",
+    "workbench.routeHealth.fallbackAlreadySelected": "Fallback route already selected",
+    "workbench.routeHealth.fallbackUnavailable": "No alternate provider route is available in the local catalog.",
     "workbench.approvals.title": "Approvals",
     "workbench.approvals.requiredTitle": "Approval required",
     "workbench.approvals.requiredDetail": "{count} pending approval(s) are blocking this session.",
@@ -828,6 +852,18 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.issue.providerQuotaMessage": "선택한 프로바이더 경로가 할당량 또는 rate limit 압박을 보고했습니다. 나중에 재시도하거나 모델을 낮추거나 경로를 전환하세요.",
     "workbench.issue.providerTimeoutMessage": "선택한 프로바이더 경로가 시간 초과됐습니다. 나중에 재시도하거나 터미널 출력에서 네트워크 세부 정보를 확인하세요.",
     "workbench.issue.runnerProcessMessage": "프로바이더 문제로 분류하기 전에 로컬 실행 프로세스가 실패했습니다. 터미널 출력을 확인하세요.",
+    "workbench.routeHealth.title": "경로 상태 기록",
+    "workbench.routeHealth.route": "경로",
+    "workbench.routeHealth.issues": "문제",
+    "workbench.routeHealth.latest": "최근",
+    "workbench.routeHealth.models": "모델",
+    "workbench.routeHealth.noHistory": "이 세션에는 프로바이더 경로 문제가 아직 기록되지 않았습니다.",
+    "workbench.routeHealth.advisoryFallback": "자문 fallback",
+    "workbench.routeHealth.advisoryFallbackDetail": "수동 조치 전용입니다. 다음 실행의 기본 프로바이더 경로만 바꾸며 geond-agent가 자동으로 경로를 전환하지 않습니다.",
+    "workbench.routeHealth.currentDefault": "현재 기본값: {route}",
+    "workbench.routeHealth.switchToFallback": "다음 실행에 {route} 사용",
+    "workbench.routeHealth.fallbackAlreadySelected": "Fallback 경로가 이미 선택됨",
+    "workbench.routeHealth.fallbackUnavailable": "로컬 catalog에 대체 프로바이더 경로가 없습니다.",
     "workbench.approvals.title": "승인",
     "workbench.approvals.requiredTitle": "승인이 필요합니다",
     "workbench.approvals.requiredDetail": "이 세션에서 {count}개의 승인이 대기 중입니다.",

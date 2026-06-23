@@ -138,6 +138,7 @@ describe("inspector follow-up drafts", () => {
           }
         ],
         runnerIssues: [],
+        providerRouteHealth: [],
         approvals: [
           {
             id: "approval-1",
