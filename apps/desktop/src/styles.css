@@ -298,6 +298,14 @@ body {
     @apply max-h-[280px] overflow-auto whitespace-pre-wrap rounded-md border border-white/10 bg-black/30 p-3 font-mono text-xs leading-5 text-[color:var(--inverse-soft)];
   }
 
+  .timeline-window-divider {
+    @apply my-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-dashed border-white/15 bg-black/20 px-3 py-2 text-xs leading-5 text-[color:var(--ink-muted)];
+  }
+
+  .timeline-window-toggle {
+    @apply rounded-md border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-semibold uppercase text-[color:var(--ink-soft)] transition-colors hover:border-[color:var(--accent)] hover:text-[color:var(--accent-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--accent)];
+  }
+
   .timeline-approval-inline {
     @apply my-3 rounded-lg border border-[rgba(242,189,61,0.45)] bg-[rgba(242,189,61,0.08)] px-4 py-3;
   }

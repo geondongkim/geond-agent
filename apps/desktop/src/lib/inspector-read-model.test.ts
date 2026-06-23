@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  createInspectorEvidenceSignature,
   createMaterializedInspectorSessionReadModel,
   createProjectionInspectorSessionReadModel
 } from "./inspector-read-model.js";
@@ -168,5 +169,77 @@ describe("inspector read model", () => {
     expect(model.contextAttachments[0]?.id).toBe("context-projection");
     expect(model.commandOutputs[0]?.id).toBe("cmd-projection");
     expect(model.runAttempts[0]?.id).toBe("attempt-projection");
+  });
+
+  it("keeps the inspector evidence signature stable for timeline-only changes", () => {
+    const first = createInspectorEvidenceSignature({
+      ...fallbackSession,
+      timeline: [
+        {
+          id: "assistant-1",
+          kind: "assistant",
+          title: "Assistant update",
+          body: "first"
+        }
+      ]
+    } as unknown as ProjectedActiveSession);
+    const second = createInspectorEvidenceSignature({
+      ...fallbackSession,
+      timeline: [
+        {
+          id: "assistant-1",
+          kind: "assistant",
+          title: "Assistant update",
+          body: "first plus more streamed text"
+        }
+      ]
+    } as unknown as ProjectedActiveSession);
+
+    expect(second).toBe(first);
+  });
+
+  it("changes the inspector evidence signature when materialized evidence changes", () => {
+    const first = createInspectorEvidenceSignature(fallbackSession);
+    const second = createInspectorEvidenceSignature({
+      ...fallbackSession,
+      commandOutputs: [
+        {
+          id: "cmd-projection",
+          status: "succeeded",
+          preview: "projection\nmore output",
+          chunkCount: 2
+        }
+      ]
+    } as unknown as ProjectedActiveSession);
+
+    expect(second).not.toBe(first);
+  });
+
+  it("changes the inspector evidence signature when same-length evidence text changes", () => {
+    const first = createInspectorEvidenceSignature({
+      ...fallbackSession,
+      toolCalls: [
+        {
+          id: "tool-read",
+          name: "read",
+          status: "succeeded",
+          outputSummary: "read alpha"
+        }
+      ]
+    } as unknown as ProjectedActiveSession);
+    const second = createInspectorEvidenceSignature({
+      ...fallbackSession,
+      toolCalls: [
+        {
+          id: "tool-read",
+          name: "read",
+          status: "succeeded",
+          outputSummary: "read bravo"
+        }
+      ]
+    } as unknown as ProjectedActiveSession);
+
+    expect("read alpha").toHaveLength("read bravo".length);
+    expect(second).not.toBe(first);
   });
 });
