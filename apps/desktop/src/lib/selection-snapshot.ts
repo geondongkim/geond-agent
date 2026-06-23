@@ -1,5 +1,6 @@
 import {
   createMissingProviderKeyWarning,
+  createSelectionReadiness,
   createUnknownModelWarning,
   describeBackendAdapter,
   describeProviderRoute,
@@ -33,8 +34,7 @@ export function createSelectionSnapshotFromRequest(
       : []),
     ...(modelProfileId && !modelProfile ? [createUnknownModelWarning(modelProfileId)] : [])
   ];
-
-  return {
+  const snapshot: WorkbenchSelectionSnapshot = {
     backendAdapterId,
     providerRouteId: request.providerRouteId,
     modelProfileId,
@@ -45,6 +45,11 @@ export function createSelectionSnapshotFromRequest(
     uiLanguage: request.uiLanguage,
     agentResponseLanguage: normalizeSelectionAgentLanguage(request.agentResponseLanguage),
     capabilityWarnings
+  };
+
+  return {
+    ...snapshot,
+    readiness: createSelectionReadiness(snapshot)
   };
 }
 

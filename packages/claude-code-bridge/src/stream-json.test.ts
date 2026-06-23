@@ -42,6 +42,13 @@ describe("normalizeClaudeCodeStreamJsonRecords", () => {
       expect(sessionStarted.selection?.capabilityWarnings).toContain(
         "Z.ai Anthropic-compatible route key presence is not stored in workbench events."
       );
+      expect(sessionStarted.selection?.readiness?.level).toBe("blocked");
+      expect(sessionStarted.selection?.readiness?.items.map((item) => item.id)).toEqual([
+        "backend-adapter",
+        "provider-route",
+        "model-profile",
+        "routing-mode"
+      ]);
     }
   });
 
@@ -68,6 +75,7 @@ describe("normalizeClaudeCodeStreamJsonRecords", () => {
     if (sessionStarted?.type === "session.lifecycle") {
       expect(sessionStarted.workspacePath).toBe("/workspace/geond-agent");
       expect(sessionStarted.selection?.modelProfile?.label).toBe("GLM 5.2");
+      expect(sessionStarted.selection?.readiness?.level).toBe("blocked");
     }
 
     const adapterLinked = result.events[1];

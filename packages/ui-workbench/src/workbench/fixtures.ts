@@ -1,13 +1,14 @@
 import type { WorkbenchEvent } from "./events.js";
 import { replayWorkbenchEvents, type WorkbenchStateSnapshot } from "./replay.js";
 import {
+  createSelectionReadiness,
   supportedCapability,
   unavailableCapability,
   unknownCapability,
   type WorkbenchSelectionSnapshot
 } from "./selection.js";
 
-export const ZAI_PRE_SUBSCRIPTION_SELECTION: WorkbenchSelectionSnapshot = {
+const ZAI_PRE_SUBSCRIPTION_SELECTION_BASE: WorkbenchSelectionSnapshot = {
   backendAdapterId: "claude-code.external-cli-acp",
   providerRouteId: "zai.anthropic-compatible",
   modelProfileId: "zai.glm-4.7",
@@ -52,6 +53,11 @@ export const ZAI_PRE_SUBSCRIPTION_SELECTION: WorkbenchSelectionSnapshot = {
     availability: unknownCapability("Availability must be checked after subscription.")
   },
   capabilityWarnings: ["Z.ai API key missing until paid evaluation starts."]
+};
+
+export const ZAI_PRE_SUBSCRIPTION_SELECTION: WorkbenchSelectionSnapshot = {
+  ...ZAI_PRE_SUBSCRIPTION_SELECTION_BASE,
+  readiness: createSelectionReadiness(ZAI_PRE_SUBSCRIPTION_SELECTION_BASE)
 };
 
 export const ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS: readonly WorkbenchEvent[] = [

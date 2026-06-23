@@ -25,11 +25,35 @@ describe("desktop selection snapshot helpers", () => {
       modelProfileId: "opus",
       routingMode: "manual",
       uiLanguage: "en",
-      agentResponseLanguage: "ko"
+      agentResponseLanguage: "ko",
+      readiness: {
+        level: "blocked"
+      }
     });
+    expect(snapshot.readiness?.items.map((item) => [item.id, item.level])).toContainEqual([
+      "provider-route",
+      "blocked"
+    ]);
     expect(snapshot.capabilityWarnings).toEqual([
       "Live runner selection is a local snapshot; provider credentials are not stored in UI state.",
       "Z.ai Anthropic-compatible route key presence is not stored in workbench events."
+    ]);
+    expect(JSON.stringify(snapshot)).not.toMatch(secretValuePattern);
+  });
+
+  it("keeps readiness as metadata even when local key presence is available", () => {
+    const snapshot = createSelectionSnapshotFromRequest(
+      createRunnerRequest(),
+      createUiI18n("en"),
+      createDesktopWorkbenchCatalog({ hasApiKey: true })
+    );
+
+    expect(snapshot.readiness?.level).toBe("attention");
+    expect(snapshot.readiness?.items.map((item) => item.id)).toEqual([
+      "backend-adapter",
+      "provider-route",
+      "model-profile",
+      "routing-mode"
     ]);
     expect(JSON.stringify(snapshot)).not.toMatch(secretValuePattern);
   });

@@ -13,6 +13,7 @@ import type {
 } from "@geond-agent/ui-workbench";
 import {
   createMissingProviderKeyWarning,
+  createSelectionReadiness,
   createUnknownModelWarning,
   describeBackendAdapter,
   describeProviderRoute,
@@ -784,7 +785,7 @@ function createSelectionSnapshot(
     capabilityWarnings.push(createUnknownModelWarning(modelProfileId));
   }
 
-  return {
+  const snapshot: WorkbenchSelectionSnapshot = {
     backendAdapterId,
     providerRouteId,
     modelProfileId,
@@ -795,6 +796,11 @@ function createSelectionSnapshot(
     uiLanguage: normalizeLanguage(record.ui_language),
     agentResponseLanguage: asString(record.agent_language),
     capabilityWarnings: capabilityWarnings.length > 0 ? capabilityWarnings : undefined
+  };
+
+  return {
+    ...snapshot,
+    readiness: createSelectionReadiness(snapshot)
   };
 }
 

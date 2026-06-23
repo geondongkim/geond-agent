@@ -21,6 +21,8 @@ import {
   formatExternalSessionId,
   formatMessage,
   formatRoutingModeLabel,
+  formatSelectionReadinessDetail,
+  formatSelectionReadinessLevelLabel,
   formatStatusLabel,
   formatUsageCost,
   formatUsageNumber,
@@ -405,6 +407,14 @@ export function InspectorReviewTab({
                     ? formatExternalSessionId(activeExternalSession.externalSessionId)
                     : i18n.t("workbench.status.unknown")
                 }
+              />
+              <SettingsRow
+                label={i18n.t("workbench.selection.readiness")}
+                value={formatSelectionReadinessLevelLabel(
+                  i18n,
+                  activeSession.selection.readiness?.level
+                )}
+                detail={formatSelectionReadinessDetail(activeSession.selection.readiness)}
               />
               <SettingsRow
                 label={i18n.t("workbench.selection.warnings")}

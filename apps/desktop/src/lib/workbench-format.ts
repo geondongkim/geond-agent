@@ -1,4 +1,9 @@
-import type { UiI18n, WorkbenchContextAttachmentKind } from "@geond-agent/ui-workbench";
+import type {
+  SelectionReadinessLevel,
+  UiI18n,
+  WorkbenchContextAttachmentKind,
+  WorkbenchSelectionReadiness
+} from "@geond-agent/ui-workbench";
 
 export const lifecycleTone = {
   started: "status-ok",
@@ -50,6 +55,44 @@ export function formatRoutingModeLabel(
     default:
       return mode ?? i18n.t("workbench.status.unknown");
   }
+}
+
+export function formatSelectionReadinessLevelLabel(
+  i18n: UiI18n,
+  level: SelectionReadinessLevel | undefined
+): string {
+  switch (level) {
+    case "ready":
+      return i18n.t("workbench.selection.readiness.ready");
+    case "attention":
+      return i18n.t("workbench.selection.readiness.attention");
+    case "blocked":
+      return i18n.t("workbench.selection.readiness.blocked");
+    case "unknown":
+      return i18n.t("workbench.selection.readiness.unknown");
+    default:
+      return i18n.t("workbench.status.unknown");
+  }
+}
+
+export function formatSelectionReadinessDetail(
+  readiness: WorkbenchSelectionReadiness | undefined
+): string | undefined {
+  if (!readiness) {
+    return undefined;
+  }
+
+  const nonReadyItems = readiness.items.filter((item) => item.level !== "ready");
+  if (!nonReadyItems.length) {
+    return readiness.summary;
+  }
+
+  return [
+    readiness.summary,
+    ...nonReadyItems.map((item) =>
+      item.reason ? `${item.label}: ${item.reason}` : item.label
+    )
+  ].join(" | ");
 }
 
 export function formatApprovalDecision(i18n: UiI18n, decision: string): string {

@@ -126,6 +126,11 @@ export type UiMessageKey =
   | "workbench.selection.uiLanguage"
   | "workbench.selection.agentLanguage"
   | "workbench.selection.externalSession"
+  | "workbench.selection.readiness"
+  | "workbench.selection.readiness.ready"
+  | "workbench.selection.readiness.attention"
+  | "workbench.selection.readiness.blocked"
+  | "workbench.selection.readiness.unknown"
   | "workbench.selection.warnings"
   | "workbench.selection.ignoredSanitizedRecords"
   | "workbench.selection.manual"
@@ -439,6 +444,11 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.selection.uiLanguage": "UI language",
     "workbench.selection.agentLanguage": "Agent response language",
     "workbench.selection.externalSession": "External session",
+    "workbench.selection.readiness": "Route readiness",
+    "workbench.selection.readiness.ready": "Ready",
+    "workbench.selection.readiness.attention": "Needs attention",
+    "workbench.selection.readiness.blocked": "Blocked",
+    "workbench.selection.readiness.unknown": "Unknown",
     "workbench.selection.warnings": "Capability warnings",
     "workbench.selection.ignoredSanitizedRecords": "Ignored sanitized records: {count}",
     "workbench.selection.manual": "Manual",
@@ -749,6 +759,11 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.selection.uiLanguage": "UI 언어",
     "workbench.selection.agentLanguage": "에이전트 응답 언어",
     "workbench.selection.externalSession": "외부 세션",
+    "workbench.selection.readiness": "경로 준비 상태",
+    "workbench.selection.readiness.ready": "준비됨",
+    "workbench.selection.readiness.attention": "확인 필요",
+    "workbench.selection.readiness.blocked": "차단됨",
+    "workbench.selection.readiness.unknown": "알 수 없음",
     "workbench.selection.warnings": "기능 경고",
     "workbench.selection.ignoredSanitizedRecords": "무시된 정제 fixture 레코드: {count}개",
     "workbench.selection.manual": "수동",
