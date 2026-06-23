@@ -35,6 +35,10 @@ test("file evidence, provider prompt disclosure, browser check, and side chat dr
   await filesPanel.getByRole("button", { name: "Export evidence bundle" }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/local-workbench-session-evidence\.md$/);
+  const workspaceDownloadPromise = page.waitForEvent("download");
+  await filesPanel.getByRole("button", { name: "Export workspace report" }).click();
+  const workspaceDownload = await workspaceDownloadPromise;
+  expect(workspaceDownload.suggestedFilename()).toMatch(/workbench-workspace-report\.md$/);
   await filesPanel.getByRole("button", { name: "Queue evidence bundle" }).click();
   await expectSideChatStorage(page, "Workbench evidence bundle (metadata only).");
   await page.getByRole("tab", { name: "Side chat" }).click();
@@ -57,6 +61,19 @@ test("file evidence, provider prompt disclosure, browser check, and side chat dr
     .click();
   await expectSideChatStorage(page, "[]", "equals");
   await page.getByRole("tab", { name: "Files" }).click();
+  await filesPanel.getByRole("button", { name: "Queue workspace report" }).click();
+  await expectSideChatStorage(page, "Workbench workspace report (metadata only).");
+  await page.getByRole("tab", { name: "Side chat" }).click();
+  await earlySideChatPanel
+    .locator(".side-chat-draft-card")
+    .filter({ hasText: "Workbench workspace report" })
+    .getByRole("button", { name: "Remove" })
+    .click();
+  await expectSideChatStorage(page, "[]", "equals");
+  await page.getByRole("tab", { name: "Files" }).click();
+  await filesPanel.getByRole("button", { name: "Mark as favorite" }).first().click();
+  await expect(filesPanel.getByRole("heading", { name: "Favorite context" })).toBeVisible();
+  await expect(filesPanel.getByRole("button", { name: "Remove from favorites" })).toBeVisible();
   await expect(
     filesPanel.getByRole("button", { name: /apps\/desktop\/src\/app\.tsx/ })
   ).toBeVisible();

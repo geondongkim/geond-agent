@@ -358,12 +358,24 @@ export type UiMessageKey =
   | "workbench.files.queueFollowUp"
   | "workbench.files.queueEvidenceBundle"
   | "workbench.files.queueIssueReport"
+  | "workbench.files.queueWorkspaceReport"
   | "workbench.files.issueReport"
+  | "workbench.files.workspaceReport"
   | "workbench.files.exportEvidenceBundle"
+  | "workbench.files.exportWorkspaceReport"
   | "workbench.files.exportSaved"
   | "workbench.files.exportDownloaded"
   | "workbench.files.exportCancelled"
+  | "workbench.files.workspaceReportExportSaved"
+  | "workbench.files.workspaceReportExportDownloaded"
+  | "workbench.files.workspaceReportExportCancelled"
   | "workbench.files.recentContext"
+  | "workbench.files.favoriteContext"
+  | "workbench.files.favorite"
+  | "workbench.files.favorited"
+  | "workbench.files.markFavorite"
+  | "workbench.files.unmarkFavorite"
+  | "workbench.files.attachRecentContext"
   | "workbench.files.rawContentBoundary"
   | "workbench.files.providerPromptBoundary"
   | "workbench.files.diffSource"
@@ -814,12 +826,24 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.queueFollowUp": "Queue evidence follow-up",
     "workbench.files.queueEvidenceBundle": "Queue evidence bundle",
     "workbench.files.queueIssueReport": "Queue report",
+    "workbench.files.queueWorkspaceReport": "Queue workspace report",
     "workbench.files.issueReport": "Issue report",
+    "workbench.files.workspaceReport": "Workspace report",
     "workbench.files.exportEvidenceBundle": "Export evidence bundle",
+    "workbench.files.exportWorkspaceReport": "Export workspace report",
     "workbench.files.exportSaved": "Evidence bundle saved.",
     "workbench.files.exportDownloaded": "Evidence bundle downloaded.",
     "workbench.files.exportCancelled": "Evidence bundle export cancelled.",
+    "workbench.files.workspaceReportExportSaved": "Workspace report saved.",
+    "workbench.files.workspaceReportExportDownloaded": "Workspace report downloaded.",
+    "workbench.files.workspaceReportExportCancelled": "Workspace report export cancelled.",
     "workbench.files.recentContext": "Recent context",
+    "workbench.files.favoriteContext": "Favorite context",
+    "workbench.files.favorite": "Favorite",
+    "workbench.files.favorited": "Favorited",
+    "workbench.files.markFavorite": "Mark as favorite",
+    "workbench.files.unmarkFavorite": "Remove from favorites",
+    "workbench.files.attachRecentContext": "Attach",
     "workbench.files.rawContentBoundary": "Metadata and summaries only; raw private file content is not persisted here.",
     "workbench.files.providerPromptBoundary": "When you dispatch a run, selected evidence metadata such as paths, summaries, and diff stats may be included in the provider prompt. Raw private file contents are not attached.",
     "workbench.files.diffSource": "Diff source",
@@ -1267,12 +1291,24 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.queueFollowUp": "증거 후속 초안 추가",
     "workbench.files.queueEvidenceBundle": "증거 묶음 초안 추가",
     "workbench.files.queueIssueReport": "리포트 초안 추가",
+    "workbench.files.queueWorkspaceReport": "워크스페이스 리포트 초안 추가",
     "workbench.files.issueReport": "이슈 리포트",
+    "workbench.files.workspaceReport": "워크스페이스 리포트",
     "workbench.files.exportEvidenceBundle": "증거 묶음 내보내기",
+    "workbench.files.exportWorkspaceReport": "워크스페이스 리포트 내보내기",
     "workbench.files.exportSaved": "증거 묶음을 저장했습니다.",
     "workbench.files.exportDownloaded": "증거 묶음을 다운로드했습니다.",
     "workbench.files.exportCancelled": "증거 묶음 내보내기를 취소했습니다.",
+    "workbench.files.workspaceReportExportSaved": "워크스페이스 리포트를 저장했습니다.",
+    "workbench.files.workspaceReportExportDownloaded": "워크스페이스 리포트를 다운로드했습니다.",
+    "workbench.files.workspaceReportExportCancelled": "워크스페이스 리포트 내보내기를 취소했습니다.",
     "workbench.files.recentContext": "최근 컨텍스트",
+    "workbench.files.favoriteContext": "즐겨찾는 컨텍스트",
+    "workbench.files.favorite": "즐겨찾기",
+    "workbench.files.favorited": "즐겨찾는 항목",
+    "workbench.files.markFavorite": "즐겨찾기로 표시",
+    "workbench.files.unmarkFavorite": "즐겨찾기에서 제거",
+    "workbench.files.attachRecentContext": "첨부",
     "workbench.files.rawContentBoundary": "메타데이터와 요약만 사용하며, 원본 private 파일 내용은 여기에 저장하지 않습니다.",
     "workbench.files.providerPromptBoundary": "실행을 보내면 선택된 증거의 경로, 요약, diff 통계 같은 메타데이터가 provider 프롬프트에 포함될 수 있습니다. 원본 private 파일 내용은 첨부하지 않습니다.",
     "workbench.files.diffSource": "Diff 출처",

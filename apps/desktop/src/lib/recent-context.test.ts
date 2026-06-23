@@ -6,7 +6,8 @@ import {
   loadRecentContextItems,
   mergeRecentContextItem,
   normalizeRecentContextItems,
-  saveRecentContextItems
+  saveRecentContextItems,
+  toggleRecentContextItemFavorite
 } from "./recent-context.js";
 
 describe("recent context", () => {
@@ -20,7 +21,8 @@ describe("recent context", () => {
     ).toMatchObject({
       kind: "workspace",
       label: "geond-agent",
-      path: "/workspace/geond-agent"
+      path: "/workspace/geond-agent",
+      favorite: false
     });
     expect(
       createRecentContextItem({
@@ -30,7 +32,8 @@ describe("recent context", () => {
       })
     ).toMatchObject({
       kind: "file",
-      label: "architecture.md"
+      label: "architecture.md",
+      favorite: false
     });
     expect(createRecentContextItem({ kind: "file", path: " " })).toBeUndefined();
   });
@@ -69,7 +72,8 @@ describe("recent context", () => {
         kind: "workspace" as const,
         label: "geond-agent",
         path: "/workspace/geond-agent",
-        updatedAt: "2026-06-23T00:00:00.000Z"
+        updatedAt: "2026-06-23T00:00:00.000Z",
+        favorite: true
       }
     ];
     const next = mergeRecentContextItem(
@@ -84,6 +88,29 @@ describe("recent context", () => {
 
     expect(next).toHaveLength(1);
     expect(next[0]?.updatedAt).toBe("2026-06-24T00:00:00.000Z");
+    expect(next[0]?.favorite).toBe(true);
+  });
+
+  it("toggles favorite context without changing the path metadata", () => {
+    const current = [
+      {
+        id: "file:a",
+        kind: "file" as const,
+        label: "architecture.md",
+        path: "/workspace/geond-agent/docs/architecture.md",
+        updatedAt: "2026-06-24T00:00:00.000Z",
+        favorite: false
+      }
+    ];
+
+    const next = toggleRecentContextItemFavorite(current, "file:a");
+
+    expect(next[0]).toMatchObject({
+      id: "file:a",
+      kind: "file",
+      path: "/workspace/geond-agent/docs/architecture.md",
+      favorite: true
+    });
   });
 
   it("round trips through local settings without raw content", async () => {
@@ -101,7 +128,8 @@ describe("recent context", () => {
         kind: "file",
         label: "architecture.md",
         path: "/workspace/geond-agent/docs/architecture.md",
-        updatedAt: "2026-06-24T00:00:00.000Z"
+        updatedAt: "2026-06-24T00:00:00.000Z",
+        favorite: true
       }
     ]);
 
@@ -111,7 +139,8 @@ describe("recent context", () => {
         kind: "file",
         label: "architecture.md",
         path: "/workspace/geond-agent/docs/architecture.md",
-        updatedAt: "2026-06-24T00:00:00.000Z"
+        updatedAt: "2026-06-24T00:00:00.000Z",
+        favorite: true
       }
     ]);
     expect([...storage.values()].join("\n")).not.toContain("raw");

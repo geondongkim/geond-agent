@@ -31,7 +31,10 @@ import {
   normalizeSideChatDrafts,
   type SideChatDraft
 } from "./lib/side-chat-drafts.js";
-import type { RecentContextItem } from "./lib/recent-context.js";
+import {
+  toggleRecentContextItemFavorite,
+  type RecentContextItem
+} from "./lib/recent-context.js";
 
 interface AppProps {
   readonly document: DesktopDemoDocument;
@@ -169,6 +172,13 @@ export function App({ document }: AppProps) {
     setSideChatDrafts((current) => {
       const next = normalizeSideChatDrafts(current.filter((draft) => draft.id !== draftId));
       void document.saveSideChatDrafts(next);
+      return next;
+    });
+  };
+  const toggleRecentContextFavorite = (itemId: string) => {
+    setRecentContextItems((current) => {
+      const next = toggleRecentContextItemFavorite(current, itemId);
+      void document.saveRecentContextItems(next);
       return next;
     });
   };
@@ -494,6 +504,7 @@ export function App({ document }: AppProps) {
               i18n={i18n}
               inspectorTab={inspectorTab}
               inspectorData={inspectorData}
+              projectedSessions={projection.sessions}
               modelAliasOptions={modelAliasOptions}
               permissionModeOptions={permissionModeOptions}
               persistenceNotes={document.persistence.notes}
@@ -513,6 +524,7 @@ export function App({ document }: AppProps) {
               setComposerPrompt={setComposerPrompt}
               setInspectorTab={setInspectorTab}
               setRunnerStatus={setRunnerStatus}
+              toggleRecentContextFavorite={toggleRecentContextFavorite}
               updateAgentResponseLanguage={updateAgentResponseLanguage}
               updateRunnerMode={updateRunnerMode}
               updateSessionDefaults={updateSessionDefaults}

@@ -29,6 +29,11 @@ native workbench without weakening the local-first evidence boundary.
   preserve the same redaction path.
 - The renderer still falls back to browser downloads when it is not running
   inside Tauri.
+- Workspace reports aggregate the session index plus the active session evidence
+  bundle into a metadata-only report that can be queued as a side-chat draft or
+  exported through the same save/download path.
+- Recent context now supports favorites. Favorites store only the same label,
+  path, kind, timestamp, and boolean marker as recent context.
 
 ## Dogfood Notes
 
@@ -41,6 +46,38 @@ native workbench without weakening the local-first evidence boundary.
   metadata attachment surface. A future file-content picker must use a separate
   consent and redaction design.
 
+## Live Claude Dogfood: 2026-06-24
+
+Raw run output is local-only under `output/local/claude-live-dogfood/` and is not
+tracked. This tracked record keeps only the safe operational summary.
+
+- Smoke route: `claude --bare -p --model sonnet --permission-mode plan
+  --output-format json --no-session-persistence` returned success with no stderr.
+- Stream start: Claude Code rejected a non-UUID `--session-id` with
+  `Invalid session ID. Must be a valid UUID.` This exposed a real live-runner
+  bug: geond-agent must not pass workbench-local ids such as `local-session-1`
+  as Claude session ids.
+- Stream start retry: a UUID `--session-id` returned success and produced
+  stream-json records with `system`, `user`, `assistant`, and `result` types.
+- Resume: `--resume <uuid>` returned success and confirmed session continuity is
+  sufficient for a resume-ready indicator when the external session id and run
+  attempt metadata are present.
+- Cancel: an intentionally terminated run exited with `143`, produced only an
+  initial stream record, and no stderr. The UI should label this as a user/local
+  cancellation rather than a provider failure.
+- Retry: a fresh run after cancellation returned success. The UI should show a
+  clean retry path with new attempt metadata, while preserving the cancelled
+  attempt as evidence.
+
+Follow-up implemented from the dogfood result:
+
+- The Claude bridge now sends `--session-id` only for UUID-shaped Claude
+  session ids and omits it for workbench-local ids.
+- The native Tauri command boundary now rejects non-UUID `--session-id` and
+  `--resume` values before launching Claude Code.
+- Workspace report export and context favorites close the first pass of the
+  evidence/report and picker ergonomics TODOs.
+
 ## Verification Checklist
 
 - `git diff --check`
@@ -52,10 +89,9 @@ native workbench without weakening the local-first evidence boundary.
 
 ## Remaining TODO
 
-- Dogfood live Claude run cancel/retry/resume with the native export flow.
-- Add a first-class issue/report export panel that can bundle multiple sessions.
+- Add a first-class issue/report export panel that can bundle multiple sessions
+  with screenshots or structured traces when those evidence types exist.
 - Add save-dialog export for richer evidence bundles once screenshots and
   structured traces exist.
 - Add chunk budget monitoring to CI instead of relying only on Vite warnings.
-- Continue workspace/file picker polish with favorites and per-workspace recent
-  grouping.
+- Continue workspace/file picker polish with per-workspace recent grouping.

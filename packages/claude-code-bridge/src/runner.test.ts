@@ -10,7 +10,7 @@ import {
 } from "./runner.js";
 
 describe("Claude Code runner boundary", () => {
-  it("builds a stream-json command without executing Claude Code", () => {
+  it("builds a stream-json command without sending local ids as Claude session ids", () => {
     const command = buildClaudeCodeStreamJsonCommand({
       prompt: "Summarize the current workbench session.",
       cwd: "/workspace/geond-agent",
@@ -34,8 +34,28 @@ describe("Claude Code runner boundary", () => {
       "opus",
       "--permission-mode",
       "plan",
+      "Summarize the current workbench session."
+    ]);
+  });
+
+  it("passes a Claude Code UUID session id when one is explicitly available", () => {
+    const command = buildClaudeCodeStreamJsonCommand({
+      prompt: "Summarize the current workbench session.",
+      sessionId: "fffcc6bc-5c84-4332-97da-0651f2dbeaeb"
+    });
+
+    expect(command.args).toEqual([
+      "--bare",
+      "-p",
+      "--verbose",
+      "--output-format",
+      "stream-json",
+      "--model",
+      "sonnet",
+      "--permission-mode",
+      "plan",
       "--session-id",
-      "session-1",
+      "fffcc6bc-5c84-4332-97da-0651f2dbeaeb",
       "Summarize the current workbench session."
     ]);
   });
@@ -44,14 +64,26 @@ describe("Claude Code runner boundary", () => {
     const command = buildClaudeCodeStreamJsonCommand({
       prompt: "Continue the prior turn.",
       sessionId: "workbench-session-1",
-      externalSessionId: "claude-session-1"
+      externalSessionId: "fffcc6bc-5c84-4332-97da-0651f2dbeaeb"
     });
 
     expect(command.args).toContain("--resume");
     expect(command.streamChannelId).toBe("workbench-session-1");
-    expect(command.args).toContain("claude-session-1");
+    expect(command.args).toContain("fffcc6bc-5c84-4332-97da-0651f2dbeaeb");
     expect(command.args).not.toContain("--session-id");
     expect(command.args).not.toContain("workbench-session-1");
+  });
+
+  it("does not send non-UUID external session ids to Claude Code resume", () => {
+    const command = buildClaudeCodeStreamJsonCommand({
+      prompt: "Continue the prior turn.",
+      sessionId: "workbench-session-1",
+      externalSessionId: "claude-session-1"
+    });
+
+    expect(command.args).not.toContain("--resume");
+    expect(command.args).not.toContain("--session-id");
+    expect(command.streamChannelId).toBe("workbench-session-1");
   });
 
   it("builds a scoped print-mode follow-up prompt for approved approvals", () => {
@@ -212,11 +244,12 @@ describe("Claude Code runner boundary", () => {
   });
 
   it("keeps live process output under the requested workbench session id", async () => {
+    const externalSessionId = "fffcc6bc-5c84-4332-97da-0651f2dbeaeb";
     const runner = createClaudeCodeProcessRunner(async () => ({
       stdout: JSON.stringify({
         type: "system",
         subtype: "init",
-        session_id: "claude-session-live",
+        session_id: externalSessionId,
         model: "glm-5.2"
       }),
       exitCode: 0
@@ -224,7 +257,7 @@ describe("Claude Code runner boundary", () => {
 
     const result = await runner.run({
       sessionId: "workbench-session-live",
-      externalSessionId: "claude-session-live",
+      externalSessionId,
       title: "Live resume",
       prompt: "Continue",
       modelAlias: "opus"
@@ -239,7 +272,7 @@ describe("Claude Code runner boundary", () => {
     expect(result.events[1]).toMatchObject({
       type: "session.adapter.linked",
       sessionId: "workbench-session-live",
-      externalSessionId: "claude-session-live"
+      externalSessionId
     });
   });
 });
