@@ -83,10 +83,10 @@ export function App({ document }: AppProps) {
     activeSessionListItem,
     activeSessionPinned,
     pendingApprovals,
-    visiblePinnedSessions,
-    visibleRecentSessions,
+    workspaceSessionGroups,
     workspaceOptions
   } = useWorkbenchDerivedState({
+    i18n,
     pinnedSessionIds,
     projection,
     selectedWorkspaces,
@@ -438,10 +438,7 @@ export function App({ document }: AppProps) {
               sessionQuery={sessionQuery}
               setSessionQuery={setSessionQuery}
               setWorkspacePath={selectWorkspacePath}
-              visiblePinnedSessions={visiblePinnedSessions}
-              visibleRecentSessions={visibleRecentSessions}
-              workspaceOptions={workspaceOptions}
-              workspacePath={workspacePath}
+              workspaceSessionGroups={workspaceSessionGroups}
             />
           ) : null}
 

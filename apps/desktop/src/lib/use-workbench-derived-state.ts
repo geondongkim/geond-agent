@@ -1,13 +1,14 @@
 import { useMemo } from "react";
-import type { WorkbenchSessionDefaults } from "@geond-agent/ui-workbench";
+import type { UiI18n, WorkbenchSessionDefaults } from "@geond-agent/ui-workbench";
 
 import type { DesktopDemoDocument } from "../demo-workbench.js";
 import type { DesktopWorkspaceDescriptor } from "../workspace.js";
-import type { ProjectedSessionListItem } from "./workbench-types.js";
+import { createWorkspaceSessionGroups } from "./workspace-session-groups.js";
 
 type Projection = DesktopDemoDocument["initialControllerSnapshot"]["projection"];
 
 export function useWorkbenchDerivedState({
+  i18n,
   pinnedSessionIds,
   projection,
   selectedWorkspaces,
@@ -15,6 +16,7 @@ export function useWorkbenchDerivedState({
   sessionQuery,
   workspacePath
 }: {
+  readonly i18n: UiI18n;
   readonly pinnedSessionIds: readonly string[];
   readonly projection: Projection;
   readonly selectedWorkspaces: readonly DesktopWorkspaceDescriptor[];
@@ -42,26 +44,17 @@ export function useWorkbenchDerivedState({
     projection.workspaces.forEach((workspace) => options.set(workspace.path, workspace));
     return [...options.values()];
   }, [projection.workspaces, selectedWorkspaces]);
-  const visibleSessions = useMemo(
+  const workspaceSessionGroups = useMemo(
     () =>
-      projection.sessions.filter(
-        (session) =>
-          matchesWorkspaceFilter(session.workspacePath, workspacePath) &&
-          matchesSessionQuery(session, sessionQuery)
-      ),
-    [projection.sessions, sessionQuery, workspacePath]
-  );
-  const visibleSessionIds = useMemo(
-    () => new Set(visibleSessions.map((session) => session.id)),
-    [visibleSessions]
-  );
-  const visiblePinnedSessions = useMemo(
-    () => projection.pinnedSessions.filter((session) => visibleSessionIds.has(session.id)),
-    [projection.pinnedSessions, visibleSessionIds]
-  );
-  const visibleRecentSessions = useMemo(
-    () => projection.recentSessions.filter((session) => visibleSessionIds.has(session.id)),
-    [projection.recentSessions, visibleSessionIds]
+      createWorkspaceSessionGroups({
+        sessions: projection.sessions,
+        pinnedSessionIds,
+        selectedWorkspacePath: workspacePath,
+        sessionQuery,
+        unknownWorkspaceLabel: i18n.t("workbench.status.unknown"),
+        workspaceOptions
+      }),
+    [i18n, pinnedSessionIds, projection.sessions, sessionQuery, workspaceOptions, workspacePath]
   );
 
   return {
@@ -70,8 +63,7 @@ export function useWorkbenchDerivedState({
     activeSessionListItem,
     activeSessionPinned,
     pendingApprovals,
-    visiblePinnedSessions,
-    visibleRecentSessions,
+    workspaceSessionGroups,
     workspaceOptions
   };
 }
@@ -81,31 +73,4 @@ function getExternalSessionLink(
   adapterId: string
 ): NonNullable<Projection["activeSession"]>["externalSessions"][string] | undefined {
   return session.externalSessions[adapterId] ?? Object.values(session.externalSessions)[0];
-}
-
-function matchesWorkspaceFilter(
-  sessionWorkspacePath: string | undefined,
-  workspacePath: string
-): boolean {
-  return workspacePath === "__all__" || sessionWorkspacePath === workspacePath;
-}
-
-function matchesSessionQuery(
-  session: ProjectedSessionListItem,
-  query: string
-): boolean {
-  const normalizedQuery = query.trim().toLowerCase();
-  if (normalizedQuery.length === 0) {
-    return true;
-  }
-
-  return [
-    session.id,
-    session.title,
-    session.workspacePath,
-    session.backendLabel,
-    session.lifecycle
-  ]
-    .filter((value): value is string => typeof value === "string")
-    .some((value) => value.toLowerCase().includes(normalizedQuery));
 }

@@ -54,6 +54,7 @@ export interface ProjectedSessionListItem {
   readonly title: string;
   readonly lifecycle: WorkbenchSessionLifecycle;
   readonly workspacePath?: string;
+  readonly backendAdapterId?: string;
   readonly backendLabel?: string;
   readonly updatedAt?: string;
   readonly resumable: boolean;
@@ -254,6 +255,7 @@ function projectSessionListItem(session: WorkbenchSessionSnapshot): ProjectedSes
     title: session.title ?? session.id,
     lifecycle: session.lifecycle,
     workspacePath: session.workspacePath,
+    backendAdapterId: session.selection?.backendAdapterId,
     backendLabel: session.selection?.backendAdapter?.label,
     updatedAt: session.updatedAt,
     resumable: isSessionResumable(session),
@@ -271,6 +273,7 @@ function projectSessionIndexEntry(
     title: entry.title ?? entry.id,
     lifecycle: entry.lifecycle,
     workspacePath: entry.workspacePath,
+    backendAdapterId: entry.backendAdapterId,
     backendLabel: entry.backendLabel,
     updatedAt: entry.updatedAt,
     resumable: entry.resumable,

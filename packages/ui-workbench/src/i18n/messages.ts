@@ -36,6 +36,7 @@ export type UiMessageKey =
   | "workbench.sessionSidebar.workspaceSwitcher"
   | "workbench.sessionSidebar.search"
   | "workbench.sessionSidebar.noSessions"
+  | "workbench.sessionSidebar.workspaces"
   | "workbench.sessionSidebar.workspace"
   | "workbench.sessionSidebar.backend"
   | "workbench.sessionSidebar.language"
@@ -437,6 +438,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.sessionSidebar.workspaceSwitcher": "Workspace switcher",
     "workbench.sessionSidebar.search": "Search sessions",
     "workbench.sessionSidebar.noSessions": "No matching sessions.",
+    "workbench.sessionSidebar.workspaces": "Workspaces",
     "workbench.sessionSidebar.workspace": "Workspace",
     "workbench.sessionSidebar.backend": "Backend",
     "workbench.sessionSidebar.language": "UI / Agent",
@@ -838,6 +840,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.sessionSidebar.workspaceSwitcher": "워크스페이스 전환",
     "workbench.sessionSidebar.search": "세션 검색",
     "workbench.sessionSidebar.noSessions": "일치하는 세션이 없습니다.",
+    "workbench.sessionSidebar.workspaces": "워크스페이스",
     "workbench.sessionSidebar.workspace": "워크스페이스",
     "workbench.sessionSidebar.backend": "백엔드",
     "workbench.sessionSidebar.language": "UI / 응답 언어",

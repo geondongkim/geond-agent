@@ -193,6 +193,84 @@ body {
     @apply rounded-lg border border-white/10 bg-[#202522] p-3 text-[color:var(--inverse)];
   }
 
+  .workspace-session-section {
+    @apply shrink-0 space-y-2;
+  }
+
+  .workspace-session-groups {
+    @apply space-y-3;
+  }
+
+  .workspace-session-group {
+    @apply min-w-0 border-l pl-2;
+  }
+
+  .workspace-session-group-active {
+    @apply border-[color:var(--accent)];
+  }
+
+  .workspace-session-group-idle {
+    @apply border-white/10;
+  }
+
+  .workspace-session-header {
+    @apply grid w-full grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-2 rounded-md px-1.5 py-1.5 text-left text-[color:var(--inverse)] transition-colors hover:bg-white/5;
+  }
+
+  .workspace-session-folder {
+    @apply grid h-6 w-6 place-items-center rounded-md border border-white/10 bg-black/15 text-[color:var(--inverse-soft)];
+  }
+
+  .workspace-session-group-active .workspace-session-folder {
+    @apply border-[rgba(79,208,124,0.45)] bg-[rgba(79,208,124,0.12)] text-[color:var(--accent-strong)];
+  }
+
+  .workspace-session-count {
+    @apply inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-md border border-white/10 bg-black/20 px-1.5 font-mono text-[11px] text-[color:var(--inverse-soft)];
+  }
+
+  .workspace-session-card-list {
+    @apply mt-1.5 space-y-1.5;
+  }
+
+  .workspace-session-empty {
+    @apply rounded-md border border-dashed border-white/10 px-3 py-2 text-xs text-[color:var(--ink-muted)];
+  }
+
+  .workspace-add-button {
+    @apply grid h-7 w-7 shrink-0 place-items-center rounded-md border border-white/10 bg-black/20 text-[color:var(--inverse-soft)] transition-colors hover:border-[color:var(--accent)] hover:text-[color:var(--accent-strong)];
+  }
+
+  .agent-backend-icon {
+    @apply grid h-7 w-7 place-items-center rounded-md border border-white/10 bg-black/20 text-[color:var(--inverse-soft)];
+  }
+
+  .agent-backend-icon-claude {
+    @apply border-[rgba(79,208,124,0.34)] bg-[rgba(79,208,124,0.12)] text-[color:var(--accent-strong)];
+  }
+
+  .agent-backend-icon-codex {
+    @apply border-[rgba(108,166,255,0.36)] bg-[rgba(108,166,255,0.12)] text-[color:var(--info)];
+  }
+
+  .agent-backend-icon-opencode {
+    @apply border-[rgba(242,189,61,0.36)] bg-[rgba(242,189,61,0.1)] text-[color:var(--warning)];
+  }
+
+  .agent-backend-icon-antigravity {
+    @apply border-[rgba(238,246,241,0.2)] bg-[rgba(238,246,241,0.08)] text-[color:var(--ink-soft)];
+  }
+
+  .backend-status-section {
+    @apply shrink-0 space-y-2;
+  }
+
+  @media (min-width: 1024px) {
+    .backend-status-section {
+      @apply mt-auto;
+    }
+  }
+
   .session-card {
     @apply w-full rounded-md border p-3 text-left transition-colors;
   }
