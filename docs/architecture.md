@@ -289,6 +289,14 @@ current-file and selected-text references, but must keep editor credentials, raw
 selections, private buffers, and plugin session state outside portable
 workbench events unless the user explicitly exports sanitized evidence.
 
+Metadata-only persistence does not mean metadata-only backend prompts are
+invisible to the user. When the user dispatches a run, selected context
+metadata such as paths, summaries, ranges, and diff statistics may be appended
+to the backend/provider prompt so the agent can act on the selected evidence.
+The UI must disclose that provider-facing prompt boundary separately from the
+local persistence boundary, and raw private file contents must remain outside
+the prompt unless a future explicit export/attach flow asks for user approval.
+
 ## Session Continuity Boundary
 
 Session continuity is adapter-neutral. The workbench owns the local `sessionId`
