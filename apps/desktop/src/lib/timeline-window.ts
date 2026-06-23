@@ -13,8 +13,18 @@ export interface TimelineRenderWindowOptions {
   readonly headCount?: number;
 }
 
-const DEFAULT_MAX_VISIBLE_TIMELINE_EVENTS = 180;
-const DEFAULT_HEAD_TIMELINE_EVENTS = 12;
+export const DEFAULT_MAX_VISIBLE_TIMELINE_EVENTS = 180;
+export const DEFAULT_HEAD_TIMELINE_EVENTS = 12;
+export const EXPANDED_TIMELINE_INITIAL_VISIBLE_EVENTS = 720;
+export const EXPANDED_TIMELINE_VISIBLE_EVENT_STEP = 720;
+export const EXPANDED_TIMELINE_HARD_CAP_EVENTS = 2400;
+
+export interface ExpandedTimelineRenderWindow extends TimelineRenderWindow {
+  readonly budget: number;
+  readonly hardCap: number;
+  readonly canIncreaseBudget: boolean;
+  readonly hardCapReached: boolean;
+}
 
 export function createTimelineRenderWindow(
   entries: readonly WorkbenchTimelineEntry[],
@@ -45,4 +55,43 @@ export function createTimelineRenderWindow(
     headEntries: entries.slice(0, headCount),
     tailEntries: entries.slice(totalCount - tailCount)
   };
+}
+
+export function createExpandedTimelineRenderWindow(
+  entries: readonly WorkbenchTimelineEntry[],
+  options: TimelineRenderWindowOptions & {
+    readonly budget?: number;
+    readonly hardCap?: number;
+  } = {}
+): ExpandedTimelineRenderWindow {
+  const hardCap = Math.max(1, options.hardCap ?? EXPANDED_TIMELINE_HARD_CAP_EVENTS);
+  const requestedBudget = Math.max(
+    1,
+    options.budget ?? EXPANDED_TIMELINE_INITIAL_VISIBLE_EVENTS
+  );
+  const budget = Math.min(requestedBudget, hardCap);
+  const window = createTimelineRenderWindow(entries, {
+    headCount: options.headCount,
+    maxVisible: budget
+  });
+  const nextBudget = Math.min(
+    budget + EXPANDED_TIMELINE_VISIBLE_EVENT_STEP,
+    hardCap,
+    entries.length
+  );
+
+  return {
+    ...window,
+    budget,
+    hardCap,
+    canIncreaseBudget: nextBudget > budget,
+    hardCapReached: entries.length > hardCap && budget >= hardCap
+  };
+}
+
+export function getNextExpandedTimelineBudget(currentBudget: number): number {
+  return Math.min(
+    currentBudget + EXPANDED_TIMELINE_VISIBLE_EVENT_STEP,
+    EXPANDED_TIMELINE_HARD_CAP_EVENTS
+  );
 }
