@@ -42,6 +42,9 @@ test("workbench layout and command palette expose docked surfaces", async ({ pag
   await expect(page.getByText("Tools", { exact: true })).toBeVisible();
   await expect(page.locator(".tool-tab-grid")).toBeVisible();
   await expect(page.getByRole("tab", { name: "Review" })).toBeVisible();
+  const reviewPanel = page.getByRole("tabpanel", { name: "Review" });
+  await expect(reviewPanel.getByRole("heading", { name: "Session review" })).toBeVisible();
+  await reviewPanel.getByRole("button", { name: "Queue session review" }).click();
   await expect(page.getByRole("tab", { name: "Browser" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Files" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Side chat" })).toBeVisible();
@@ -50,7 +53,9 @@ test("workbench layout and command palette expose docked surfaces", async ({ pag
   await openCommandPaletteAction(page, "browser", /Open browser inspector/);
   await expect(page.getByRole("tabpanel", { name: "Browser" })).toBeVisible();
   await openCommandPaletteAction(page, "side chat", /Open side chat inspector/);
-  await expect(page.getByRole("tabpanel", { name: "Side chat" })).toBeVisible();
+  const sideChatPanel = page.getByRole("tabpanel", { name: "Side chat" });
+  await expect(sideChatPanel).toBeVisible();
+  await expect(sideChatPanel.getByText("Review the current workbench session")).toBeVisible();
 
   expect(errors).toEqual([]);
 });

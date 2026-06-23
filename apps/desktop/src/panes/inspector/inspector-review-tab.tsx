@@ -32,7 +32,8 @@ import type { InspectorSessionReadModel } from "../../lib/inspector-read-model.j
 import {
   createApprovalFollowUpDraft,
   createDiffFollowUpDraft,
-  createRunAttemptFollowUpDraft
+  createRunAttemptFollowUpDraft,
+  createSessionReviewFollowUpDraft
 } from "../../lib/inspector-follow-up.js";
 import type { ProjectedActiveSession } from "../../lib/workbench-types.js";
 
@@ -77,6 +78,30 @@ export function InspectorReviewTab({
   return (
     <TabsContent value="review" className="border-0 bg-transparent p-0">
       <div className="space-y-3">
+        <section className="review-section">
+          <div className="review-section-heading">
+            <div className="min-w-0">
+              <h3>{i18n.t("workbench.review.title")}</h3>
+              <p className="mt-2 text-xs leading-5 text-[color:var(--ink-soft)]">
+                {i18n.t("workbench.review.detail")}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              className="shrink-0 gap-2"
+              onClick={() =>
+                enqueueSideChatDraft(
+                  createSessionReviewFollowUpDraft({ activeSession, inspectorData }),
+                  activeSession.title
+                )
+              }
+            >
+              <MessageSquarePlus size={14} />
+              {i18n.t("workbench.followUp.queueSessionReview")}
+            </Button>
+          </div>
+        </section>
+
         <section className="review-section">
           <div className="review-section-heading">
             <h3>{i18n.t("workbench.runAttempts.title")}</h3>

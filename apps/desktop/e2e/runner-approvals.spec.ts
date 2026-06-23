@@ -19,7 +19,7 @@ test("runner dispatch and approval keyboard paths remain reviewable", async ({ p
 
   await page.getByRole("tab", { name: "Review" }).click();
   const updatedReviewPanel = page.getByRole("tabpanel", { name: "Review" });
-  await expect(updatedReviewPanel.getByText("Run attempts")).toBeVisible();
+  await expect(updatedReviewPanel.getByRole("heading", { name: "Run attempts" })).toBeVisible();
   await expect(updatedReviewPanel.getByText("Mode: fixture")).toBeVisible();
   await expect(updatedReviewPanel.getByText("succeeded").first()).toBeVisible();
   await updatedReviewPanel.getByRole("button", { name: "Queue run follow-up" }).click();
