@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createEvidenceBundleDraft,
   createEvidenceFollowUpDraft,
   createFileEvidencePreviewModel,
   findFileEvidenceSelection,
@@ -140,5 +141,75 @@ describe("file evidence preview model", () => {
     const contextSelection = findFileEvidenceSelection(model, "context-workspace");
     expect(contextSelection?.type).toBe("context");
     expect(createEvidenceFollowUpDraft(contextSelection!)).toContain("/workspace/geond-agent");
+  });
+
+  it("creates a metadata-only evidence bundle and redacts sensitive previews", () => {
+    const sensitiveValue = ["sk", "local", "123456789012345678901234567890"].join("-");
+    const sensitiveEnvName = ["ANTHROPIC", "API", "KEY"].join("_");
+    const bundle = createEvidenceBundleDraft({
+      activeSession: {
+        id: "session-1",
+        title: "Claude dogfood",
+        workspacePath: "/workspace/geond-agent",
+        selection: {
+          backendAdapterId: "claude-code.external-cli-acp",
+          providerRouteId: "zai.anthropic-compatible",
+          modelProfileId: "sonnet",
+          routingMode: "manual"
+        },
+        contextAttachments: [
+          {
+            id: "context-file",
+            kind: "file",
+            title: "architecture.md",
+            provenance: "desktop",
+            contentState: "metadata-only",
+            path: "/workspace/geond-agent/docs/architecture.md",
+            summary: `Route notes ${sensitiveValue}`
+          }
+        ],
+        commandOutputs: [
+          {
+            id: "cmd-1",
+            status: "failed",
+            exitCode: 1,
+            preview: `${sensitiveEnvName}=${sensitiveValue}`,
+            chunkCount: 1
+          }
+        ],
+        diffs: [
+          {
+            id: "diff-1",
+            summary: "Settings UI hardening",
+            files: [
+              {
+                path: "apps/desktop/src/app.tsx",
+                changeKind: "modified",
+                additions: 4,
+                deletions: 1
+              }
+            ]
+          }
+        ],
+        runAttempts: [
+          {
+            id: "attempt-1",
+            mode: "claude-live",
+            status: "failed",
+            modelProfileId: "sonnet",
+            trigger: "manual",
+            failureKind: "provider_auth",
+            errorMessage: `provider rejected ${sensitiveValue}`
+          }
+        ]
+      } as unknown as ProjectedActiveSession
+    });
+
+    expect(bundle).toContain("Workbench evidence bundle (metadata only).");
+    expect(bundle).toContain("Raw private file contents");
+    expect(bundle).toContain("apps/desktop/src/app.tsx");
+    expect(bundle).toContain("Command outputs (1)");
+    expect(bundle).not.toContain(sensitiveValue);
+    expect(bundle).toContain("[redacted]");
   });
 });

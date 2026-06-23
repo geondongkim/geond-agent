@@ -355,6 +355,7 @@ export type UiMessageKey =
   | "workbench.files.previewTitle"
   | "workbench.files.previewDetail"
   | "workbench.files.queueFollowUp"
+  | "workbench.files.queueEvidenceBundle"
   | "workbench.files.rawContentBoundary"
   | "workbench.files.providerPromptBoundary"
   | "workbench.files.diffSource"
@@ -389,6 +390,33 @@ export type UiMessageKey =
   | "workbench.settings.routingSection"
   | "workbench.settings.inputSection"
   | "workbench.settings.safetySection"
+  | "workbench.settings.firstRunSection"
+  | "workbench.firstRun.summaryReady"
+  | "workbench.firstRun.summaryAttention"
+  | "workbench.firstRun.summaryBlocked"
+  | "workbench.firstRun.levelReady"
+  | "workbench.firstRun.levelAttention"
+  | "workbench.firstRun.levelBlocked"
+  | "workbench.firstRun.missing"
+  | "workbench.firstRun.runnerMode"
+  | "workbench.firstRun.runnerModeLive"
+  | "workbench.firstRun.runnerModeFixture"
+  | "workbench.firstRun.bridgeCommand"
+  | "workbench.firstRun.bridgeCommandReady"
+  | "workbench.firstRun.bridgeCommandMissing"
+  | "workbench.firstRun.providerRoute"
+  | "workbench.firstRun.providerRouteMissing"
+  | "workbench.firstRun.modelProfile"
+  | "workbench.firstRun.modelProfileMissing"
+  | "workbench.firstRun.routingModeManual"
+  | "workbench.firstRun.routingModeAuto"
+  | "workbench.firstRun.permissionMode"
+  | "workbench.firstRun.permissionModePlan"
+  | "workbench.firstRun.permissionModeAttention"
+  | "workbench.firstRun.persistence"
+  | "workbench.firstRun.persistenceReady"
+  | "workbench.firstRun.persistenceMissing"
+  | "workbench.firstRun.persistenceMissingDetail"
   | "workbench.empty.diff"
   | "workbench.empty.terminal"
   | "workbench.empty.approvals"
@@ -771,6 +799,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.previewTitle": "Evidence detail",
     "workbench.files.previewDetail": "Selected evidence can be queued as a side-chat follow-up without copying raw file content into the transcript.",
     "workbench.files.queueFollowUp": "Queue evidence follow-up",
+    "workbench.files.queueEvidenceBundle": "Queue evidence bundle",
     "workbench.files.rawContentBoundary": "Metadata and summaries only; raw private file content is not persisted here.",
     "workbench.files.providerPromptBoundary": "When you dispatch a run, selected evidence metadata such as paths, summaries, and diff stats may be included in the provider prompt. Raw private file contents are not attached.",
     "workbench.files.diffSource": "Diff source",
@@ -805,6 +834,33 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.settings.routingSection": "Backend and model route",
     "workbench.settings.inputSection": "Composer and review",
     "workbench.settings.safetySection": "Safety and persistence",
+    "workbench.settings.firstRunSection": "First-run checklist",
+    "workbench.firstRun.summaryReady": "Claude live route is ready for a first dogfood run.",
+    "workbench.firstRun.summaryAttention": "Claude live route is usable, but one or more items need attention before a serious run.",
+    "workbench.firstRun.summaryBlocked": "Claude live route is blocked until the missing items are fixed.",
+    "workbench.firstRun.levelReady": "Ready",
+    "workbench.firstRun.levelAttention": "Attention",
+    "workbench.firstRun.levelBlocked": "Blocked",
+    "workbench.firstRun.missing": "Missing",
+    "workbench.firstRun.runnerMode": "Runner mode",
+    "workbench.firstRun.runnerModeLive": "Live runner mode will call the configured external Claude Code boundary.",
+    "workbench.firstRun.runnerModeFixture": "Fixture mode is safe for UI testing but will not validate the real Claude route.",
+    "workbench.firstRun.bridgeCommand": "Bridge command",
+    "workbench.firstRun.bridgeCommandReady": "Command preview is available without exposing secrets.",
+    "workbench.firstRun.bridgeCommandMissing": "Add a Claude Code command boundary before the first live run.",
+    "workbench.firstRun.providerRoute": "Provider route",
+    "workbench.firstRun.providerRouteMissing": "The default provider route is not in the local catalog.",
+    "workbench.firstRun.modelProfile": "Model profile",
+    "workbench.firstRun.modelProfileMissing": "The default model alias is not in the local catalog.",
+    "workbench.firstRun.routingModeManual": "Manual routing keeps the provider/model snapshot fixed for this session.",
+    "workbench.firstRun.routingModeAuto": "Auto routing is planned, but the first dogfood path should still be reviewed carefully.",
+    "workbench.firstRun.permissionMode": "Permission mode",
+    "workbench.firstRun.permissionModePlan": "Plan mode is the recommended first-run default.",
+    "workbench.firstRun.permissionModeAttention": "Use write-capable modes only after confirming the workspace and approval path.",
+    "workbench.firstRun.persistence": "Persistence boundary",
+    "workbench.firstRun.persistenceReady": "Local-only",
+    "workbench.firstRun.persistenceMissing": "Unverified",
+    "workbench.firstRun.persistenceMissingDetail": "Add persistence notes before treating this route as dogfood-ready.",
     "workbench.empty.diff": "No diff events in the active session.",
     "workbench.empty.terminal": "No command output projected yet.",
     "workbench.empty.approvals": "No approval queue for the active session.",
@@ -1184,6 +1240,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.previewTitle": "증거 세부 정보",
     "workbench.files.previewDetail": "선택한 증거를 원본 파일 내용 없이 사이드 채팅 후속 초안으로 보낼 수 있습니다.",
     "workbench.files.queueFollowUp": "증거 후속 초안 추가",
+    "workbench.files.queueEvidenceBundle": "증거 묶음 초안 추가",
     "workbench.files.rawContentBoundary": "메타데이터와 요약만 사용하며, 원본 private 파일 내용은 여기에 저장하지 않습니다.",
     "workbench.files.providerPromptBoundary": "실행을 보내면 선택된 증거의 경로, 요약, diff 통계 같은 메타데이터가 provider 프롬프트에 포함될 수 있습니다. 원본 private 파일 내용은 첨부하지 않습니다.",
     "workbench.files.diffSource": "Diff 출처",
@@ -1218,6 +1275,33 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.settings.routingSection": "백엔드와 모델 라우트",
     "workbench.settings.inputSection": "입력과 검토",
     "workbench.settings.safetySection": "안전과 저장",
+    "workbench.settings.firstRunSection": "첫 실행 점검",
+    "workbench.firstRun.summaryReady": "Claude live 경로를 첫 dogfood 실행에 사용할 준비가 되었습니다.",
+    "workbench.firstRun.summaryAttention": "Claude live 경로는 사용할 수 있지만, 중요한 실행 전 확인할 항목이 있습니다.",
+    "workbench.firstRun.summaryBlocked": "누락된 항목을 해결해야 Claude live 경로를 실행할 수 있습니다.",
+    "workbench.firstRun.levelReady": "준비됨",
+    "workbench.firstRun.levelAttention": "확인 필요",
+    "workbench.firstRun.levelBlocked": "막힘",
+    "workbench.firstRun.missing": "누락",
+    "workbench.firstRun.runnerMode": "Runner 모드",
+    "workbench.firstRun.runnerModeLive": "Live runner 모드는 설정된 외부 Claude Code 경계를 호출합니다.",
+    "workbench.firstRun.runnerModeFixture": "Fixture 모드는 UI 검증에는 안전하지만 실제 Claude 경로를 검증하지 않습니다.",
+    "workbench.firstRun.bridgeCommand": "Bridge 명령",
+    "workbench.firstRun.bridgeCommandReady": "secret을 노출하지 않는 명령 미리보기를 사용할 수 있습니다.",
+    "workbench.firstRun.bridgeCommandMissing": "첫 live 실행 전에 Claude Code 명령 경계를 추가해야 합니다.",
+    "workbench.firstRun.providerRoute": "Provider 라우트",
+    "workbench.firstRun.providerRouteMissing": "기본 provider 라우트가 로컬 카탈로그에 없습니다.",
+    "workbench.firstRun.modelProfile": "모델 프로필",
+    "workbench.firstRun.modelProfileMissing": "기본 모델 alias가 로컬 카탈로그에 없습니다.",
+    "workbench.firstRun.routingModeManual": "Manual routing은 이 세션의 provider/model 스냅샷을 고정합니다.",
+    "workbench.firstRun.routingModeAuto": "Auto routing은 예정되어 있지만, 첫 dogfood 경로에서는 여전히 신중히 확인해야 합니다.",
+    "workbench.firstRun.permissionMode": "권한 모드",
+    "workbench.firstRun.permissionModePlan": "Plan 모드는 첫 실행 기본값으로 권장됩니다.",
+    "workbench.firstRun.permissionModeAttention": "쓰기 가능한 모드는 워크스페이스와 승인 흐름을 확인한 뒤 사용하세요.",
+    "workbench.firstRun.persistence": "저장 경계",
+    "workbench.firstRun.persistenceReady": "로컬 전용",
+    "workbench.firstRun.persistenceMissing": "미확인",
+    "workbench.firstRun.persistenceMissingDetail": "이 경로를 dogfood-ready로 보기 전에 저장 경계 메모를 추가하세요.",
     "workbench.empty.diff": "활성 세션에 변경 이벤트가 없습니다.",
     "workbench.empty.terminal": "아직 표시할 명령 출력이 없습니다.",
     "workbench.empty.approvals": "활성 세션의 승인 대기열이 없습니다.",

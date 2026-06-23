@@ -29,6 +29,18 @@ test("file evidence, provider prompt disclosure, browser check, and side chat dr
   await expect(filesPanel.getByRole("heading", { name: "Changed files" })).toBeVisible();
   await expect(filesPanel.getByText("Privacy boundary").first()).toBeVisible();
   await expect(filesPanel.getByText("When you dispatch a run")).toBeVisible();
+  await filesPanel.getByRole("button", { name: "Queue evidence bundle" }).click();
+  await expectSideChatStorage(page, "Workbench evidence bundle (metadata only).");
+  await page.getByRole("tab", { name: "Side chat" }).click();
+  const earlySideChatPanel = page.getByRole("tabpanel", { name: "Side chat" });
+  await expect(earlySideChatPanel.getByText("Workbench evidence bundle")).toBeVisible();
+  await earlySideChatPanel
+    .locator(".side-chat-draft-card")
+    .filter({ hasText: "Workbench evidence bundle" })
+    .getByRole("button", { name: "Remove" })
+    .click();
+  await expectSideChatStorage(page, "[]", "equals");
+  await page.getByRole("tab", { name: "Files" }).click();
   await expect(
     filesPanel.getByRole("button", { name: /apps\/desktop\/src\/app\.tsx/ })
   ).toBeVisible();
