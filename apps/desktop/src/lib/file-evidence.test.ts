@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   createEvidenceBundleDraft,
+  createEvidenceBundleFileName,
   createEvidenceFollowUpDraft,
   createFileEvidencePreviewModel,
   findFileEvidenceSelection,
@@ -211,5 +212,17 @@ describe("file evidence preview model", () => {
     expect(bundle).toContain("Command outputs (1)");
     expect(bundle).not.toContain(sensitiveValue);
     expect(bundle).toContain("[redacted]");
+  });
+
+  it("creates stable markdown evidence bundle filenames", () => {
+    expect(
+      createEvidenceBundleFileName({
+        activeSession: {
+          id: "session-1",
+          title: "Claude Dogfood: retry/resume!"
+        } as unknown as ProjectedActiveSession,
+        now: new Date("2026-06-23T00:00:00.000Z")
+      })
+    ).toBe("2026-06-23-claude-dogfood-retry-resume-evidence.md");
   });
 });

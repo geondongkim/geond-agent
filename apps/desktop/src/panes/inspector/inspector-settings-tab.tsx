@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { TabsContent } from "../../components/ui/tabs.js";
 import { SettingsRow } from "../../components/workbench/settings-row.js";
 import { SettingsSelect } from "../../components/workbench/settings-select.js";
+import type { ClaudeCodeCliProbe } from "../../claude-runner.js";
 import type { DesktopRunnerMode } from "../../demo-workbench.js";
 import {
   createClaudeFirstRunChecklist,
@@ -21,6 +22,7 @@ export function InspectorSettingsTab({
   agentLanguageOptions,
   backendOptions,
   bridgeCommand,
+  claudeCliProbe,
   composerEnterBehaviorOptions,
   followUpPolicyOptions,
   i18n,
@@ -43,6 +45,7 @@ export function InspectorSettingsTab({
   readonly agentLanguageOptions: readonly { readonly value: string; readonly label: string }[];
   readonly backendOptions: readonly WorkbenchCatalogOption[];
   readonly bridgeCommand: string;
+  readonly claudeCliProbe?: ClaudeCodeCliProbe;
   readonly composerEnterBehaviorOptions: readonly { readonly value: string; readonly label: string }[];
   readonly followUpPolicyOptions: readonly { readonly value: string; readonly label: string }[];
   readonly i18n: UiI18n;
@@ -64,6 +67,7 @@ export function InspectorSettingsTab({
 }) {
   const firstRunChecklist = createClaudeFirstRunChecklist({
     bridgeCommand,
+    claudeCliProbe,
     i18n,
     modelAliasOptions,
     persistenceNotes,

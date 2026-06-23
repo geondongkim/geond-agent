@@ -64,6 +64,21 @@ pub struct ClaudeCodeCommandResponse {
     stderr_truncated: bool,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClaudeCodeProbeRequest {
+    executable: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClaudeCodeProbeResponse {
+    available: bool,
+    executable: String,
+    version: Option<String>,
+    error: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClaudeCodeStreamPayload {
@@ -251,6 +266,7 @@ pub fn run() {
             list_workbench_run_attempts,
             delete_workbench_session_events,
             list_workspaces,
+            probe_claude_code_executable,
             run_claude_code_stream_json,
             cancel_claude_code_stream
         ])
@@ -500,6 +516,42 @@ fn list_workspaces() -> Result<Vec<WorkspaceDescriptor>, String> {
 }
 
 #[tauri::command]
+fn probe_claude_code_executable(
+    request: Option<ClaudeCodeProbeRequest>,
+) -> Result<ClaudeCodeProbeResponse, String> {
+    let executable = normalize_claude_executable(
+        request
+            .and_then(|request| request.executable)
+            .as_deref()
+            .unwrap_or("claude"),
+    )?;
+    let output = Command::new(&executable).arg("--version").output();
+
+    match output {
+        Ok(output) => {
+            let version = first_non_empty_line(&String::from_utf8_lossy(&output.stdout))
+                .or_else(|| first_non_empty_line(&String::from_utf8_lossy(&output.stderr)));
+            Ok(ClaudeCodeProbeResponse {
+                available: output.status.success(),
+                executable,
+                version,
+                error: if output.status.success() {
+                    None
+                } else {
+                    Some("Claude Code CLI returned a non-zero status for --version.".to_string())
+                },
+            })
+        }
+        Err(error) => Ok(ClaudeCodeProbeResponse {
+            available: false,
+            executable,
+            version: None,
+            error: Some(error.to_string()),
+        }),
+    }
+}
+
+#[tauri::command]
 fn run_claude_code_stream_json(
     app: AppHandle,
     request: ClaudeCodeCommandRequest,
@@ -540,9 +592,7 @@ fn cancel_claude_code_stream(channel_id: String) -> Result<bool, String> {
 }
 
 fn build_claude_command(request: &ClaudeCodeCommandRequest) -> Result<Command, String> {
-    if request.executable != "claude" {
-        return Err("Only the user-installed `claude` executable is allowed.".to_string());
-    }
+    normalize_claude_executable(&request.executable)?;
     ensure_stream_json_args(&request.args)?;
 
     let mut command = Command::new(&request.executable);
@@ -557,6 +607,22 @@ fn build_claude_command(request: &ClaudeCodeCommandRequest) -> Result<Command, S
     }
 
     Ok(command)
+}
+
+fn normalize_claude_executable(value: &str) -> Result<String, String> {
+    if value == "claude" {
+        Ok(value.to_string())
+    } else {
+        Err("Only the user-installed `claude` executable is allowed.".to_string())
+    }
+}
+
+fn first_non_empty_line(value: &str) -> Option<String> {
+    value
+        .lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty())
+        .map(ToString::to_string)
 }
 
 fn run_streaming_claude_command(
@@ -2725,6 +2791,16 @@ mod tests {
     }
 
     #[test]
+    fn validates_claude_probe_executable_boundary() {
+        assert_eq!(
+            normalize_claude_executable("claude").expect("claude executable"),
+            "claude"
+        );
+        assert!(normalize_claude_executable("/usr/bin/false").is_err());
+        assert!(normalize_claude_executable("bash").is_err());
+    }
+
+    #[test]
     fn validates_claude_resume_arg_shape() {
         let args = vec![
             "--bare".to_string(),
@@ -3244,6 +3320,94 @@ mod tests {
         assert_eq!(event_count, 1);
         assert_eq!(command_outputs.len(), 1);
         assert_eq!(command_outputs[0].chunk_count, 1);
+    }
+
+    #[test]
+    fn appends_large_event_batch_and_materializes_sqlite_views() {
+        let mut connection = create_index_test_connection();
+        let mut events = Vec::new();
+        events.push(serde_json::json!({
+            "type": "session.lifecycle",
+            "sessionId": "session-large-a",
+            "lifecycle": "started",
+            "title": "Large event stream A",
+            "workspacePath": "/workspace/geond-agent",
+            "at": "2026-06-23T00:00:00.000Z"
+        }));
+        events.push(serde_json::json!({
+            "type": "session.lifecycle",
+            "sessionId": "session-large-b",
+            "lifecycle": "started",
+            "title": "Large event stream B",
+            "workspacePath": "/workspace/side-route",
+            "at": "2026-06-23T00:00:00.000Z"
+        }));
+
+        for index in 0..1_200 {
+            let session_id = if index % 3 == 0 {
+                "session-large-b"
+            } else {
+                "session-large-a"
+            };
+            events.push(serde_json::json!({
+                "type": "command.output",
+                "sessionId": session_id,
+                "commandId": format!("cmd-{}", index),
+                "stream": if index % 5 == 0 { "stderr" } else { "stdout" },
+                "text": format!("chunk {}", index),
+                "status": if index % 97 == 0 { "failed" } else { "running" },
+                "exitCode": if index % 97 == 0 { 1 } else { 0 },
+                "at": format!("2026-06-23T00:{:02}:00.000Z", index % 60)
+            }));
+        }
+
+        for index in 0..120 {
+            events.push(serde_json::json!({
+                "type": "context.attached",
+                "sessionId": "session-large-a",
+                "attachment": {
+                    "id": format!("context-{}", index),
+                    "kind": if index % 2 == 0 { "workspace" } else { "file" },
+                    "title": format!("Context {}", index),
+                    "provenance": "desktop",
+                    "contentState": "metadata-only",
+                    "path": format!("/workspace/geond-agent/file-{}.ts", index)
+                },
+                "at": format!("2026-06-23T01:{:02}:00.000Z", index % 60)
+            }));
+        }
+
+        let inserted = append_events_to_store(&mut connection, events.clone())
+            .expect("append large event batch");
+        let duplicate_inserted = append_events_to_store(
+            &mut connection,
+            events.iter().take(10).cloned().collect(),
+        )
+        .expect("append duplicate sample");
+        let all_event_count: i64 = connection
+            .query_row("select count(*) from workbench_events", [], |row| row.get(0))
+            .expect("count events");
+        let session_a_events: i64 = connection
+            .query_row(
+                "select count(*) from workbench_events where session_id = ?1",
+                params!["session-large-a"],
+                |row| row.get(0),
+            )
+            .expect("count session-large-a");
+        let command_outputs_a = list_command_output_records(&connection, Some("session-large-a"))
+            .expect("list command outputs a");
+        let command_outputs_b = list_command_output_records(&connection, Some("session-large-b"))
+            .expect("list command outputs b");
+        let contexts = list_context_attachment_records(&connection, Some("session-large-a"))
+            .expect("list context attachments");
+
+        assert_eq!(inserted, events.len());
+        assert_eq!(duplicate_inserted, 0);
+        assert_eq!(all_event_count, events.len() as i64);
+        assert_eq!(session_a_events, 921);
+        assert_eq!(command_outputs_a.len(), 800);
+        assert_eq!(command_outputs_b.len(), 400);
+        assert_eq!(contexts.len(), 120);
     }
 
     #[test]

@@ -5,6 +5,8 @@ import type {
   WorkbenchSessionDefaults
 } from "@geond-agent/ui-workbench";
 
+import type { ClaudeCodeCliProbe } from "../claude-runner.js";
+
 export type FirstRunChecklistLevel = "ready" | "attention" | "blocked";
 
 export interface FirstRunChecklistItem {
@@ -23,6 +25,7 @@ export interface FirstRunChecklist {
 
 export function createClaudeFirstRunChecklist({
   bridgeCommand,
+  claudeCliProbe,
   i18n,
   modelAliasOptions,
   persistenceNotes,
@@ -32,6 +35,7 @@ export function createClaudeFirstRunChecklist({
   sessionDefaults
 }: {
   readonly bridgeCommand: string;
+  readonly claudeCliProbe?: ClaudeCodeCliProbe;
   readonly i18n: UiI18n;
   readonly modelAliasOptions: readonly WorkbenchCatalogOption[];
   readonly persistenceNotes: readonly string[];
@@ -68,6 +72,13 @@ export function createClaudeFirstRunChecklist({
         bridgeCommand.trim().length > 0
           ? i18n.t("workbench.firstRun.bridgeCommandReady")
           : i18n.t("workbench.firstRun.bridgeCommandMissing")
+    },
+    {
+      id: "cli-probe",
+      label: i18n.t("workbench.firstRun.cliProbe"),
+      level: createCliProbeLevel(claudeCliProbe, runnerMode),
+      value: formatCliProbeValue(i18n, claudeCliProbe),
+      detail: claudeCliProbe?.detail ?? i18n.t("workbench.firstRun.cliProbeUnknown")
     },
     {
       id: "provider-route",
@@ -142,6 +153,34 @@ export function createClaudeFirstRunChecklist({
     summary: summaryForLevel(i18n, level),
     items
   };
+}
+
+function createCliProbeLevel(
+  probe: ClaudeCodeCliProbe | undefined,
+  runnerMode: "claude-live" | "fixture"
+): FirstRunChecklistLevel {
+  if (probe?.state === "available") {
+    return "ready";
+  }
+  if (probe?.state === "missing" && runnerMode === "claude-live") {
+    return "blocked";
+  }
+  return "attention";
+}
+
+function formatCliProbeValue(
+  i18n: UiI18n,
+  probe: ClaudeCodeCliProbe | undefined
+): string {
+  switch (probe?.state) {
+    case "available":
+      return probe.version ?? i18n.t("workbench.firstRun.cliProbeAvailable");
+    case "missing":
+      return i18n.t("workbench.firstRun.cliProbeMissing");
+    case "unknown":
+    case undefined:
+      return i18n.t("workbench.firstRun.cliProbeUnknown");
+  }
 }
 
 function normalizeReadinessLevel(

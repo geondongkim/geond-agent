@@ -7,6 +7,7 @@ import {
   Paperclip,
   Pin,
   PinOff,
+  RefreshCcw,
   RotateCcw,
   Send,
   ShieldCheck,
@@ -51,6 +52,7 @@ export function TimelinePane({
   i18n,
   pendingApprovals,
   resumeActiveSession,
+  retryActiveSession,
   runnerBusy,
   runnerMode,
   runnerStatus,
@@ -72,6 +74,7 @@ export function TimelinePane({
   readonly i18n: UiI18n;
   readonly pendingApprovals: readonly ProjectedActiveSession["approvals"][number][];
   readonly resumeActiveSession: () => void;
+  readonly retryActiveSession: () => void;
   readonly runnerBusy: boolean;
   readonly runnerMode: DesktopRunnerMode;
   readonly runnerStatus: string;
@@ -169,6 +172,10 @@ export function TimelinePane({
             <Button variant="outline" className="gap-2" onClick={() => setInspectorTab("settings")}>
               <Settings size={14} />
               {i18n.t("workbench.recovery.openSettings")}
+            </Button>
+            <Button variant="outline" className="gap-2" onClick={retryActiveSession}>
+              <RefreshCcw size={14} />
+              {i18n.t("workbench.actions.retryRun")}
             </Button>
             {recoveryState.canResume ? (
               <Button className="gap-2" onClick={resumeActiveSession}>
