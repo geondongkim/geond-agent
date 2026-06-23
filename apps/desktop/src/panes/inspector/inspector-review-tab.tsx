@@ -22,6 +22,8 @@ import {
   formatAgentLanguageLabel,
   formatApprovalDecision,
   formatExternalSessionId,
+  formatLiveRunGuidanceDetail,
+  formatLiveRunGuidanceLabel,
   formatMessage,
   formatIssueSuggestedActionLabel,
   formatRetryableLabel,
@@ -34,7 +36,8 @@ import {
   formatStreamQualityLabel,
   formatUsageCost,
   formatUsageNumber,
-  formatUsageSourceLabel
+  formatUsageSourceLabel,
+  liveRunGuidanceTone
 } from "../../lib/workbench-format.js";
 import type { InspectorSessionReadModel } from "../../lib/inspector-read-model.js";
 import {
@@ -210,6 +213,40 @@ export function InspectorReviewTab({
             </span>
           </div>
           <div className="inspector-card">
+            <div className="mb-3 rounded-md border border-[color:var(--border)] bg-[color:var(--panel-muted)] p-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">
+                    {formatLiveRunGuidanceLabel(i18n, activeSession.liveRunGuidance.kind)}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[color:var(--ink-soft)]">
+                    {formatLiveRunGuidanceDetail(i18n, activeSession.liveRunGuidance.kind)}
+                  </p>
+                </div>
+                <span
+                  className={cn(
+                    "status-pill",
+                    liveRunGuidanceTone(activeSession.liveRunGuidance.severity)
+                  )}
+                >
+                  {formatLiveRunGuidanceLabel(i18n, activeSession.liveRunGuidance.kind)}
+                </span>
+              </div>
+              {activeSession.liveRunGuidance.latestIssueKind ||
+              activeSession.liveRunGuidance.suggestedAction ? (
+                <p className="mt-2 text-xs leading-5 text-[color:var(--ink-muted)]">
+                  {activeSession.liveRunGuidance.latestIssueKind
+                    ? formatStatusLabel(i18n, activeSession.liveRunGuidance.latestIssueKind)
+                    : i18n.t("workbench.status.unknown")}
+                  {activeSession.liveRunGuidance.suggestedAction
+                    ? ` / ${formatIssueSuggestedActionLabel(
+                        i18n,
+                        activeSession.liveRunGuidance.suggestedAction
+                      )}`
+                    : ""}
+                </p>
+              ) : null}
+            </div>
             <div className="usage-grid">
               <UsageMetric
                 label={i18n.t("workbench.continuity.externalSession")}

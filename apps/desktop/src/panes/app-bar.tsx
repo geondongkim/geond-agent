@@ -10,7 +10,12 @@ import {
 import { Button } from "../components/ui/button.js";
 import { cn } from "../lib/cn.js";
 import type { ProjectedActiveSession } from "../lib/workbench-types.js";
-import { formatStatusLabel, lifecycleTone } from "../lib/workbench-format.js";
+import {
+  formatLiveRunGuidanceLabel,
+  formatStatusLabel,
+  lifecycleTone,
+  liveRunGuidanceTone
+} from "../lib/workbench-format.js";
 import type { DesktopRunnerMode } from "../demo-workbench.js";
 
 export function AppBar({
@@ -40,7 +45,14 @@ export function AppBar({
   readonly setLeftPanelOpen: (open: boolean) => void;
   readonly setRightPanelOpen: (open: boolean) => void;
 }) {
-  const latestIssue = activeSession?.runnerIssues[0];
+  const guidance = activeSession?.liveRunGuidance;
+  const latestIssue = activeSession?.runnerIssues.find(
+    (issue) => issue.id === guidance?.latestIssueId
+  );
+  const attentionGuidance =
+    guidance && !["idle", "running", "healthy"].includes(guidance.kind)
+      ? guidance
+      : undefined;
 
   return (
     <header className="app-bar">
@@ -102,6 +114,22 @@ export function AppBar({
               }}
             >
               {i18n.t("workbench.issue.latest")}: {latestIssue.title}
+            </button>
+          ) : attentionGuidance ? (
+            <button
+              type="button"
+              className={cn(
+                "status-pill",
+                liveRunGuidanceTone(attentionGuidance.severity)
+              )}
+              title={formatLiveRunGuidanceLabel(i18n, attentionGuidance.kind)}
+              onClick={() => {
+                setInspectorTab("review");
+                setRightPanelOpen(true);
+              }}
+            >
+              {i18n.t("workbench.guidance.title")}:{" "}
+              {formatLiveRunGuidanceLabel(i18n, attentionGuidance.kind)}
             </button>
           ) : null}
         </div>

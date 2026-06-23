@@ -156,6 +156,13 @@ describe("inspector follow-up drafts", () => {
           cleanStreamAttemptCount: 0,
           warningStreamAttemptCount: 1
         },
+        liveRunGuidance: {
+          kind: "resume_available",
+          severity: "warning",
+          canResume: true,
+          latestAttemptId: "attempt-1",
+          streamQuality: "warning"
+        },
         approvals: [
           {
             id: "approval-1",
@@ -173,6 +180,7 @@ describe("inspector follow-up drafts", () => {
     expect(draft).toContain("Review the current workbench session");
     expect(draft).toContain("Route readiness: blocked");
     expect(draft).toContain("Live continuity:");
+    expect(draft).toContain("Live guidance: resume_available");
     expect(draft).toContain("Approval subjects:");
     expect(draft).toContain("Run attempts:");
     expect(draft).toContain("Terminal evidence:");

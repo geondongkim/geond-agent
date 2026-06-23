@@ -106,6 +106,7 @@ export function createSessionReviewFollowUpDraft({
     activeSession.liveRunContinuity.totalAttemptCount
       ? `Live continuity: latest=${activeSession.liveRunContinuity.latestAttemptId ?? "unknown"} quality=${activeSession.liveRunContinuity.latestStreamQuality} external=${activeSession.liveRunContinuity.latestExternalSessionId ?? "none"} resumeAttempts=${activeSession.liveRunContinuity.resumeAttemptCount} approvalFollowUps=${activeSession.liveRunContinuity.approvalFollowUpAttemptCount}.`
       : undefined,
+    `Live guidance: ${activeSession.liveRunGuidance.kind} severity=${activeSession.liveRunGuidance.severity} canResume=${activeSession.liveRunGuidance.canResume}.`,
     nonReadyItems.length
       ? `Readiness items:\n${nonReadyItems.map(formatReadinessItem).join("\n")}`
       : undefined,

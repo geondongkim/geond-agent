@@ -114,6 +114,31 @@ export interface ProjectedLiveRunContinuity {
   readonly latestFinishedAt?: string;
 }
 
+export type ProjectedLiveRunGuidanceKind =
+  | "idle"
+  | "running"
+  | "healthy"
+  | "stream_warning"
+  | "resume_available"
+  | "retry_later"
+  | "switch_route"
+  | "lower_model"
+  | "check_key"
+  | "inspect_terminal";
+export type ProjectedLiveRunGuidanceSeverity = "info" | "success" | "warning" | "error";
+
+export interface ProjectedLiveRunGuidance {
+  readonly kind: ProjectedLiveRunGuidanceKind;
+  readonly severity: ProjectedLiveRunGuidanceSeverity;
+  readonly canResume: boolean;
+  readonly latestAttemptId?: string;
+  readonly latestIssueId?: string;
+  readonly latestIssueKind?: WorkbenchRunnerIssueKind;
+  readonly suggestedAction?: WorkbenchRunnerIssueSuggestedAction;
+  readonly routeHealth?: WorkbenchProviderRouteHealthStatus;
+  readonly streamQuality: WorkbenchStreamQuality;
+}
+
 export interface ProjectedWorkbenchSession {
   readonly id: string;
   readonly title: string;
@@ -132,6 +157,7 @@ export interface ProjectedWorkbenchSession {
   readonly runnerIssues: readonly WorkbenchSessionSnapshot["runnerIssues"][string][];
   readonly providerRouteHealth: readonly ProjectedProviderRouteHealth[];
   readonly liveRunContinuity: ProjectedLiveRunContinuity;
+  readonly liveRunGuidance: ProjectedLiveRunGuidance;
   readonly approvals: readonly WorkbenchSessionSnapshot["approvals"][string][];
   readonly notices: WorkbenchSessionSnapshot["notices"];
   readonly timeline: readonly WorkbenchTimelineEntry[];
@@ -278,6 +304,7 @@ function projectActiveSession(
 ): ProjectedWorkbenchSession {
   const runnerIssues = Object.values(session.runnerIssues).sort(compareRunnerIssuesByRecency);
   const runAttempts = Object.values(session.runAttempts).sort(compareRunAttemptsByRecency);
+  const liveRunContinuity = projectLiveRunContinuity(runAttempts);
 
   return {
     id: session.id,
@@ -296,7 +323,8 @@ function projectActiveSession(
     runAttempts,
     runnerIssues,
     providerRouteHealth: projectProviderRouteHealth(runnerIssues),
-    liveRunContinuity: projectLiveRunContinuity(runAttempts),
+    liveRunContinuity,
+    liveRunGuidance: projectLiveRunGuidance(runAttempts, runnerIssues, liveRunContinuity),
     approvals: Object.values(session.approvals),
     notices: session.notices,
     timeline: events.map(projectTimelineEntry).filter((entry): entry is WorkbenchTimelineEntry => entry !== undefined)
@@ -360,6 +388,99 @@ function projectLiveRunContinuity(
     latestStartedAt: latestAttempt?.startedAt,
     latestFinishedAt: latestAttempt?.finishedAt
   };
+}
+
+function projectLiveRunGuidance(
+  runAttempts: readonly WorkbenchRunAttemptSnapshot[],
+  runnerIssues: readonly WorkbenchSessionSnapshot["runnerIssues"][string][],
+  continuity: ProjectedLiveRunContinuity
+): ProjectedLiveRunGuidance {
+  const latestAttempt = runAttempts[0];
+  if (!latestAttempt) {
+    return {
+      kind: "idle",
+      severity: "info",
+      canResume: false,
+      streamQuality: "pending"
+    };
+  }
+
+  const streamQuality = deriveRunAttemptStreamQuality(latestAttempt);
+  const canResume = Boolean(
+    latestAttempt.externalSessionId ??
+      latestAttempt.resumedFromExternalSessionId ??
+      continuity.latestExternalSessionId
+  );
+  const attemptIssue = runnerIssues.find((issue) => issue.attemptId === latestAttempt.id);
+  const issue = attemptIssue;
+
+  if (latestAttempt.status === "running") {
+    return {
+      kind: "running",
+      severity: "info",
+      canResume: false,
+      latestAttemptId: latestAttempt.id,
+      streamQuality
+    };
+  }
+
+  if (latestAttempt.status === "succeeded") {
+    return {
+      kind: streamQuality === "warning" ? "stream_warning" : "healthy",
+      severity: streamQuality === "warning" ? "warning" : "success",
+      canResume: false,
+      latestAttemptId: latestAttempt.id,
+      streamQuality
+    };
+  }
+
+  if (issue) {
+    return {
+      kind: guidanceKindForIssue(issue, canResume),
+      severity: issue.severity === "error" ? "error" : "warning",
+      canResume,
+      latestAttemptId: latestAttempt.id,
+      latestIssueId: issue.id,
+      latestIssueKind: issue.kind,
+      suggestedAction: issue.suggestedAction,
+      routeHealth: issue.routeHealth,
+      streamQuality
+    };
+  }
+
+  return {
+    kind: canResume ? "resume_available" : "inspect_terminal",
+    severity: latestAttempt.status === "cancelled" ? "warning" : "error",
+    canResume,
+    latestAttemptId: latestAttempt.id,
+    streamQuality
+  };
+}
+
+function guidanceKindForIssue(
+  issue: WorkbenchSessionSnapshot["runnerIssues"][string],
+  canResume: boolean
+): ProjectedLiveRunGuidanceKind {
+  if (issue.kind === "provider_auth" || issue.kind === "readiness_blocked") {
+    return "check_key";
+  }
+  if (issue.suggestedAction === "retry_later") {
+    return "retry_later";
+  }
+  if (issue.suggestedAction === "switch_route") {
+    return "switch_route";
+  }
+  if (issue.suggestedAction === "lower_model") {
+    return "lower_model";
+  }
+  if (issue.suggestedAction === "check_key") {
+    return "check_key";
+  }
+  if (issue.suggestedAction === "inspect_terminal") {
+    return canResume ? "resume_available" : "inspect_terminal";
+  }
+
+  return canResume ? "resume_available" : "inspect_terminal";
 }
 
 function projectProviderRouteHealth(
