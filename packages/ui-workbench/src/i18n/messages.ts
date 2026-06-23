@@ -236,6 +236,7 @@ export type UiMessageKey =
   | "workbench.files.previewDetail"
   | "workbench.files.queueFollowUp"
   | "workbench.files.rawContentBoundary"
+  | "workbench.files.providerPromptBoundary"
   | "workbench.files.diffSource"
   | "workbench.files.noChangedFiles"
   | "workbench.files.noEvidence"
@@ -521,6 +522,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.previewDetail": "Selected evidence can be queued as a side-chat follow-up without copying raw file content into the transcript.",
     "workbench.files.queueFollowUp": "Queue evidence follow-up",
     "workbench.files.rawContentBoundary": "Metadata and summaries only; raw private file content is not persisted here.",
+    "workbench.files.providerPromptBoundary": "When you dispatch a run, selected evidence metadata such as paths, summaries, and diff stats may be included in the provider prompt. Raw private file contents are not attached.",
     "workbench.files.diffSource": "Diff source",
     "workbench.files.noChangedFiles": "No changed files projected yet.",
     "workbench.files.noEvidence": "No file evidence is available for this session yet.",
@@ -803,6 +805,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.previewDetail": "선택한 증거를 원본 파일 내용 없이 사이드 채팅 후속 초안으로 보낼 수 있습니다.",
     "workbench.files.queueFollowUp": "증거 후속 초안 추가",
     "workbench.files.rawContentBoundary": "메타데이터와 요약만 사용하며, 원본 private 파일 내용은 여기에 저장하지 않습니다.",
+    "workbench.files.providerPromptBoundary": "실행을 보내면 선택된 증거의 경로, 요약, diff 통계 같은 메타데이터가 provider 프롬프트에 포함될 수 있습니다. 원본 private 파일 내용은 첨부하지 않습니다.",
     "workbench.files.diffSource": "Diff 출처",
     "workbench.files.noChangedFiles": "아직 투영된 변경 파일이 없습니다.",
     "workbench.files.noEvidence": "이 세션에는 아직 파일 증거가 없습니다.",
