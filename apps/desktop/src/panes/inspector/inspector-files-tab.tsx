@@ -88,7 +88,7 @@ export function InspectorFilesTab({
             value={i18n.t("workbench.context.metadataOnly")}
           />
         </div>
-        <p className="mt-3 rounded-md border border-[color:var(--border)] bg-[color:var(--panel)] px-3 py-2 text-xs leading-5 text-[color:var(--ink-soft)]">
+        <p className="mt-3 border-t border-white/[0.055] px-1 pt-3 text-xs leading-5 text-[color:var(--ink-soft)]">
           {i18n.t("workbench.files.providerPromptBoundary")}
         </p>
         <div className="mt-3 flex justify-end">

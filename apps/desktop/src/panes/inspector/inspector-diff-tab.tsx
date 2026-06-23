@@ -23,7 +23,7 @@ export function InspectorDiffTab({
               </p>
               <div className="mt-3 space-y-2">
                 {diff.files.map((file) => (
-                  <div key={`${diff.id}:${file.path}`} className="rounded-md bg-[color:var(--panel-muted)] px-3 py-2 text-xs">
+                  <div key={`${diff.id}:${file.path}`} className="border-t border-white/[0.055] px-1 py-2 text-xs">
                     <p className="font-mono font-medium">{file.path}</p>
                     <p className="mt-1 text-[color:var(--ink-soft)]">
                       {file.changeKind} +{file.additions ?? 0} / -{file.deletions ?? 0}

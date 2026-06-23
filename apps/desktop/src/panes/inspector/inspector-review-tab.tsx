@@ -170,7 +170,7 @@ export function InspectorReviewTab({
                     />
                   </div>
                   {shouldOfferProviderRouteFallback(issue) ? (
-                    <div className="mt-3 rounded-md border border-[color:var(--border)] bg-[color:var(--panel-muted)] p-3">
+                    <div className="mt-3 border-t border-white/[0.055] px-1 pt-3">
                       <p className="text-xs font-semibold uppercase text-[color:var(--ink-soft)]">
                         {i18n.t("workbench.routeHealth.advisoryFallback")}
                       </p>
@@ -213,7 +213,7 @@ export function InspectorReviewTab({
             </span>
           </div>
           <div className="inspector-card">
-            <div className="mb-3 rounded-md border border-[color:var(--border)] bg-[color:var(--panel-muted)] p-3">
+            <div className="mb-3 border-b border-white/[0.055] px-1 pb-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold">
@@ -584,7 +584,7 @@ export function InspectorReviewTab({
                     {diff.files.map((file) => (
                       <div
                         key={`${diff.id}:${file.path}`}
-                        className="rounded-md bg-[color:var(--panel-muted)] px-3 py-2 text-xs"
+                        className="border-t border-white/[0.055] px-1 py-2 text-xs"
                       >
                         <p className="truncate font-mono font-medium">{file.path}</p>
                         <p className="mt-1 text-[color:var(--ink-soft)]">
