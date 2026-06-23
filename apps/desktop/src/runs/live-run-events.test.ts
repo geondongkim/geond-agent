@@ -7,6 +7,7 @@ import {
   createLiveRunCompletionEvents,
   createLiveRunFailureEvents,
   createLiveRunPreludeEvents,
+  createLiveRunReadinessBlockedEvents,
   createRunAttemptStartedEvent,
   createRunAttemptUpdatedEvent
 } from "./live-run-events.js";
@@ -72,6 +73,13 @@ describe("desktop live run event factories", () => {
       "error",
       "session.lifecycle"
     ]);
+    expect(
+      createLiveRunReadinessBlockedEvents("workbench-session-1", "route blocked")[1]
+    ).toMatchObject({
+      type: "error",
+      id: "claude-code-live-runner-readiness-blocked",
+      message: "route blocked"
+    });
     expect(createLiveRunCancelledEvents("workbench-session-1", createUiI18n("en"), true)[0]).toMatchObject({
       type: "command.output",
       status: "interrupted"
@@ -124,6 +132,12 @@ describe("desktop live run event factories", () => {
     expect(updated.type === "run.attempt.updated" ? updated.errorMessage : "").toBe(
       `${"stderr echoed"} ${secretEnvName}=[redacted]`
     );
+    expect(
+      createLiveRunFailureEvents("workbench-session-1", `${secretEnvName}=${token}`)[0]
+    ).toMatchObject({
+      type: "command.output",
+      text: `${secretEnvName}=[redacted]`
+    });
     expect(JSON.stringify([started, updated])).not.toContain(token);
   });
 });

@@ -186,6 +186,7 @@ export function createLiveRunFailureEvents(
   message: string
 ): readonly WorkbenchEvent[] {
   const at = new Date().toISOString();
+  const redactedMessage = redactSensitiveTextContent(message);
 
   return [
     {
@@ -193,7 +194,7 @@ export function createLiveRunFailureEvents(
       sessionId,
       commandId: "claude-code-live-prelude",
       stream: "stderr",
-      text: message,
+      text: redactedMessage,
       status: "failed",
       at
     },
@@ -201,7 +202,40 @@ export function createLiveRunFailureEvents(
       type: "error",
       sessionId,
       id: "claude-code-live-runner-failed",
-      message,
+      message: redactedMessage,
+      at
+    },
+    {
+      type: "session.lifecycle",
+      sessionId,
+      lifecycle: "failed",
+      at
+    }
+  ];
+}
+
+export function createLiveRunReadinessBlockedEvents(
+  sessionId: string,
+  message: string
+): readonly WorkbenchEvent[] {
+  const at = new Date().toISOString();
+  const redactedMessage = redactSensitiveTextContent(message);
+
+  return [
+    {
+      type: "command.output",
+      sessionId,
+      commandId: "claude-code-live-prelude",
+      stream: "stderr",
+      text: redactedMessage,
+      status: "failed",
+      at
+    },
+    {
+      type: "error",
+      sessionId,
+      id: "claude-code-live-runner-readiness-blocked",
+      message: redactedMessage,
       at
     },
     {
