@@ -26,7 +26,7 @@ const CLAUDE_DEFAULT_TIMEOUT_MS: u64 = 10 * 60 * 1000;
 const CLAUDE_MAX_TIMEOUT_MS: u64 = 60 * 60 * 1000;
 const PROCESS_OUTPUT_CAP_BYTES: usize = 1024 * 1024;
 const PROCESS_OUTPUT_TRUNCATED_MARKER: &str = "\n... [truncated]\n";
-const EVENT_STORE_SCHEMA_VERSION: i64 = 5;
+const EVENT_STORE_SCHEMA_VERSION: i64 = 6;
 const CLAUDE_ENV_KEYS: &[&str] = &[
     "ANTHROPIC_API_KEY",
     "ANTHROPIC_BASE_URL",
@@ -222,6 +222,7 @@ pub struct WorkbenchRunAttemptRecord {
     ignored_record_count: Option<i64>,
     parse_warning_count: Option<i64>,
     error_message: Option<String>,
+    failure_kind: Option<String>,
     source_event_id: Option<i64>,
     updated_at: Option<String>,
 }
@@ -1145,6 +1146,7 @@ fn migrate_event_store(connection: &mut Connection) -> Result<(), String> {
                     ignored_record_count integer,
                     parse_warning_count integer,
                     error_message text,
+                    failure_kind text,
                     source_event_id integer,
                     updated_at text,
                     primary key (session_id, attempt_id)
@@ -1155,6 +1157,19 @@ fn migrate_event_store(connection: &mut Connection) -> Result<(), String> {
             )
             .map_err(to_string)?;
         backfill_materialized_event_views_from_events(&transaction)?;
+        transaction.commit().map_err(to_string)?;
+    }
+
+    if version < 6 {
+        let transaction = connection.transaction().map_err(to_string)?;
+        if !column_exists(&transaction, "workbench_run_attempts", "failure_kind")? {
+            transaction
+                .execute_batch("alter table workbench_run_attempts add column failure_kind text;")
+                .map_err(to_string)?;
+        }
+        transaction
+            .execute_batch("pragma user_version = 6;")
+            .map_err(to_string)?;
         transaction.commit().map_err(to_string)?;
     }
 
@@ -1644,10 +1659,10 @@ fn materialize_event_views_for_event(
                         provider_route_id, model_profile_id, routing_mode, permission_mode,
                         external_session_id, resumed_from_external_session_id, command_preview,
                         prompt_summary, started_at, finished_at, exit_code, event_count,
-                        ignored_record_count, parse_warning_count, error_message, source_event_id,
-                        updated_at
+                        ignored_record_count, parse_warning_count, error_message, failure_kind,
+                        source_event_id, updated_at
                      ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14,
-                               null, null, null, null, null, null, ?15, ?16)
+                               null, null, null, null, null, null, ?15, ?16, ?17)
                      on conflict(session_id, attempt_id) do update set
                         mode = excluded.mode,
                         status = excluded.status,
@@ -1661,6 +1676,7 @@ fn materialize_event_views_for_event(
                         command_preview = excluded.command_preview,
                         prompt_summary = excluded.prompt_summary,
                         started_at = coalesce(excluded.started_at, workbench_run_attempts.started_at),
+                        failure_kind = coalesce(excluded.failure_kind, workbench_run_attempts.failure_kind),
                         source_event_id = excluded.source_event_id,
                         updated_at = excluded.updated_at",
                     params![
@@ -1678,6 +1694,7 @@ fn materialize_event_views_for_event(
                         read_string(attempt, "commandPreview"),
                         read_string(attempt, "promptSummary"),
                         started_at,
+                        read_string(attempt, "failureKind"),
                         source_event_id,
                         updated_at,
                     ],
@@ -1697,10 +1714,10 @@ fn materialize_event_views_for_event(
                         provider_route_id, model_profile_id, routing_mode, permission_mode,
                         external_session_id, resumed_from_external_session_id, command_preview,
                         prompt_summary, started_at, finished_at, exit_code, event_count,
-                        ignored_record_count, parse_warning_count, error_message, source_event_id,
-                        updated_at
+                        ignored_record_count, parse_warning_count, error_message, failure_kind,
+                        source_event_id, updated_at
                      ) values (?1, ?2, 'claude-live', ?3, null, null, null, null, null, null,
-                               null, null, null, null, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+                               null, null, null, null, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
                      on conflict(session_id, attempt_id) do update set
                         status = excluded.status,
                         finished_at = excluded.finished_at,
@@ -1715,6 +1732,7 @@ fn materialize_event_views_for_event(
                             workbench_run_attempts.parse_warning_count
                         ),
                         error_message = coalesce(excluded.error_message, workbench_run_attempts.error_message),
+                        failure_kind = coalesce(excluded.failure_kind, workbench_run_attempts.failure_kind),
                         source_event_id = excluded.source_event_id,
                         updated_at = excluded.updated_at",
                     params![
@@ -1727,6 +1745,7 @@ fn materialize_event_views_for_event(
                         read_i64(event, "ignoredRecordCount"),
                         read_i64(event, "parseWarningCount"),
                         read_string(event, "errorMessage"),
+                        read_string(event, "failureKind"),
                         source_event_id,
                         updated_at,
                     ],
@@ -1965,7 +1984,7 @@ fn list_run_attempt_records(
                     model_profile_id, routing_mode, permission_mode, external_session_id,
                     resumed_from_external_session_id, command_preview, prompt_summary,
                     started_at, finished_at, exit_code, event_count, ignored_record_count,
-                    parse_warning_count, error_message, source_event_id, updated_at
+                    parse_warning_count, error_message, failure_kind, source_event_id, updated_at
              from workbench_run_attempts
              where (?1 is null or session_id = ?1)
              order by coalesce(started_at, updated_at, '') desc, session_id, attempt_id",
@@ -1995,8 +2014,9 @@ fn list_run_attempt_records(
                 ignored_record_count: row.get(17)?,
                 parse_warning_count: row.get(18)?,
                 error_message: row.get(19)?,
-                source_event_id: row.get(20)?,
-                updated_at: row.get(21)?,
+                failure_kind: row.get(20)?,
+                source_event_id: row.get(21)?,
+                updated_at: row.get(22)?,
             })
         })
         .map_err(to_string)?;
@@ -3054,12 +3074,14 @@ mod tests {
             "type": "run.attempt.updated",
             "sessionId": "session-views",
             "attemptId": "attempt-1",
-            "status": "succeeded",
+            "status": "failed",
             "finishedAt": "2026-06-22T02:00:08.000Z",
-            "exitCode": 0,
+            "exitCode": 1,
             "eventCount": 12,
             "ignoredRecordCount": 1,
             "parseWarningCount": 0,
+            "errorMessage": "Provider route reported an overload.",
+            "failureKind": "provider_overloaded",
             "at": "2026-06-22T02:00:08.000Z"
         });
 
@@ -3125,15 +3147,24 @@ mod tests {
         assert_eq!(run_attempts.len(), 1);
         assert_eq!(run_attempts[0].attempt_id, "attempt-1");
         assert_eq!(run_attempts[0].mode, "claude-live");
-        assert_eq!(run_attempts[0].status, "succeeded");
+        assert_eq!(run_attempts[0].status, "failed");
         assert_eq!(
             run_attempts[0].backend_adapter_id.as_deref(),
             Some("claude-code.external-cli-acp")
         );
         assert_eq!(run_attempts[0].model_profile_id.as_deref(), Some("opus"));
+        assert_eq!(run_attempts[0].exit_code, Some(1));
         assert_eq!(run_attempts[0].event_count, Some(12));
         assert_eq!(run_attempts[0].ignored_record_count, Some(1));
         assert_eq!(run_attempts[0].parse_warning_count, Some(0));
+        assert_eq!(
+            run_attempts[0].error_message.as_deref(),
+            Some("Provider route reported an overload.")
+        );
+        assert_eq!(
+            run_attempts[0].failure_kind.as_deref(),
+            Some("provider_overloaded")
+        );
     }
 
     #[test]

@@ -8,6 +8,7 @@ import type {
   WorkbenchEvent,
   WorkbenchPlanItemSnapshot,
   WorkbenchRunAttemptSnapshot,
+  WorkbenchRunnerIssueSnapshot,
   WorkbenchSessionLifecycle,
   WorkbenchToolCallSnapshot,
   WorkbenchUsageSnapshot
@@ -56,6 +57,7 @@ export interface WorkbenchSessionSnapshot {
   readonly diffs: Readonly<Record<string, WorkbenchDiffSnapshot>>;
   readonly usageReports: Readonly<Record<string, WorkbenchUsageSnapshot>>;
   readonly runAttempts: Readonly<Record<string, WorkbenchRunAttemptSnapshot>>;
+  readonly runnerIssues: Readonly<Record<string, WorkbenchRunnerIssueSnapshot>>;
   readonly approvals: Readonly<Record<string, WorkbenchApprovalSnapshot>>;
   readonly pendingApprovalIds: readonly string[];
   readonly notices: readonly WorkbenchNoticeSnapshot[];
@@ -278,12 +280,25 @@ export function applyWorkbenchEvent(
             eventCount: event.eventCount ?? previous.eventCount,
             ignoredRecordCount: event.ignoredRecordCount ?? previous.ignoredRecordCount,
             parseWarningCount: event.parseWarningCount ?? previous.parseWarningCount,
-            errorMessage: event.errorMessage ?? previous.errorMessage
+            errorMessage: event.errorMessage ?? previous.errorMessage,
+            failureKind: event.failureKind ?? previous.failureKind
           }
         },
         updatedAt: event.at ?? session.updatedAt
       });
     }
+    case "runner.issue.detected":
+      return putSession(state, {
+        ...session,
+        runnerIssues: {
+          ...session.runnerIssues,
+          [event.issue.id]: {
+            ...event.issue,
+            detectedAt: event.issue.detectedAt ?? event.at
+          }
+        },
+        updatedAt: event.at ?? session.updatedAt
+      });
     case "approval.requested":
       return putSession(state, {
         ...session,
@@ -358,6 +373,7 @@ function ensureSession(
       diffs: {},
       usageReports: {},
       runAttempts: {},
+      runnerIssues: {},
       approvals: {},
       pendingApprovalIds: [],
       notices: []

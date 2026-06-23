@@ -40,6 +40,8 @@ export function AppBar({
   readonly setLeftPanelOpen: (open: boolean) => void;
   readonly setRightPanelOpen: (open: boolean) => void;
 }) {
+  const latestIssue = activeSession?.runnerIssues[0];
+
   return (
     <header className="app-bar">
       <div className="app-bar-left">
@@ -89,6 +91,19 @@ export function AppBar({
               ? i18n.t("workbench.runner.claudeLive")
               : i18n.t("workbench.runner.fixture")}
           </span>
+          {latestIssue ? (
+            <button
+              type="button"
+              className="status-pill status-danger"
+              title={latestIssue.message}
+              onClick={() => {
+                setInspectorTab("review");
+                setRightPanelOpen(true);
+              }}
+            >
+              {i18n.t("workbench.issue.latest")}: {latestIssue.title}
+            </button>
+          ) : null}
         </div>
       </div>
 

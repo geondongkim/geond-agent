@@ -36,7 +36,8 @@ const fallbackSession = {
       status: "running",
       eventCount: 1
     }
-  ]
+  ],
+  runnerIssues: []
 } as unknown as ProjectedActiveSession;
 
 describe("inspector read model", () => {
@@ -130,7 +131,8 @@ describe("inspector read model", () => {
             eventCount: 12,
             ignoredRecordCount: 1,
             parseWarningCount: 0,
-            errorMessage: undefined
+            errorMessage: undefined,
+            failureKind: "provider_overloaded"
           }
         ]
       },
@@ -148,7 +150,8 @@ describe("inspector read model", () => {
       id: "attempt-sqlite",
       status: "succeeded",
       modelProfileId: "opus",
-      eventCount: 12
+      eventCount: 12,
+      failureKind: "provider_overloaded"
     });
   });
 
@@ -209,6 +212,30 @@ describe("inspector read model", () => {
           status: "succeeded",
           preview: "projection\nmore output",
           chunkCount: 2
+        }
+      ]
+    } as unknown as ProjectedActiveSession);
+
+    expect(second).not.toBe(first);
+  });
+
+  it("changes the inspector evidence signature when runner issues change", () => {
+    const first = createInspectorEvidenceSignature(fallbackSession);
+    const second = createInspectorEvidenceSignature({
+      ...fallbackSession,
+      runnerIssues: [
+        {
+          id: "issue-attempt-1-provider_overloaded",
+          kind: "provider_overloaded",
+          severity: "error",
+          title: "Provider route overloaded",
+          message: "Z.ai route returned HTTP 529.",
+          retryable: true,
+          suggestedAction: "retry_later",
+          providerRouteId: "zai.anthropic-compatible",
+          modelProfileId: "opus",
+          routeHealth: "degraded",
+          detectedAt: "2026-06-23T00:00:00.000Z"
         }
       ]
     } as unknown as ProjectedActiveSession);

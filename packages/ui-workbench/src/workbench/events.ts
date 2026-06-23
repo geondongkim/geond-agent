@@ -59,6 +59,26 @@ export interface WorkbenchUsageSnapshot {
 }
 
 export type WorkbenchRunAttemptStatus = "running" | "succeeded" | "failed" | "cancelled";
+export type WorkbenchRunnerIssueKind =
+  | "provider_overloaded"
+  | "provider_auth"
+  | "provider_quota"
+  | "provider_timeout"
+  | "readiness_blocked"
+  | "runner_process"
+  | "unknown";
+export type WorkbenchRunnerIssueSeverity = "info" | "warning" | "error";
+export type WorkbenchRunnerIssueSuggestedAction =
+  | "retry_later"
+  | "switch_route"
+  | "lower_model"
+  | "check_key"
+  | "inspect_terminal";
+export type WorkbenchProviderRouteHealthStatus =
+  | "healthy"
+  | "degraded"
+  | "unavailable"
+  | "unknown";
 
 export interface WorkbenchRunAttemptSnapshot {
   readonly id: string;
@@ -80,6 +100,23 @@ export interface WorkbenchRunAttemptSnapshot {
   readonly ignoredRecordCount?: number;
   readonly parseWarningCount?: number;
   readonly errorMessage?: string;
+  readonly failureKind?: WorkbenchRunnerIssueKind;
+}
+
+export interface WorkbenchRunnerIssueSnapshot {
+  readonly id: string;
+  readonly kind: WorkbenchRunnerIssueKind;
+  readonly severity: WorkbenchRunnerIssueSeverity;
+  readonly title: string;
+  readonly message: string;
+  readonly retryable: boolean;
+  readonly suggestedAction: WorkbenchRunnerIssueSuggestedAction;
+  readonly backendAdapterId?: string;
+  readonly providerRouteId?: string;
+  readonly modelProfileId?: string;
+  readonly attemptId?: string;
+  readonly routeHealth?: WorkbenchProviderRouteHealthStatus;
+  readonly detectedAt?: string;
 }
 
 export interface WorkbenchAdapterSessionLinkSnapshot {
@@ -234,6 +271,13 @@ export type WorkbenchEvent =
       readonly ignoredRecordCount?: number;
       readonly parseWarningCount?: number;
       readonly errorMessage?: string;
+      readonly failureKind?: WorkbenchRunnerIssueKind;
+      readonly at?: string;
+    }
+  | {
+      readonly type: "runner.issue.detected";
+      readonly sessionId: string;
+      readonly issue: WorkbenchRunnerIssueSnapshot;
       readonly at?: string;
     }
   | {

@@ -74,12 +74,34 @@ describe("projectWorkbenchEvents", () => {
         type: "run.attempt.updated",
         sessionId: "session-run",
         attemptId: "attempt-1",
-        status: "succeeded",
+        status: "failed",
         eventCount: 12,
         ignoredRecordCount: 1,
         parseWarningCount: 0,
-        exitCode: 0,
+        exitCode: 1,
+        errorMessage: "HTTP 529 overloaded",
+        failureKind: "provider_overloaded",
         finishedAt: "2026-06-21T02:00:05.000Z",
+        at: "2026-06-21T02:00:05.000Z"
+      },
+      {
+        type: "runner.issue.detected",
+        sessionId: "session-run",
+        issue: {
+          id: "issue-attempt-1-provider_overloaded",
+          kind: "provider_overloaded",
+          severity: "error",
+          title: "Provider route overloaded",
+          message: "Z.ai route returned HTTP 529. Try again later.",
+          retryable: true,
+          suggestedAction: "retry_later",
+          backendAdapterId: "claude-code.external-cli-acp",
+          providerRouteId: "zai.anthropic-compatible",
+          modelProfileId: "opus",
+          attemptId: "attempt-1",
+          routeHealth: "degraded",
+          detectedAt: "2026-06-21T02:00:05.000Z"
+        },
         at: "2026-06-21T02:00:05.000Z"
       }
     ]);
@@ -87,12 +109,23 @@ describe("projectWorkbenchEvents", () => {
     expect(projection.activeSession?.runAttempts).toHaveLength(1);
     expect(projection.activeSession?.runAttempts[0]).toMatchObject({
       id: "attempt-1",
-      status: "succeeded",
+      status: "failed",
       eventCount: 12,
       ignoredRecordCount: 1,
-      parseWarningCount: 0
+      parseWarningCount: 0,
+      failureKind: "provider_overloaded"
+    });
+    expect(projection.activeSession?.runnerIssues[0]).toMatchObject({
+      id: "issue-attempt-1-provider_overloaded",
+      kind: "provider_overloaded",
+      routeHealth: "degraded"
     });
     expect(projection.activeSession?.timeline.map((entry) => entry.kind)).toContain("run");
+    expect(projection.activeSession?.timeline.map((entry) => entry.kind)).toContain("issue");
+    expect(projection.activeSession?.timeline.at(-1)).toMatchObject({
+      kind: "issue",
+      status: "provider_overloaded"
+    });
   });
 
   it("marks completed adapter-linked sessions as resumable", () => {

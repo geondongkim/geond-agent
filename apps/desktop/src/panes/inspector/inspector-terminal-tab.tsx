@@ -1,11 +1,14 @@
 import type { UiI18n } from "@geond-agent/ui-workbench";
-import { MessageSquarePlus } from "lucide-react";
+import { AlertTriangle, MessageSquarePlus } from "lucide-react";
 
 import { Button } from "../../components/ui/button.js";
 import { TabsContent } from "../../components/ui/tabs.js";
 import { EmptyState } from "../../components/workbench/empty-state.js";
 import { createTerminalFollowUpDraft } from "../../lib/inspector-follow-up.js";
-import { formatStatusLabel } from "../../lib/workbench-format.js";
+import {
+  formatRouteHealthLabel,
+  formatStatusLabel
+} from "../../lib/workbench-format.js";
 import type { InspectorSessionReadModel } from "../../lib/inspector-read-model.js";
 import type { ProjectedActiveSession } from "../../lib/workbench-types.js";
 
@@ -21,11 +24,36 @@ export function InspectorTerminalTab({
   readonly i18n: UiI18n;
 }) {
   const outputs = commandOutputs ?? activeSession?.commandOutputs ?? [];
+  const latestIssue = activeSession?.runnerIssues[0];
 
   return (
     <TabsContent value="terminal" className="border-0 bg-transparent p-0">
-      {outputs.length ? (
+      {outputs.length || latestIssue ? (
         <div className="space-y-2">
+          {latestIssue ? (
+            <div className="terminal-card border-[color:color-mix(in_srgb,var(--danger)_38%,var(--line-soft))]">
+              <div className="flex items-start gap-3">
+                <AlertTriangle
+                  aria-hidden="true"
+                  size={16}
+                  className="mt-0.5 shrink-0 text-[color:var(--danger)]"
+                />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[color:var(--danger)]">
+                    {latestIssue.title}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[color:var(--shell-soft)]">
+                    {latestIssue.message}
+                  </p>
+                  <p className="mt-2 font-mono text-[11px] text-[color:var(--inverse-soft)]">
+                    {formatStatusLabel(i18n, latestIssue.kind)}
+                    {" / "}
+                    {formatRouteHealthLabel(i18n, latestIssue.routeHealth)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
           {outputs.map((output) => (
             <div key={output.id} className="terminal-card">
               <div className="flex items-center justify-between gap-2">

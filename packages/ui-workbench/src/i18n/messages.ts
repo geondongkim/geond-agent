@@ -69,6 +69,7 @@ export type UiMessageKey =
   | "workbench.timeline.kind.diff"
   | "workbench.timeline.kind.usage"
   | "workbench.timeline.kind.run"
+  | "workbench.timeline.kind.issue"
   | "workbench.timeline.kind.approval"
   | "workbench.timeline.kind.warning"
   | "workbench.timeline.kind.error"
@@ -97,9 +98,37 @@ export type UiMessageKey =
   | "workbench.runAttempts.ignored"
   | "workbench.runAttempts.parseWarnings"
   | "workbench.runAttempts.exitCode"
+  | "workbench.runAttempts.failureKind"
   | "workbench.runAttempts.prompt"
   | "workbench.runAttempts.command"
   | "workbench.runAttempts.resume"
+  | "workbench.issue.title"
+  | "workbench.issue.latest"
+  | "workbench.issue.routeHealth"
+  | "workbench.issue.retryable"
+  | "workbench.issue.suggestedAction"
+  | "workbench.issue.health.healthy"
+  | "workbench.issue.health.degraded"
+  | "workbench.issue.health.unavailable"
+  | "workbench.issue.health.unknown"
+  | "workbench.issue.retry.yes"
+  | "workbench.issue.retry.no"
+  | "workbench.issue.action.retryLater"
+  | "workbench.issue.action.switchRoute"
+  | "workbench.issue.action.lowerModel"
+  | "workbench.issue.action.checkKey"
+  | "workbench.issue.action.inspectTerminal"
+  | "workbench.issue.kind.providerOverloaded"
+  | "workbench.issue.kind.providerAuth"
+  | "workbench.issue.kind.providerQuota"
+  | "workbench.issue.kind.providerTimeout"
+  | "workbench.issue.kind.readinessBlocked"
+  | "workbench.issue.kind.runnerProcess"
+  | "workbench.issue.providerOverloadedMessage"
+  | "workbench.issue.providerAuthMessage"
+  | "workbench.issue.providerQuotaMessage"
+  | "workbench.issue.providerTimeoutMessage"
+  | "workbench.issue.runnerProcessMessage"
   | "workbench.approvals.title"
   | "workbench.approvals.requiredTitle"
   | "workbench.approvals.requiredDetail"
@@ -391,6 +420,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.timeline.kind.diff": "Diff",
     "workbench.timeline.kind.usage": "Usage",
     "workbench.timeline.kind.run": "Run",
+    "workbench.timeline.kind.issue": "Runtime issue",
     "workbench.timeline.kind.approval": "Approval",
     "workbench.timeline.kind.warning": "Warning",
     "workbench.timeline.kind.error": "Error",
@@ -419,9 +449,37 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runAttempts.ignored": "Ignored",
     "workbench.runAttempts.parseWarnings": "Parse warnings",
     "workbench.runAttempts.exitCode": "Exit",
+    "workbench.runAttempts.failureKind": "Failure kind",
     "workbench.runAttempts.prompt": "Prompt",
     "workbench.runAttempts.command": "Command",
     "workbench.runAttempts.resume": "Resume",
+    "workbench.issue.title": "Runtime issues",
+    "workbench.issue.latest": "Latest issue",
+    "workbench.issue.routeHealth": "Route health",
+    "workbench.issue.retryable": "Retryable",
+    "workbench.issue.suggestedAction": "Suggested action",
+    "workbench.issue.health.healthy": "Healthy",
+    "workbench.issue.health.degraded": "Degraded",
+    "workbench.issue.health.unavailable": "Unavailable",
+    "workbench.issue.health.unknown": "Unknown",
+    "workbench.issue.retry.yes": "Retryable",
+    "workbench.issue.retry.no": "Manual action needed",
+    "workbench.issue.action.retryLater": "Retry later",
+    "workbench.issue.action.switchRoute": "Switch route",
+    "workbench.issue.action.lowerModel": "Lower model",
+    "workbench.issue.action.checkKey": "Check local key",
+    "workbench.issue.action.inspectTerminal": "Inspect terminal",
+    "workbench.issue.kind.providerOverloaded": "Provider overloaded",
+    "workbench.issue.kind.providerAuth": "Provider auth issue",
+    "workbench.issue.kind.providerQuota": "Provider quota issue",
+    "workbench.issue.kind.providerTimeout": "Provider timeout",
+    "workbench.issue.kind.readinessBlocked": "Readiness blocked",
+    "workbench.issue.kind.runnerProcess": "Runner process issue",
+    "workbench.issue.providerOverloadedMessage": "The selected provider route is overloaded. Retry later, lower the model, or switch route; OpenAI-compatible advisory fallback may still be available.",
+    "workbench.issue.providerAuthMessage": "The selected provider route rejected authentication. Check local-only key presence and route settings.",
+    "workbench.issue.providerQuotaMessage": "The selected provider route reported quota or rate limit pressure. Retry later, lower the model, or switch route.",
+    "workbench.issue.providerTimeoutMessage": "The selected provider route timed out. Retry later or inspect terminal output for network details.",
+    "workbench.issue.runnerProcessMessage": "The local runner process failed before a provider-specific issue could be classified. Inspect terminal output.",
     "workbench.approvals.title": "Approvals",
     "workbench.approvals.requiredTitle": "Approval required",
     "workbench.approvals.requiredDetail": "{count} pending approval(s) are blocking this session.",
@@ -710,6 +768,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.timeline.kind.diff": "변경",
     "workbench.timeline.kind.usage": "사용량",
     "workbench.timeline.kind.run": "실행",
+    "workbench.timeline.kind.issue": "런타임 문제",
     "workbench.timeline.kind.approval": "승인",
     "workbench.timeline.kind.warning": "경고",
     "workbench.timeline.kind.error": "오류",
@@ -738,9 +797,37 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runAttempts.ignored": "무시됨",
     "workbench.runAttempts.parseWarnings": "파싱 경고",
     "workbench.runAttempts.exitCode": "종료 코드",
+    "workbench.runAttempts.failureKind": "실패 종류",
     "workbench.runAttempts.prompt": "프롬프트",
     "workbench.runAttempts.command": "명령",
     "workbench.runAttempts.resume": "이어쓰기",
+    "workbench.issue.title": "런타임 문제",
+    "workbench.issue.latest": "최근 문제",
+    "workbench.issue.routeHealth": "경로 상태",
+    "workbench.issue.retryable": "재시도 가능",
+    "workbench.issue.suggestedAction": "권장 조치",
+    "workbench.issue.health.healthy": "정상",
+    "workbench.issue.health.degraded": "저하됨",
+    "workbench.issue.health.unavailable": "사용 불가",
+    "workbench.issue.health.unknown": "알 수 없음",
+    "workbench.issue.retry.yes": "재시도 가능",
+    "workbench.issue.retry.no": "수동 조치 필요",
+    "workbench.issue.action.retryLater": "나중에 재시도",
+    "workbench.issue.action.switchRoute": "경로 전환",
+    "workbench.issue.action.lowerModel": "모델 낮추기",
+    "workbench.issue.action.checkKey": "로컬 키 확인",
+    "workbench.issue.action.inspectTerminal": "터미널 확인",
+    "workbench.issue.kind.providerOverloaded": "프로바이더 과부하",
+    "workbench.issue.kind.providerAuth": "프로바이더 인증 문제",
+    "workbench.issue.kind.providerQuota": "프로바이더 할당량 문제",
+    "workbench.issue.kind.providerTimeout": "프로바이더 시간 초과",
+    "workbench.issue.kind.readinessBlocked": "준비 상태 차단",
+    "workbench.issue.kind.runnerProcess": "실행 프로세스 문제",
+    "workbench.issue.providerOverloadedMessage": "선택한 프로바이더 경로가 과부하 상태입니다. 나중에 재시도하거나 모델을 낮추거나 경로를 전환하세요. OpenAI-compatible 자문 fallback은 가능할 수 있습니다.",
+    "workbench.issue.providerAuthMessage": "선택한 프로바이더 경로가 인증을 거절했습니다. 로컬 전용 키 존재 여부와 경로 설정을 확인하세요.",
+    "workbench.issue.providerQuotaMessage": "선택한 프로바이더 경로가 할당량 또는 rate limit 압박을 보고했습니다. 나중에 재시도하거나 모델을 낮추거나 경로를 전환하세요.",
+    "workbench.issue.providerTimeoutMessage": "선택한 프로바이더 경로가 시간 초과됐습니다. 나중에 재시도하거나 터미널 출력에서 네트워크 세부 정보를 확인하세요.",
+    "workbench.issue.runnerProcessMessage": "프로바이더 문제로 분류하기 전에 로컬 실행 프로세스가 실패했습니다. 터미널 출력을 확인하세요.",
     "workbench.approvals.title": "승인",
     "workbench.approvals.requiredTitle": "승인이 필요합니다",
     "workbench.approvals.requiredDetail": "이 세션에서 {count}개의 승인이 대기 중입니다.",

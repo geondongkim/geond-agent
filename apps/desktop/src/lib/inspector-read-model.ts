@@ -6,6 +6,7 @@ import type {
   WorkbenchContextAttachmentRange,
   WorkbenchDiffFileSnapshot,
   WorkbenchRunAttemptStatus,
+  WorkbenchRunnerIssueKind,
   WorkbenchToolCallStatus
 } from "@geond-agent/ui-workbench";
 
@@ -131,7 +132,22 @@ export function createInspectorEvidenceSignature(
         attempt.parseWarningCount ?? 0,
         attempt.exitCode ?? "none",
         attempt.finishedAt,
+        attempt.failureKind,
         createTextSignature(attempt.errorMessage)
+      ].join(":")
+    ),
+    createListSignature(activeSession.runnerIssues ?? [], (issue) =>
+      [
+        issue.id,
+        issue.kind,
+        issue.severity,
+        issue.providerRouteId,
+        issue.modelProfileId,
+        issue.routeHealth,
+        issue.suggestedAction,
+        issue.retryable,
+        issue.detectedAt,
+        createTextSignature(issue.message)
       ].join(":")
     )
   ].join("|");
@@ -208,7 +224,8 @@ export function createMaterializedInspectorSessionReadModel(
     eventCount: record.eventCount,
     ignoredRecordCount: record.ignoredRecordCount,
     parseWarningCount: record.parseWarningCount,
-    errorMessage: record.errorMessage
+    errorMessage: record.errorMessage,
+    failureKind: normalizeRunnerIssueKind(record.failureKind)
   }));
   const hasMaterializedRows =
     contextAttachments.length +
@@ -299,6 +316,26 @@ function normalizeRunAttemptStatus(value: string): WorkbenchRunAttemptStatus {
   return isOneOf(value, ["running", "succeeded", "failed", "cancelled"])
     ? value
     : "failed";
+}
+
+function normalizeRunnerIssueKind(
+  value: string | undefined
+): WorkbenchRunnerIssueKind | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return isOneOf(value, [
+    "provider_overloaded",
+    "provider_auth",
+    "provider_quota",
+    "provider_timeout",
+    "readiness_blocked",
+    "runner_process",
+    "unknown"
+  ])
+    ? value
+    : undefined;
 }
 
 function normalizeContextRange(
