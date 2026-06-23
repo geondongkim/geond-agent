@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   createEvidenceBundleDraft,
   createEvidenceBundleFileName,
+  createEvidenceReportDraft,
   createEvidenceFollowUpDraft,
   createFileEvidencePreviewModel,
   findFileEvidenceSelection,
@@ -224,5 +225,24 @@ describe("file evidence preview model", () => {
         now: new Date("2026-06-23T00:00:00.000Z")
       })
     ).toBe("2026-06-23-claude-dogfood-retry-resume-evidence.md");
+  });
+
+  it("creates an issue/report draft around the metadata-only evidence bundle", () => {
+    const report = createEvidenceReportDraft({
+      activeSession: {
+        id: "session-1",
+        title: "Claude dogfood",
+        workspacePath: "/workspace/geond-agent",
+        contextAttachments: [],
+        commandOutputs: [],
+        diffs: [],
+        runAttempts: []
+      } as unknown as ProjectedActiveSession
+    });
+
+    expect(report).toContain("Workbench dogfood report for Claude dogfood");
+    expect(report).toContain("Suggested checks");
+    expect(report).toContain("Workbench evidence bundle (metadata only).");
+    expect(report).toContain("raw Claude logs");
   });
 });

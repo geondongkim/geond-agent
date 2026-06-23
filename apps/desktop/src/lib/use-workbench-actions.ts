@@ -17,6 +17,11 @@ import {
 import type { DesktopDemoDocument, DesktopRunnerMode } from "../demo-workbench.js";
 import type { DesktopWorkspaceDescriptor } from "../workspace.js";
 import type { StartWorkbenchSession } from "../runs/use-workbench-runner.js";
+import {
+  createRecentContextItem,
+  mergeRecentContextItem,
+  type RecentContextItem
+} from "./recent-context.js";
 import { formatApprovalDecision, formatMessage } from "./workbench-format.js";
 import type { ProjectedActiveSession } from "./workbench-types.js";
 
@@ -32,6 +37,7 @@ export interface UseWorkbenchActionsOptions {
   readonly sessionDefaults: WorkbenchSessionDefaults;
   readonly setControllerSnapshot: Dispatch<SetStateAction<WorkbenchSessionControllerSnapshot>>;
   readonly setPinnedSessionIds: Dispatch<SetStateAction<readonly string[]>>;
+  readonly setRecentContextItems: Dispatch<SetStateAction<readonly RecentContextItem[]>>;
   readonly setRunnerStatus: (status: string) => void;
   readonly setRuntimeSnapshot: Dispatch<SetStateAction<WorkbenchRuntimeSnapshot>>;
   readonly setSelectedWorkspaces: Dispatch<SetStateAction<readonly DesktopWorkspaceDescriptor[]>>;
@@ -53,6 +59,7 @@ export function useWorkbenchActions({
   sessionDefaults,
   setControllerSnapshot,
   setPinnedSessionIds,
+  setRecentContextItems,
   setRunnerStatus,
   setRuntimeSnapshot,
   setSelectedWorkspaces,
@@ -66,6 +73,18 @@ export function useWorkbenchActions({
       const events = await document.eventStore.list(sessionId);
       setControllerSnapshot(document.controller.loadSessionEvents(sessionId, events));
     })();
+  };
+
+  const rememberRecentContext = (item: RecentContextItem | undefined) => {
+    if (!item) {
+      return;
+    }
+
+    setRecentContextItems((current) => {
+      const next = mergeRecentContextItem(current, item);
+      void document.saveRecentContextItems(next);
+      return next;
+    });
   };
 
   const startSelectedRunner = () => {
@@ -213,6 +232,13 @@ export function useWorkbenchActions({
     });
     await document.saveWorkspace(selected);
     setWorkspacePath(selected.path);
+    rememberRecentContext(
+      createRecentContextItem({
+        kind: "workspace",
+        label: selected.label,
+        path: selected.path
+      })
+    );
   };
 
   const attachWorkspaceContext = async () => {
@@ -226,31 +252,19 @@ export function useWorkbenchActions({
         ? activeSession.workspacePath ?? document.activeWorkspace.path
         : workspacePath;
     const title = basename(contextPath);
-    const events: readonly WorkbenchEvent[] = [
-      {
-        type: "context.attached",
-        sessionId: activeSession.id,
-        attachment: {
-          id: `context-workspace-${slugify(contextPath)}-${Date.now()}`,
-          kind: "workspace",
-          title,
-          provenance: "desktop",
-          contentState: "metadata-only",
-          path: contextPath,
-          summary: i18n.t("workbench.context.workspaceSummary"),
-          attachedAt
-        },
-        at: attachedAt
-      }
-    ];
-
-    await document.eventStore.append(events);
-    setControllerSnapshot(
-      document.controller.appendEvents(events, { activateSessionId: activeSession.id })
-    );
-    setRunnerStatus(
-      formatMessage(i18n.t("workbench.context.attachedStatus"), {
-        title
+    await attachMetadataContext({
+      attachedAt,
+      kind: "workspace",
+      path: contextPath,
+      summary: i18n.t("workbench.context.workspaceSummary"),
+      title
+    });
+    rememberRecentContext(
+      createRecentContextItem({
+        kind: "workspace",
+        label: title,
+        path: contextPath,
+        updatedAt: attachedAt
       })
     );
   };
@@ -270,18 +284,71 @@ export function useWorkbenchActions({
     }
 
     const attachedAt = new Date().toISOString();
+    await attachMetadataContext({
+      attachedAt,
+      kind: "file",
+      path: selected.path,
+      summary: i18n.t("workbench.context.fileSummary"),
+      title: selected.label
+    });
+    rememberRecentContext(
+      createRecentContextItem({
+        kind: "file",
+        label: selected.label,
+        path: selected.path,
+        updatedAt: attachedAt
+      })
+    );
+  };
+
+  const attachRecentContext = async (item: RecentContextItem) => {
+    if (!activeSession) {
+      return;
+    }
+
+    const attachedAt = new Date().toISOString();
+    await attachMetadataContext({
+      attachedAt,
+      kind: item.kind,
+      path: item.path,
+      summary:
+        item.kind === "workspace"
+          ? i18n.t("workbench.context.workspaceSummary")
+          : i18n.t("workbench.context.fileSummary"),
+      title: item.label
+    });
+    rememberRecentContext({ ...item, updatedAt: attachedAt });
+  };
+
+  const attachMetadataContext = async ({
+    attachedAt,
+    kind,
+    path,
+    summary,
+    title
+  }: {
+    readonly attachedAt: string;
+    readonly kind: RecentContextItem["kind"];
+    readonly path: string;
+    readonly summary: string;
+    readonly title: string;
+  }) => {
+    if (!activeSession) {
+      return;
+    }
+
     const events: readonly WorkbenchEvent[] = [
       {
         type: "context.attached",
         sessionId: activeSession.id,
         attachment: {
-          id: `context-file-${slugify(selected.path)}-${Date.now()}`,
-          kind: "file",
-          title: selected.label,
+          id: `context-${kind}-${slugify(path)}-${Date.now()}`,
+          kind,
+          title,
           provenance: "desktop",
           contentState: "metadata-only",
-          path: selected.path,
-          summary: i18n.t("workbench.context.fileSummary"),
+          path,
+          summary,
           attachedAt
         },
         at: attachedAt
@@ -294,7 +361,7 @@ export function useWorkbenchActions({
     );
     setRunnerStatus(
       formatMessage(i18n.t("workbench.context.attachedStatus"), {
-        title: selected.label
+        title
       })
     );
   };
@@ -319,6 +386,7 @@ export function useWorkbenchActions({
 
   return {
     attachFileContext,
+    attachRecentContext,
     attachWorkspaceContext,
     chooseWorkspace,
     deleteActiveSession,

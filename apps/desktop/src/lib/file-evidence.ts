@@ -202,6 +202,35 @@ export function createEvidenceBundleDraft({
   ].join("\n");
 }
 
+export function createEvidenceReportDraft({
+  activeSession,
+  inspectorData
+}: {
+  readonly activeSession?: ProjectedActiveSession;
+  readonly inspectorData?: InspectorSessionReadModel;
+}): string {
+  const sessionTitle = safeText(activeSession?.title ?? inspectorData?.sessionId ?? "current session");
+  const bundle = createEvidenceBundleDraft({ activeSession, inspectorData });
+
+  return [
+    `Workbench dogfood report for ${sessionTitle}`,
+    "",
+    "Scope",
+    "- Capture the issue, regression, or review question this evidence should support.",
+    "- Keep provider/account secrets, raw Claude logs, and raw private file content out of the report.",
+    "",
+    "Suggested checks",
+    "- Can another agent understand the workspace/session state from metadata alone?",
+    "- Are approvals, terminal output summaries, diffs, and route metadata enough to reproduce the concern?",
+    "- Does this need a follow-up run, manual retry, resume, or route switch?",
+    "",
+    bundle,
+    "",
+    "Next action",
+    "- Decide whether to file an issue, queue a follow-up prompt, or export this report for local debugging."
+  ].join("\n");
+}
+
 export function createEvidenceBundleFileName({
   activeSession,
   now = new Date()

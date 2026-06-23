@@ -29,12 +29,14 @@ import { InspectorReviewTab } from "./inspector/inspector-review-tab.js";
 import type { DesktopRunnerMode } from "../demo-workbench.js";
 import type { ClaudeCodeCliProbe } from "../claude-runner.js";
 import type { InspectorSessionReadModel } from "../lib/inspector-read-model.js";
+import type { RecentContextItem } from "../lib/recent-context.js";
 import type { SideChatDraft } from "../lib/side-chat-drafts.js";
 
 export function InspectorPane({
   activeExternalSession,
   activeRunMode,
   activeSession,
+  attachRecentContext,
   attachFileContext,
   attachWorkspaceContext,
   canFollowUpApprovals,
@@ -55,6 +57,7 @@ export function InspectorPane({
   persistenceNotes,
   providerRouteOptions,
   providerSummary,
+  recentContextItems,
   removeSideChatDraft,
   reviewDeliveryOptions,
   resolveApproval,
@@ -67,6 +70,7 @@ export function InspectorPane({
   settingsLabels,
   setComposerPrompt,
   setInspectorTab,
+  setRunnerStatus,
   updateAgentResponseLanguage,
   updateRunnerMode,
   updateSessionDefaults,
@@ -75,6 +79,7 @@ export function InspectorPane({
   readonly activeExternalSession?: ProjectedActiveSession["externalSessions"][string];
   readonly activeRunMode?: DesktopRunnerMode;
   readonly activeSession?: ProjectedActiveSession;
+  readonly attachRecentContext: (item: RecentContextItem) => void;
   readonly attachFileContext: () => void;
   readonly attachWorkspaceContext: () => void;
   readonly canFollowUpApprovals: boolean;
@@ -95,6 +100,7 @@ export function InspectorPane({
   readonly persistenceNotes: readonly string[];
   readonly providerRouteOptions: readonly WorkbenchCatalogOption[];
   readonly providerSummary: string;
+  readonly recentContextItems: readonly RecentContextItem[];
   readonly removeSideChatDraft: (draftId: string) => void;
   readonly reviewDeliveryOptions: readonly { readonly value: string; readonly label: string }[];
   readonly resolveApproval: (approvalId: string, decision: ApprovalDecision) => void;
@@ -107,6 +113,7 @@ export function InspectorPane({
   readonly settingsLabels: WorkbenchSettingsLabels;
   readonly setComposerPrompt: (prompt: string) => void;
   readonly setInspectorTab: (tab: string) => void;
+  readonly setRunnerStatus: (status: string) => void;
   readonly updateAgentResponseLanguage: (language: string) => void;
   readonly updateRunnerMode: (mode: DesktopRunnerMode) => void;
   readonly updateSessionDefaults: (patch: Partial<WorkbenchSessionDefaults>) => void;
@@ -231,11 +238,14 @@ export function InspectorPane({
         />
         <InspectorFilesTab
           activeSession={activeSession}
+          attachRecentContext={attachRecentContext}
           attachFileContext={attachFileContext}
           attachWorkspaceContext={attachWorkspaceContext}
           enqueueSideChatDraft={enqueueSideChatDraft}
           inspectorData={inspectorData}
           i18n={i18n}
+          recentContextItems={recentContextItems}
+          setRunnerStatus={setRunnerStatus}
         />
         <InspectorSideChatTab
           drafts={drafts}
