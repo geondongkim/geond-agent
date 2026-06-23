@@ -141,7 +141,7 @@ export function InspectorPane({
             </div>
           </div>
         </div>
-        <div className="mt-3 rounded-md border border-[color:var(--border)] bg-[color:var(--panel)] px-3 py-2">
+        <div className="mt-3 border-t border-white/[0.055] px-1 pt-3">
           <div className="flex items-center justify-between gap-3">
             <p className="muted-meta">{i18n.t("workbench.runner.mode")}</p>
             <span className={runnerBusy ? "status-pill status-warn" : "status-pill status-neutral"}>
@@ -159,7 +159,7 @@ export function InspectorPane({
                 : i18n.t("workbench.runner.fixtureReady"))}
           </p>
         </div>
-        <p className="mt-3 rounded-md border border-[color:var(--border)] bg-[color:var(--panel)] px-3 py-2 font-mono text-[11px] leading-5 text-[color:var(--ink-soft)]">
+        <p className="mt-3 border-t border-white/[0.055] px-1 pt-3 font-mono text-[11px] leading-5 text-[color:var(--ink-soft)]">
           {formatProviderSummary(providerSummary)}
         </p>
       </div>
@@ -167,7 +167,7 @@ export function InspectorPane({
       <Tabs value={inspectorTab} onValueChange={setInspectorTab}>
         <div className="tool-tabs-shell">
           <p className="muted-meta">{i18n.t("workbench.workspacePanel.tools")}</p>
-          <TabsList className="workspace-tabs tool-tab-grid border-[color:var(--border)] bg-[color:var(--panel)]">
+          <TabsList className="workspace-tabs tool-tab-grid">
             <TabsTrigger value="review" className="workspace-tab">
               <ClipboardCheck size={14} />
               {i18n.t("workbench.workspacePanel.review")}

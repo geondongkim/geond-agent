@@ -46,7 +46,7 @@ export function InspectorBrowserTab({
             <p className="mt-2 text-xs leading-5 text-[color:var(--ink-soft)]">
               {i18n.t("workbench.browser.detail")}
             </p>
-            <p className="mt-2 inline-flex rounded-md border border-white/10 bg-black/20 px-2 py-1 text-[11px] text-[color:var(--ink-soft)]">
+            <p className="mt-2 inline-flex text-[11px] text-[color:var(--ink-soft)]">
               {i18n.t("workbench.browser.localOnly")}
             </p>
           </div>
