@@ -8,7 +8,7 @@ const buttonVariants = {
   ghost:
     "bg-transparent text-[color:var(--ink-muted)] hover:bg-[color:var(--panel-muted)] hover:text-[color:var(--ink)]",
   outline:
-    "border border-[color:var(--border-strong)] bg-[color:var(--panel)] text-[color:var(--ink)] hover:border-white/25"
+    "bg-[color:var(--panel)] text-[color:var(--ink)] hover:bg-[color:var(--panel-muted)]"
 } as const;
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

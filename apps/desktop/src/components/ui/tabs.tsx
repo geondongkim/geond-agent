@@ -14,7 +14,7 @@ export function TabsList({
   return (
     <TabsPrimitive.List
       className={cn(
-        "flex flex-wrap gap-2 rounded-lg border border-[color:var(--border)] bg-[color:var(--panel-muted)] p-2",
+        "flex flex-wrap gap-2 rounded-lg bg-[color:var(--panel-muted)] p-2",
         className
       )}
       {...props}
@@ -43,7 +43,7 @@ export function TabsContent({
 }: ComponentPropsWithoutRef<typeof TabsPrimitive.Content>) {
   return (
     <TabsPrimitive.Content
-      className={cn("mt-4 rounded-lg border border-[color:var(--border)] bg-[color:var(--panel)] p-4", className)}
+      className={cn("mt-4 rounded-lg bg-[color:var(--panel)] p-4", className)}
       {...props}
     />
   );
