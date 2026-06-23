@@ -127,6 +127,17 @@ export type ProjectedLiveRunGuidanceKind =
   | "check_key"
   | "inspect_terminal";
 export type ProjectedLiveRunGuidanceSeverity = "info" | "success" | "warning" | "error";
+export type ProjectedLiveRunNextAction =
+  | "start_live_run"
+  | "watch_stream"
+  | "review_evidence"
+  | "inspect_terminal"
+  | "resume_session"
+  | "retry_later"
+  | "switch_route"
+  | "lower_model"
+  | "check_key"
+  | "queue_recovery_brief";
 
 export interface ProjectedLiveRunGuidance {
   readonly kind: ProjectedLiveRunGuidanceKind;
@@ -138,6 +149,7 @@ export interface ProjectedLiveRunGuidance {
   readonly suggestedAction?: WorkbenchRunnerIssueSuggestedAction;
   readonly routeHealth?: WorkbenchProviderRouteHealthStatus;
   readonly streamQuality: WorkbenchStreamQuality;
+  readonly nextActions: readonly ProjectedLiveRunNextAction[];
 }
 
 export interface ProjectedWorkbenchSession {
@@ -404,7 +416,8 @@ function projectLiveRunGuidance(
       kind: "idle",
       severity: "info",
       canResume: false,
-      streamQuality: "pending"
+      streamQuality: "pending",
+      nextActions: ["start_live_run"]
     };
   }
 
@@ -423,23 +436,29 @@ function projectLiveRunGuidance(
       severity: "info",
       canResume: false,
       latestAttemptId: latestAttempt.id,
-      streamQuality
+      streamQuality,
+      nextActions: ["watch_stream", "inspect_terminal"]
     };
   }
 
   if (latestAttempt.status === "succeeded") {
+    const kind = streamQuality === "warning" ? "stream_warning" : "healthy";
+
     return {
-      kind: streamQuality === "warning" ? "stream_warning" : "healthy",
+      kind,
       severity: streamQuality === "warning" ? "warning" : "success",
       canResume: false,
       latestAttemptId: latestAttempt.id,
-      streamQuality
+      streamQuality,
+      nextActions: projectLiveRunNextActions(kind, false)
     };
   }
 
   if (issue) {
+    const kind = guidanceKindForIssue(issue, canResume);
+
     return {
-      kind: guidanceKindForIssue(issue, canResume),
+      kind,
       severity: issue.severity === "error" ? "error" : "warning",
       canResume,
       latestAttemptId: latestAttempt.id,
@@ -447,17 +466,57 @@ function projectLiveRunGuidance(
       latestIssueKind: issue.kind,
       suggestedAction: issue.suggestedAction,
       routeHealth: issue.routeHealth,
-      streamQuality
+      streamQuality,
+      nextActions: projectLiveRunNextActions(kind, canResume)
     };
   }
 
+  const kind = canResume ? "resume_available" : "inspect_terminal";
+
   return {
-    kind: canResume ? "resume_available" : "inspect_terminal",
+    kind,
     severity: latestAttempt.status === "cancelled" ? "warning" : "error",
     canResume,
     latestAttemptId: latestAttempt.id,
-    streamQuality
+    streamQuality,
+    nextActions: projectLiveRunNextActions(kind, canResume)
   };
+}
+
+function projectLiveRunNextActions(
+  kind: ProjectedLiveRunGuidanceKind,
+  canResume: boolean
+): readonly ProjectedLiveRunNextAction[] {
+  switch (kind) {
+    case "idle":
+      return ["start_live_run"];
+    case "running":
+      return ["watch_stream", "inspect_terminal"];
+    case "healthy":
+      return ["review_evidence"];
+    case "stream_warning":
+      return ["inspect_terminal", "queue_recovery_brief"];
+    case "resume_available":
+      return ["resume_session", "queue_recovery_brief", "inspect_terminal"];
+    case "retry_later":
+      return canResume
+        ? ["retry_later", "resume_session", "inspect_terminal"]
+        : ["retry_later", "inspect_terminal"];
+    case "switch_route":
+      return canResume
+        ? ["switch_route", "resume_session", "inspect_terminal"]
+        : ["switch_route", "inspect_terminal"];
+    case "lower_model":
+      return canResume
+        ? ["lower_model", "resume_session", "inspect_terminal"]
+        : ["lower_model", "inspect_terminal"];
+    case "check_key":
+      return ["check_key"];
+    case "inspect_terminal":
+      return canResume
+        ? ["inspect_terminal", "resume_session", "queue_recovery_brief"]
+        : ["inspect_terminal", "queue_recovery_brief"];
+  }
 }
 
 function guidanceKindForIssue(

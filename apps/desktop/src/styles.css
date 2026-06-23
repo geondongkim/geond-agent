@@ -608,6 +608,19 @@ body {
     @apply px-0 py-1.5;
   }
 
+  .guidance-action-list {
+    @apply mt-2 space-y-1 text-xs leading-5 text-[color:var(--ink-soft)];
+  }
+
+  .guidance-action-list li {
+    @apply flex gap-2;
+  }
+
+  .guidance-action-list li::before {
+    @apply mt-2 h-1 w-1 shrink-0 rounded-full bg-[color:var(--ink-muted)];
+    content: "";
+  }
+
   .settings-field {
     @apply block bg-transparent px-1 py-2;
   }

@@ -1,5 +1,6 @@
 import type {
   ProjectedLiveRunGuidanceKind,
+  ProjectedLiveRunNextAction,
   SelectionReadinessLevel,
   UiI18n,
   WorkbenchContextAttachmentKind,
@@ -270,6 +271,34 @@ export function formatLiveRunGuidanceDetail(
       return i18n.t("workbench.guidance.detail.checkKey");
     case "inspect_terminal":
       return i18n.t("workbench.guidance.detail.inspectTerminal");
+  }
+}
+
+export function formatLiveRunNextActionLabel(
+  i18n: UiI18n,
+  action: ProjectedLiveRunNextAction
+): string {
+  switch (action) {
+    case "start_live_run":
+      return i18n.t("workbench.guidance.action.startLiveRun");
+    case "watch_stream":
+      return i18n.t("workbench.guidance.action.watchStream");
+    case "review_evidence":
+      return i18n.t("workbench.guidance.action.reviewEvidence");
+    case "inspect_terminal":
+      return i18n.t("workbench.guidance.action.inspectTerminal");
+    case "resume_session":
+      return i18n.t("workbench.guidance.action.resumeSession");
+    case "retry_later":
+      return i18n.t("workbench.guidance.action.retryLater");
+    case "switch_route":
+      return i18n.t("workbench.guidance.action.switchRoute");
+    case "lower_model":
+      return i18n.t("workbench.guidance.action.lowerModel");
+    case "check_key":
+      return i18n.t("workbench.guidance.action.checkKey");
+    case "queue_recovery_brief":
+      return i18n.t("workbench.guidance.action.queueRecoveryBrief");
   }
 }
 
