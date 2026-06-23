@@ -93,6 +93,14 @@ share the same session, plan, diff, terminal, approval, and review surfaces.
 - [Z.ai pre-subscription readiness](docs/plans/zai-pre-subscription-readiness.md)
 - [Licensing policy](docs/reference/licensing.md)
 
+## Verification
+
+- `pnpm verify` runs the local quality gate: diff whitespace check, lint,
+  package tests/builds, and native Rust checks/tests.
+- `pnpm test:e2e` runs the desktop Playwright workbench suite.
+- `pnpm test:e2e:layout` runs the focused compact/wide layout guard and leaves
+  screenshot artifacts in ignored Playwright output directories for review.
+
 ## License
 
 `geond-agent` is licensed under the [Apache License 2.0](LICENSE).

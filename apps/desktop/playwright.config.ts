@@ -4,7 +4,13 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
   retries: process.env.CI ? 2 : 0,
-  reporter: process.env.CI ? "github" : "list",
+  reporter: process.env.CI
+    ? [
+        ["github"],
+        ["html", { open: "never", outputFolder: "playwright-report" }]
+      ]
+    : "list",
+  outputDir: "test-results",
   use: {
     baseURL: "http://localhost:1420",
     locale: "en-US",

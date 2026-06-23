@@ -28,10 +28,10 @@ rendering, and safety standards.
 | Terminal output | Streaming output is readable, bounded, searchable later, and never shifts layout unpredictably. | Fixture tests cover running, succeeded, failed, truncated, and interrupted command states. |
 | Metrics | Cost, quota, context window, token usage, and backend capability metadata are shown only when adapters provide them. | Tests cover present, missing, stale, and unavailable metadata states. |
 | Settings/secrets | UI settings may persist locally; raw API keys and provider tokens are never in tracked settings payloads. | Secret scans run in verification and settings serializers expose presence flags, not raw secrets. |
-| Evidence prompts | File/workspace evidence remains metadata-only in local persistence, and any metadata forwarded to a backend/provider prompt is disclosed in the UI. | E2E tests verify the Files inspector prompt-boundary notice; unit tests verify dispatch prompts contain metadata only, never raw private file content. |
+| Evidence prompts | File/workspace evidence remains metadata-only in local persistence, and any metadata forwarded to a backend/provider prompt is disclosed in the UI. | E2E tests verify the Files inspector prompt-boundary notice; dispatch tests must verify prompts contain metadata only, never raw private file content. |
 | Localization | `en` and `ko` strings cover visible workbench settings and picker labels. | Type checks require both locales to define the same keys; tests cover fallback to `en`. |
 | Recovery | Failed adapter start, missing CLI, unavailable model, denied approval, and interrupted command states have clear next actions. | Fixture tests cover each failure state without requiring a real provider key. |
-| Layout quality | Dense workbench surfaces remain readable at narrow and wide sizes. | Snapshot, screenshot artifact, or visual regression-style layout guards cover compact, standard, and wide layouts. |
+| Layout quality | Dense workbench surfaces remain readable at narrow and wide sizes. | `pnpm test:e2e:layout` runs focused compact and wide layout guards and leaves screenshot artifacts for CI review. Full e2e remains split by layout, context, settings, and runner/approval surfaces. |
 
 ## Initial Implementation Order
 
@@ -59,7 +59,7 @@ The workbench can claim the Codex-level quality bar for a feature only when:
 - state survives session resume through a documented snapshot shape,
 - approvals and risky actions have explicit decision states,
 - keyboard and pointer flows are covered by tests,
-- compact and wide layouts are snapshot-tested,
+- compact and wide layouts have focused screenshot-backed layout guards,
 - English and Korean UI labels are complete,
 - secret scans remain clean,
 - failure and recovery states are rendered, not hidden in logs.
