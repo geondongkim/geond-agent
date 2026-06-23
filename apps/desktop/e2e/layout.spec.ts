@@ -48,6 +48,8 @@ test("workbench layout and command palette expose docked surfaces", async ({ pag
   await expect(page.getByRole("tab", { name: "Review" })).toBeVisible();
   const reviewPanel = page.getByRole("tabpanel", { name: "Review" });
   await expect(reviewPanel.getByRole("heading", { name: "Session review" })).toBeVisible();
+  await expect(reviewPanel.getByText("Recommended next actions")).toBeVisible();
+  await expect(reviewPanel.getByText("Start a Claude live run")).toBeVisible();
   await reviewPanel.getByRole("button", { name: "Queue session review" }).click();
   await expect(page.getByRole("tab", { name: "Browser" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Files" })).toBeVisible();

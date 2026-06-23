@@ -160,7 +160,8 @@ describe("projectWorkbenchEvents", () => {
       latestIssueKind: "provider_overloaded",
       suggestedAction: "retry_later",
       routeHealth: "degraded",
-      streamQuality: "failed"
+      streamQuality: "failed",
+      nextActions: ["retry_later", "resume_session", "inspect_terminal"]
     });
     expect(projection.activeSession?.runnerIssues[0]).toMatchObject({
       id: "issue-attempt-1-provider_overloaded",
@@ -249,12 +250,14 @@ describe("projectWorkbenchEvents", () => {
     expect(healthyProjection.activeSession?.liveRunGuidance).toMatchObject({
       kind: "healthy",
       severity: "success",
-      streamQuality: "clean"
+      streamQuality: "clean",
+      nextActions: ["review_evidence"]
     });
     expect(warningProjection.activeSession?.liveRunGuidance).toMatchObject({
       kind: "stream_warning",
       severity: "warning",
-      streamQuality: "warning"
+      streamQuality: "warning",
+      nextActions: ["inspect_terminal", "queue_recovery_brief"]
     });
   });
 

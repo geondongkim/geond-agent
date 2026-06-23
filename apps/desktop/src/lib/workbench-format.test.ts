@@ -6,6 +6,7 @@ import {
   formatExternalSessionId,
   formatLiveRunGuidanceDetail,
   formatLiveRunGuidanceLabel,
+  formatLiveRunNextActionLabel,
   formatMessage,
   formatRunAttemptTriggerLabel,
   formatSelectionReadinessDetail,
@@ -59,6 +60,12 @@ describe("desktop workbench formatting helpers", () => {
     );
     expect(liveRunGuidanceTone("success")).toBe("status-ok");
     expect(liveRunGuidanceTone("error")).toBe("status-danger");
+    expect(formatLiveRunNextActionLabel(createUiI18n("en"), "resume_session")).toBe(
+      "Resume the linked Claude session"
+    );
+    expect(formatLiveRunNextActionLabel(createUiI18n("ko"), "queue_recovery_brief")).toBe(
+      "복구 초안 추가"
+    );
   });
 
   it("formats selection readiness level and non-ready detail", () => {

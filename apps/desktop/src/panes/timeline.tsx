@@ -516,7 +516,10 @@ function getRecoveryState(
         ...activeSession.liveRunGuidance,
         kind: canResume ? "resume_available" as const : "inspect_terminal" as const,
         severity: "warning" as const,
-        canResume
+        canResume,
+        nextActions: canResume
+          ? ["resume_session", "queue_recovery_brief", "inspect_terminal"] as const
+          : ["inspect_terminal", "queue_recovery_brief"] as const
       };
 
   return needsRecovery

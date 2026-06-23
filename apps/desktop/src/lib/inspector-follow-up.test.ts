@@ -161,7 +161,8 @@ describe("inspector follow-up drafts", () => {
           severity: "warning",
           canResume: true,
           latestAttemptId: "attempt-1",
-          streamQuality: "warning"
+          streamQuality: "warning",
+          nextActions: ["resume_session", "queue_recovery_brief", "inspect_terminal"]
         },
         approvals: [
           {
@@ -181,6 +182,9 @@ describe("inspector follow-up drafts", () => {
     expect(draft).toContain("Route readiness: blocked");
     expect(draft).toContain("Live continuity:");
     expect(draft).toContain("Live guidance: resume_available");
+    expect(draft).toContain(
+      "Recommended next actions: resume_session, queue_recovery_brief, inspect_terminal."
+    );
     expect(draft).toContain("Approval subjects:");
     expect(draft).toContain("Run attempts:");
     expect(draft).toContain("Terminal evidence:");

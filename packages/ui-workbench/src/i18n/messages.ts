@@ -144,6 +144,17 @@ export type UiMessageKey =
   | "workbench.guidance.detail.lowerModel"
   | "workbench.guidance.detail.checkKey"
   | "workbench.guidance.detail.inspectTerminal"
+  | "workbench.guidance.nextActions"
+  | "workbench.guidance.action.startLiveRun"
+  | "workbench.guidance.action.watchStream"
+  | "workbench.guidance.action.reviewEvidence"
+  | "workbench.guidance.action.inspectTerminal"
+  | "workbench.guidance.action.resumeSession"
+  | "workbench.guidance.action.retryLater"
+  | "workbench.guidance.action.switchRoute"
+  | "workbench.guidance.action.lowerModel"
+  | "workbench.guidance.action.checkKey"
+  | "workbench.guidance.action.queueRecoveryBrief"
   | "workbench.issue.title"
   | "workbench.issue.latest"
   | "workbench.issue.routeHealth"
@@ -549,6 +560,17 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.guidance.detail.lowerModel": "The selected model may be too expensive or unstable for this route. Try a lower alias.",
     "workbench.guidance.detail.checkKey": "Local route readiness or auth needs attention. Check local-only environment settings.",
     "workbench.guidance.detail.inspectTerminal": "Inspect terminal evidence before retrying so the next run preserves useful context.",
+    "workbench.guidance.nextActions": "Recommended next actions",
+    "workbench.guidance.action.startLiveRun": "Start a Claude live run",
+    "workbench.guidance.action.watchStream": "Watch the active stream",
+    "workbench.guidance.action.reviewEvidence": "Review evidence before the next task",
+    "workbench.guidance.action.inspectTerminal": "Inspect terminal evidence",
+    "workbench.guidance.action.resumeSession": "Resume the linked Claude session",
+    "workbench.guidance.action.retryLater": "Retry after the route settles",
+    "workbench.guidance.action.switchRoute": "Switch provider route manually",
+    "workbench.guidance.action.lowerModel": "Try a lower model alias",
+    "workbench.guidance.action.checkKey": "Check local route/key setup",
+    "workbench.guidance.action.queueRecoveryBrief": "Queue a recovery brief",
     "workbench.issue.title": "Runtime issues",
     "workbench.issue.latest": "Latest issue",
     "workbench.issue.routeHealth": "Route health",
@@ -951,6 +973,17 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.guidance.detail.lowerModel": "선택한 모델이 이 경로에서 비싸거나 불안정할 수 있습니다. 낮은 alias를 시도하세요.",
     "workbench.guidance.detail.checkKey": "로컬 경로 준비 상태 또는 인증 설정을 확인해야 합니다. local-only 환경 설정을 점검하세요.",
     "workbench.guidance.detail.inspectTerminal": "다음 실행이 유용한 맥락을 보존하도록 재시도 전 터미널 evidence를 확인하세요.",
+    "workbench.guidance.nextActions": "권장 다음 행동",
+    "workbench.guidance.action.startLiveRun": "Claude live 실행 시작",
+    "workbench.guidance.action.watchStream": "활성 스트림 확인",
+    "workbench.guidance.action.reviewEvidence": "다음 작업 전 evidence 검토",
+    "workbench.guidance.action.inspectTerminal": "터미널 evidence 확인",
+    "workbench.guidance.action.resumeSession": "연결된 Claude 세션 이어쓰기",
+    "workbench.guidance.action.retryLater": "경로가 안정된 뒤 재시도",
+    "workbench.guidance.action.switchRoute": "프로바이더 경로 수동 전환",
+    "workbench.guidance.action.lowerModel": "낮은 모델 alias 시도",
+    "workbench.guidance.action.checkKey": "로컬 경로/key 설정 확인",
+    "workbench.guidance.action.queueRecoveryBrief": "복구 초안 추가",
     "workbench.issue.title": "런타임 문제",
     "workbench.issue.latest": "최근 문제",
     "workbench.issue.routeHealth": "경로 상태",

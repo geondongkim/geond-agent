@@ -1,5 +1,5 @@
 import type { KeyboardEvent } from "react";
-import { MessageSquarePlus, Terminal } from "lucide-react";
+import { MessageSquarePlus, Settings, Terminal } from "lucide-react";
 
 import type {
   ApprovalDecision,
@@ -24,6 +24,7 @@ import {
   formatExternalSessionId,
   formatLiveRunGuidanceDetail,
   formatLiveRunGuidanceLabel,
+  formatLiveRunNextActionLabel,
   formatMessage,
   formatIssueSuggestedActionLabel,
   formatRetryableLabel,
@@ -245,6 +246,55 @@ export function InspectorReviewTab({
                       )}`
                     : ""}
                 </p>
+              ) : null}
+              {activeSession.liveRunGuidance.nextActions.length ? (
+                <div className="mt-3 border-t border-white/[0.055] px-1 pt-3">
+                  <p className="muted-meta">{i18n.t("workbench.guidance.nextActions")}</p>
+                  <ul className="guidance-action-list">
+                    {activeSession.liveRunGuidance.nextActions.map((action) => (
+                      <li key={action}>{formatLiveRunNextActionLabel(i18n, action)}</li>
+                    ))}
+                  </ul>
+                  <div className="mt-3 flex flex-wrap justify-end gap-2">
+                    {activeSession.liveRunGuidance.nextActions.includes("inspect_terminal") ? (
+                      <Button
+                        variant="ghost"
+                        className="gap-2"
+                        onClick={() => setInspectorTab("terminal")}
+                      >
+                        <Terminal size={14} />
+                        {i18n.t("workbench.recovery.openTerminal")}
+                      </Button>
+                    ) : null}
+                    {hasSettingsAction(activeSession.liveRunGuidance.nextActions) ? (
+                      <Button
+                        variant="ghost"
+                        className="gap-2"
+                        onClick={() => setInspectorTab("settings")}
+                      >
+                        <Settings size={14} />
+                        {i18n.t("workbench.recovery.openSettings")}
+                      </Button>
+                    ) : null}
+                    {activeSession.liveRunGuidance.nextActions.includes(
+                      "queue_recovery_brief"
+                    ) ? (
+                      <Button
+                        variant="outline"
+                        className="gap-2"
+                        onClick={() =>
+                          enqueueSideChatDraft(
+                            createSessionReviewFollowUpDraft({ activeSession, inspectorData }),
+                            activeSession.title
+                          )
+                        }
+                      >
+                        <MessageSquarePlus size={14} />
+                        {i18n.t("workbench.followUp.queueRecovery")}
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
               ) : null}
             </div>
             <div className="usage-grid">
@@ -816,6 +866,12 @@ function streamQualityTone(quality: string): string {
     default:
       return "status-neutral";
   }
+}
+
+function hasSettingsAction(actions: readonly string[]): boolean {
+  return actions.some((action) =>
+    ["check_key", "lower_model", "switch_route"].includes(action)
+  );
 }
 
 function isRecoverableAttempt(status: string): boolean {
