@@ -431,7 +431,7 @@ body {
   }
 
   .review-section-heading {
-    @apply mb-2 flex items-center justify-between gap-3;
+    @apply mb-2 flex flex-wrap items-center justify-between gap-3;
   }
 
   .review-section-heading h3 {

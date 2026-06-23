@@ -277,6 +277,9 @@ export type UiMessageKey =
   | "workbench.sideChat.removeDraft"
   | "workbench.sideChat.useInComposer"
   | "workbench.sideChat.followUpPolicy"
+  | "workbench.review.title"
+  | "workbench.review.detail"
+  | "workbench.followUp.queueSessionReview"
   | "workbench.followUp.queueReview"
   | "workbench.followUp.queueTerminal"
   | "workbench.followUp.queueRunAttempt"
@@ -595,6 +598,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.sideChat.removeDraft": "Remove",
     "workbench.sideChat.useInComposer": "Use in composer",
     "workbench.sideChat.followUpPolicy": "Follow-up policy",
+    "workbench.review.title": "Session review",
+    "workbench.review.detail": "Queue a session-level brief that includes route readiness, approvals, run attempts, diffs, terminal evidence, and usage metadata.",
+    "workbench.followUp.queueSessionReview": "Queue session review",
     "workbench.followUp.queueReview": "Queue follow-up",
     "workbench.followUp.queueTerminal": "Queue terminal follow-up",
     "workbench.followUp.queueRunAttempt": "Queue run follow-up",
@@ -910,6 +916,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.sideChat.removeDraft": "제거",
     "workbench.sideChat.useInComposer": "Composer로 옮기기",
     "workbench.sideChat.followUpPolicy": "후속 요청 정책",
+    "workbench.review.title": "세션 검토",
+    "workbench.review.detail": "경로 준비 상태, 승인, 실행 시도, diff, 터미널 증거, 사용량 메타데이터를 묶은 세션 단위 검토 초안을 큐에 넣습니다.",
+    "workbench.followUp.queueSessionReview": "세션 검토 초안 추가",
     "workbench.followUp.queueReview": "후속 초안 추가",
     "workbench.followUp.queueTerminal": "터미널 후속 초안 추가",
     "workbench.followUp.queueRunAttempt": "실행 후속 초안 추가",
