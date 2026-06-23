@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   createEvidenceBundleDraft,
   createEvidenceBundleFileName,
+  createEvidenceExportManifestDraft,
+  createEvidenceExportManifestFileName,
   createEvidenceReportDraft,
+  createEvidenceReportFileName,
   createEvidenceFollowUpDraft,
   createFileEvidencePreviewModel,
   createWorkspaceEvidenceReportDraft,
@@ -229,6 +232,18 @@ describe("file evidence preview model", () => {
     ).toBe("2026-06-23-claude-dogfood-retry-resume-evidence.md");
   });
 
+  it("creates stable issue report filenames", () => {
+    expect(
+      createEvidenceReportFileName({
+        activeSession: {
+          id: "session-1",
+          title: "Claude Dogfood: retry/resume!"
+        } as unknown as ProjectedActiveSession,
+        now: new Date("2026-06-23T00:00:00.000Z")
+      })
+    ).toBe("2026-06-23-claude-dogfood-retry-resume-report.md");
+  });
+
   it("creates an issue/report draft around the metadata-only evidence bundle", () => {
     const report = createEvidenceReportDraft({
       activeSession: {
@@ -299,5 +314,89 @@ describe("file evidence preview model", () => {
         now: new Date("2026-06-24T00:00:00.000Z")
       })
     ).toBe("2026-06-24-workbench-workspace-report.md");
+  });
+
+  it("creates a metadata-only export manifest with workspace context groups", () => {
+    const sensitiveValue = ["sk", "local", "123456789012345678901234567890"].join("-");
+    const manifest = createEvidenceExportManifestDraft({
+      activeSession: {
+        id: "session-1",
+        title: "Claude dogfood",
+        workspacePath: "/workspace/geond-agent",
+        selection: {
+          backendAdapterId: "claude-code.external-cli-acp",
+          providerRouteId: "zai.anthropic-compatible",
+          modelProfileId: "sonnet",
+          routingMode: "manual"
+        },
+        contextAttachments: [],
+        commandOutputs: [
+          {
+            id: "cmd-1",
+            status: "failed",
+            exitCode: 1,
+            preview: sensitiveValue,
+            chunkCount: 2
+          }
+        ],
+        diffs: [],
+        runAttempts: [
+          {
+            id: "attempt-1",
+            mode: "claude-live",
+            status: "failed",
+            failureKind: "provider_overloaded",
+            errorMessage: sensitiveValue
+          }
+        ]
+      } as unknown as ProjectedActiveSession,
+      recentContextItems: [
+        {
+          id: "workspace:a",
+          kind: "workspace",
+          label: "geond-agent",
+          path: "/workspace/geond-agent",
+          updatedAt: "2026-06-24T00:00:00.000Z",
+          favorite: false
+        },
+        {
+          id: "file:a",
+          kind: "file",
+          label: "architecture.md",
+          path: "/workspace/geond-agent/docs/architecture.md",
+          updatedAt: "2026-06-24T00:01:00.000Z",
+          favorite: true
+        }
+      ],
+      sessions: [
+        {
+          id: "session-1",
+          title: "Claude dogfood",
+          lifecycle: "failed",
+          workspacePath: "/workspace/geond-agent",
+          backendAdapterId: "claude-code.external-cli-acp",
+          backendLabel: "Claude Code",
+          resumable: true,
+          pendingApprovalCount: 0,
+          warningCount: 1,
+          errorCount: 1
+        }
+      ]
+    });
+
+    expect(manifest).toContain("Workbench export manifest (metadata only).");
+    expect(manifest).toContain("Favorite context by workspace");
+    expect(manifest).toContain("geond-agent: path=/workspace/geond-agent");
+    expect(manifest).toContain("structured trace bundle: not collected in this slice");
+    expect(manifest).toContain("sessions with errors: 1");
+    expect(manifest).not.toContain(sensitiveValue);
+  });
+
+  it("creates stable export manifest filenames", () => {
+    expect(
+      createEvidenceExportManifestFileName({
+        now: new Date("2026-06-24T00:00:00.000Z")
+      })
+    ).toBe("2026-06-24-workbench-export-manifest.md");
   });
 });

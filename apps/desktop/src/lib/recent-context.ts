@@ -17,6 +17,15 @@ export interface RecentContextItem {
   readonly favorite: boolean;
 }
 
+export interface RecentContextWorkspaceGroup {
+  readonly id: string;
+  readonly label: string;
+  readonly path: string;
+  readonly items: readonly RecentContextItem[];
+  readonly favoriteCount: number;
+  readonly updatedAt: string;
+}
+
 export async function loadRecentContextItems(
   settingsStore: LocalSettingsStore
 ): Promise<readonly RecentContextItem[]> {
@@ -107,6 +116,34 @@ export function toggleRecentContextItemFavorite(
   );
 }
 
+export function groupRecentContextByWorkspace(
+  items: readonly RecentContextItem[],
+  workspaceHints: readonly RecentContextItem[] = items
+): readonly RecentContextWorkspaceGroup[] {
+  const workspaceCandidates = workspaceHints
+    .filter((item) => item.kind === "workspace")
+    .sort((left, right) => right.path.length - left.path.length);
+  const groups = new Map<string, RecentContextWorkspaceGroup>();
+
+  for (const item of items) {
+    const workspace = resolveWorkspaceForRecentContextItem(item, workspaceCandidates);
+    const existing = groups.get(workspace.path);
+    const nextItems = [...(existing?.items ?? []), item].sort((left, right) =>
+      right.updatedAt.localeCompare(left.updatedAt)
+    );
+    groups.set(workspace.path, {
+      id: `workspace-group:${stablePathSuffix(workspace.path)}`,
+      label: workspace.label,
+      path: workspace.path,
+      items: nextItems,
+      favoriteCount: nextItems.filter((candidate) => candidate.favorite).length,
+      updatedAt: nextItems[0]?.updatedAt ?? item.updatedAt
+    });
+  }
+
+  return [...groups.values()].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+}
+
 export function normalizeRecentContextItems(value: unknown): readonly RecentContextItem[] {
   const entries = Array.isArray(value)
     ? value
@@ -150,6 +187,38 @@ function normalizeRecentContextItem(value: unknown): readonly RecentContextItem[
   ];
 }
 
+function resolveWorkspaceForRecentContextItem(
+  item: RecentContextItem,
+  workspaceCandidates: readonly RecentContextItem[]
+): { readonly label: string; readonly path: string } {
+  if (item.kind === "workspace") {
+    return {
+      label: item.label,
+      path: item.path
+    };
+  }
+
+  const matchingWorkspace = workspaceCandidates.find((workspace) =>
+    isPathInsideWorkspace(item.path, workspace.path)
+  );
+  if (matchingWorkspace) {
+    return {
+      label: matchingWorkspace.label,
+      path: matchingWorkspace.path
+    };
+  }
+
+  const path = dirname(item.path);
+  return {
+    label: basename(path),
+    path
+  };
+}
+
+function isPathInsideWorkspace(path: string, workspacePath: string): boolean {
+  return path === workspacePath || path.startsWith(`${workspacePath.replace(/\/+$/g, "")}/`);
+}
+
 function normalizeText(value: unknown, maxLength: number): string | undefined {
   if (typeof value !== "string") {
     return undefined;
@@ -162,6 +231,15 @@ function normalizeText(value: unknown, maxLength: number): string | undefined {
 function basename(path: string): string {
   const pieces = path.split("/").filter((piece) => piece.length > 0);
   return pieces[pieces.length - 1] ?? path;
+}
+
+function dirname(path: string): string {
+  const normalizedPath = path.replace(/\/+$/g, "");
+  const lastSlashIndex = normalizedPath.lastIndexOf("/");
+  if (lastSlashIndex <= 0) {
+    return normalizedPath || "/";
+  }
+  return normalizedPath.slice(0, lastSlashIndex);
 }
 
 function stablePathSuffix(value: string): string {

@@ -20,7 +20,10 @@ import { cn } from "../../lib/cn.js";
 import {
   createEvidenceBundleDraft,
   createEvidenceBundleFileName,
+  createEvidenceExportManifestDraft,
+  createEvidenceExportManifestFileName,
   createEvidenceReportDraft,
+  createEvidenceReportFileName,
   createWorkspaceEvidenceReportDraft,
   createWorkspaceEvidenceReportFileName,
   createEvidenceFollowUpDraft,
@@ -34,7 +37,11 @@ import {
   type FileEvidenceSelection
 } from "../../lib/file-evidence.js";
 import type { InspectorSessionReadModel } from "../../lib/inspector-read-model.js";
-import type { RecentContextItem } from "../../lib/recent-context.js";
+import {
+  groupRecentContextByWorkspace,
+  type RecentContextItem,
+  type RecentContextWorkspaceGroup
+} from "../../lib/recent-context.js";
 import { exportMarkdownFile } from "../../lib/text-export.js";
 import { formatContextKindLabel } from "../../lib/workbench-format.js";
 import type { ProjectedActiveSession, ProjectedSessionListItem } from "../../lib/workbench-types.js";
@@ -106,6 +113,25 @@ export function InspectorFilesTab({
     );
   }
 
+  async function exportEvidenceReport() {
+    if (!activeSession) {
+      return;
+    }
+
+    const result = await exportMarkdownFile({
+      fileName: createEvidenceReportFileName({ activeSession }),
+      text: createEvidenceReportDraft({ activeSession, inspectorData }),
+      title: i18n.t("workbench.files.exportIssueReport")
+    });
+    setRunnerStatus(
+      result === "saved"
+        ? i18n.t("workbench.files.issueReportExportSaved")
+        : result === "downloaded"
+          ? i18n.t("workbench.files.issueReportExportDownloaded")
+          : i18n.t("workbench.files.issueReportExportCancelled")
+    );
+  }
+
   function queueWorkspaceReport() {
     enqueueSideChatDraft(
       createWorkspaceEvidenceReportDraft({
@@ -114,6 +140,38 @@ export function InspectorFilesTab({
         sessions: projectedSessions
       }),
       i18n.t("workbench.files.workspaceReport")
+    );
+  }
+
+  function queueEvidenceManifest() {
+    enqueueSideChatDraft(
+      createEvidenceExportManifestDraft({
+        activeSession,
+        inspectorData,
+        recentContextItems,
+        sessions: projectedSessions
+      }),
+      i18n.t("workbench.files.exportManifest")
+    );
+  }
+
+  async function exportEvidenceManifest() {
+    const result = await exportMarkdownFile({
+      fileName: createEvidenceExportManifestFileName(),
+      text: createEvidenceExportManifestDraft({
+        activeSession,
+        inspectorData,
+        recentContextItems,
+        sessions: projectedSessions
+      }),
+      title: i18n.t("workbench.files.exportManifest")
+    });
+    setRunnerStatus(
+      result === "saved"
+        ? i18n.t("workbench.files.exportManifestSaved")
+        : result === "downloaded"
+          ? i18n.t("workbench.files.exportManifestDownloaded")
+          : i18n.t("workbench.files.exportManifestCancelled")
     );
   }
 
@@ -188,49 +246,6 @@ export function InspectorFilesTab({
         </p>
         <div className="mt-3 flex flex-wrap justify-end gap-2">
           <Button
-            variant="ghost"
-            className="gap-2"
-            onClick={queueEvidenceBundle}
-            disabled={!activeSession}
-          >
-            <MessageSquarePlus size={14} />
-            {i18n.t("workbench.files.queueEvidenceBundle")}
-          </Button>
-          <Button
-            variant="ghost"
-            className="gap-2"
-            onClick={queueEvidenceReport}
-            disabled={!activeSession}
-          >
-            <MessageSquarePlus size={14} />
-            {i18n.t("workbench.files.queueIssueReport")}
-          </Button>
-          <Button
-            variant="ghost"
-            className="gap-2"
-            onClick={queueWorkspaceReport}
-          >
-            <MessageSquarePlus size={14} />
-            {i18n.t("workbench.files.queueWorkspaceReport")}
-          </Button>
-          <Button
-            variant="ghost"
-            className="gap-2"
-            onClick={() => void exportEvidenceBundle()}
-            disabled={!activeSession}
-          >
-            <Download size={14} />
-            {i18n.t("workbench.files.exportEvidenceBundle")}
-          </Button>
-          <Button
-            variant="ghost"
-            className="gap-2"
-            onClick={() => void exportWorkspaceReport()}
-          >
-            <Download size={14} />
-            {i18n.t("workbench.files.exportWorkspaceReport")}
-          </Button>
-          <Button
             variant="outline"
             className="gap-2"
             onClick={() => void attachWorkspaceContext()}
@@ -251,6 +266,19 @@ export function InspectorFilesTab({
         </div>
       </div>
 
+      <EvidenceExportSection
+        activeSession={activeSession}
+        exportEvidenceBundle={() => void exportEvidenceBundle()}
+        exportEvidenceManifest={() => void exportEvidenceManifest()}
+        exportEvidenceReport={() => void exportEvidenceReport()}
+        exportWorkspaceReport={() => void exportWorkspaceReport()}
+        i18n={i18n}
+        queueEvidenceBundle={queueEvidenceBundle}
+        queueEvidenceManifest={queueEvidenceManifest}
+        queueEvidenceReport={queueEvidenceReport}
+        queueWorkspaceReport={queueWorkspaceReport}
+      />
+
       {favoriteContextItems.length > 0 ? (
         <RecentContextSection
           attachRecentContext={attachRecentContext}
@@ -259,6 +287,7 @@ export function InspectorFilesTab({
           items={favoriteContextItems}
           title={i18n.t("workbench.files.favoriteContext")}
           toggleRecentContextFavorite={toggleRecentContextFavorite}
+          workspaceHints={recentContextItems}
         />
       ) : null}
 
@@ -270,6 +299,7 @@ export function InspectorFilesTab({
           items={nonFavoriteContextItems}
           title={i18n.t("workbench.files.recentContext")}
           toggleRecentContextFavorite={toggleRecentContextFavorite}
+          workspaceHints={recentContextItems}
         />
       ) : null}
 
@@ -332,13 +362,125 @@ export function InspectorFilesTab({
   );
 }
 
+function EvidenceExportSection({
+  activeSession,
+  exportEvidenceBundle,
+  exportEvidenceManifest,
+  exportEvidenceReport,
+  exportWorkspaceReport,
+  i18n,
+  queueEvidenceBundle,
+  queueEvidenceManifest,
+  queueEvidenceReport,
+  queueWorkspaceReport
+}: {
+  readonly activeSession?: ProjectedActiveSession;
+  readonly exportEvidenceBundle: () => void;
+  readonly exportEvidenceManifest: () => void;
+  readonly exportEvidenceReport: () => void;
+  readonly exportWorkspaceReport: () => void;
+  readonly i18n: UiI18n;
+  readonly queueEvidenceBundle: () => void;
+  readonly queueEvidenceManifest: () => void;
+  readonly queueEvidenceReport: () => void;
+  readonly queueWorkspaceReport: () => void;
+}) {
+  return (
+    <EvidenceSection count={4} title={i18n.t("workbench.files.exportPackage")}>
+      <div className="grid gap-2">
+        <ExportActionCard
+          disabled={!activeSession}
+          icon={<FileText size={15} />}
+          i18n={i18n}
+          onExport={exportEvidenceBundle}
+          onQueue={queueEvidenceBundle}
+          primaryLabel={i18n.t("workbench.files.queueEvidenceBundle")}
+          secondaryLabel={i18n.t("workbench.files.exportEvidenceBundle")}
+          title={i18n.t("workbench.files.evidenceBundle")}
+        />
+        <ExportActionCard
+          disabled={!activeSession}
+          icon={<FileText size={15} />}
+          i18n={i18n}
+          onExport={exportEvidenceReport}
+          onQueue={queueEvidenceReport}
+          primaryLabel={i18n.t("workbench.files.queueIssueReport")}
+          secondaryLabel={i18n.t("workbench.files.exportIssueReport")}
+          title={i18n.t("workbench.files.issueReport")}
+        />
+        <ExportActionCard
+          icon={<FolderOpen size={15} />}
+          i18n={i18n}
+          onExport={exportWorkspaceReport}
+          onQueue={queueWorkspaceReport}
+          primaryLabel={i18n.t("workbench.files.queueWorkspaceReport")}
+          secondaryLabel={i18n.t("workbench.files.exportWorkspaceReport")}
+          title={i18n.t("workbench.files.workspaceReport")}
+        />
+        <ExportActionCard
+          icon={<ShieldCheck size={15} />}
+          i18n={i18n}
+          onExport={exportEvidenceManifest}
+          onQueue={queueEvidenceManifest}
+          primaryLabel={i18n.t("workbench.files.queueExportManifest")}
+          secondaryLabel={i18n.t("workbench.files.exportManifest")}
+          title={i18n.t("workbench.files.exportManifest")}
+        />
+      </div>
+    </EvidenceSection>
+  );
+}
+
+function ExportActionCard({
+  disabled = false,
+  icon,
+  i18n,
+  onExport,
+  onQueue,
+  primaryLabel,
+  secondaryLabel,
+  title
+}: {
+  readonly disabled?: boolean;
+  readonly icon: ReactNode;
+  readonly i18n: UiI18n;
+  readonly onExport: () => void;
+  readonly onQueue: () => void;
+  readonly primaryLabel: string;
+  readonly secondaryLabel: string;
+  readonly title: string;
+}) {
+  return (
+    <div className="file-evidence-card">
+      <div className="file-evidence-card-header">
+        <span className="file-evidence-icon">{icon}</span>
+        <div className="min-w-0 flex-1">
+          <p className="muted-meta">{i18n.t("workbench.context.metadataOnly")}</p>
+          <h4 className="truncate text-sm font-semibold">{title}</h4>
+        </div>
+      </div>
+      <div className="mt-3 flex justify-end gap-2">
+        <Button variant="ghost" className="gap-2" onClick={onQueue} disabled={disabled}>
+          <MessageSquarePlus size={14} />
+          {primaryLabel}
+        </Button>
+        <Button variant="outline" className="gap-2" onClick={onExport} disabled={disabled}>
+          <Download size={14} />
+          {secondaryLabel}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function RecentContextSection({
   attachRecentContext,
   count,
   i18n,
   items,
   title,
-  toggleRecentContextFavorite
+  toggleRecentContextFavorite,
+  workspaceHints
 }: {
   readonly attachRecentContext: (item: RecentContextItem) => void;
   readonly count: number;
@@ -346,15 +488,53 @@ function RecentContextSection({
   readonly items: readonly RecentContextItem[];
   readonly title: string;
   readonly toggleRecentContextFavorite: (itemId: string) => void;
+  readonly workspaceHints: readonly RecentContextItem[];
 }) {
   if (!items.length) {
     return null;
   }
 
+  const groups = groupRecentContextByWorkspace(items, workspaceHints);
+
   return (
     <EvidenceSection count={count} title={title}>
+      <div className="space-y-3">
+        {groups.map((group) => (
+          <RecentContextWorkspaceGroupBlock
+            attachRecentContext={attachRecentContext}
+            group={group}
+            i18n={i18n}
+            key={group.id}
+            toggleRecentContextFavorite={toggleRecentContextFavorite}
+          />
+        ))}
+      </div>
+    </EvidenceSection>
+  );
+}
+
+function RecentContextWorkspaceGroupBlock({
+  attachRecentContext,
+  group,
+  i18n,
+  toggleRecentContextFavorite
+}: {
+  readonly attachRecentContext: (item: RecentContextItem) => void;
+  readonly group: RecentContextWorkspaceGroup;
+  readonly i18n: UiI18n;
+  readonly toggleRecentContextFavorite: (itemId: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex min-w-0 items-center justify-between gap-3 px-1">
+        <div className="min-w-0">
+          <h4 className="truncate text-xs font-semibold text-[color:var(--ink)]">{group.label}</h4>
+          <p className="truncate text-[11px] text-[color:var(--ink-muted)]">{group.path}</p>
+        </div>
+        <span className="metric-pill">{group.items.length}</span>
+      </div>
       <div className="space-y-2">
-        {items.map((item) => (
+        {group.items.map((item) => (
           <RecentContextCard
             key={item.id}
             i18n={i18n}
@@ -364,7 +544,7 @@ function RecentContextSection({
           />
         ))}
       </div>
-    </EvidenceSection>
+    </div>
   );
 }
 

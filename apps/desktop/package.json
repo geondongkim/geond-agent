@@ -5,7 +5,8 @@
   "description": "Native desktop app for geond-agent.",
   "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "build": "tsc -p tsconfig.json --noEmit && vite build && pnpm build:budget",
+    "build:budget": "node scripts/check-chunk-budget.mjs",
     "dev": "vite",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "tsc -p tsconfig.json --noEmit",

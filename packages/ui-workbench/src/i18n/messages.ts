@@ -359,16 +359,27 @@ export type UiMessageKey =
   | "workbench.files.queueEvidenceBundle"
   | "workbench.files.queueIssueReport"
   | "workbench.files.queueWorkspaceReport"
+  | "workbench.files.queueExportManifest"
+  | "workbench.files.exportPackage"
+  | "workbench.files.evidenceBundle"
   | "workbench.files.issueReport"
   | "workbench.files.workspaceReport"
+  | "workbench.files.exportManifest"
   | "workbench.files.exportEvidenceBundle"
+  | "workbench.files.exportIssueReport"
   | "workbench.files.exportWorkspaceReport"
   | "workbench.files.exportSaved"
   | "workbench.files.exportDownloaded"
   | "workbench.files.exportCancelled"
+  | "workbench.files.issueReportExportSaved"
+  | "workbench.files.issueReportExportDownloaded"
+  | "workbench.files.issueReportExportCancelled"
   | "workbench.files.workspaceReportExportSaved"
   | "workbench.files.workspaceReportExportDownloaded"
   | "workbench.files.workspaceReportExportCancelled"
+  | "workbench.files.exportManifestSaved"
+  | "workbench.files.exportManifestDownloaded"
+  | "workbench.files.exportManifestCancelled"
   | "workbench.files.recentContext"
   | "workbench.files.favoriteContext"
   | "workbench.files.favorite"
@@ -827,16 +838,27 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.queueEvidenceBundle": "Queue evidence bundle",
     "workbench.files.queueIssueReport": "Queue report",
     "workbench.files.queueWorkspaceReport": "Queue workspace report",
+    "workbench.files.queueExportManifest": "Queue export manifest",
+    "workbench.files.exportPackage": "Export package",
+    "workbench.files.evidenceBundle": "Evidence bundle",
     "workbench.files.issueReport": "Issue report",
     "workbench.files.workspaceReport": "Workspace report",
+    "workbench.files.exportManifest": "Export manifest",
     "workbench.files.exportEvidenceBundle": "Export evidence bundle",
+    "workbench.files.exportIssueReport": "Export report",
     "workbench.files.exportWorkspaceReport": "Export workspace report",
     "workbench.files.exportSaved": "Evidence bundle saved.",
     "workbench.files.exportDownloaded": "Evidence bundle downloaded.",
     "workbench.files.exportCancelled": "Evidence bundle export cancelled.",
+    "workbench.files.issueReportExportSaved": "Issue report saved.",
+    "workbench.files.issueReportExportDownloaded": "Issue report downloaded.",
+    "workbench.files.issueReportExportCancelled": "Issue report export cancelled.",
     "workbench.files.workspaceReportExportSaved": "Workspace report saved.",
     "workbench.files.workspaceReportExportDownloaded": "Workspace report downloaded.",
     "workbench.files.workspaceReportExportCancelled": "Workspace report export cancelled.",
+    "workbench.files.exportManifestSaved": "Export manifest saved.",
+    "workbench.files.exportManifestDownloaded": "Export manifest downloaded.",
+    "workbench.files.exportManifestCancelled": "Export manifest export cancelled.",
     "workbench.files.recentContext": "Recent context",
     "workbench.files.favoriteContext": "Favorite context",
     "workbench.files.favorite": "Favorite",
@@ -1292,16 +1314,27 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.queueEvidenceBundle": "증거 묶음 초안 추가",
     "workbench.files.queueIssueReport": "리포트 초안 추가",
     "workbench.files.queueWorkspaceReport": "워크스페이스 리포트 초안 추가",
+    "workbench.files.queueExportManifest": "내보내기 매니페스트 초안 추가",
+    "workbench.files.exportPackage": "내보내기 패키지",
+    "workbench.files.evidenceBundle": "증거 묶음",
     "workbench.files.issueReport": "이슈 리포트",
     "workbench.files.workspaceReport": "워크스페이스 리포트",
+    "workbench.files.exportManifest": "내보내기 매니페스트",
     "workbench.files.exportEvidenceBundle": "증거 묶음 내보내기",
+    "workbench.files.exportIssueReport": "리포트 내보내기",
     "workbench.files.exportWorkspaceReport": "워크스페이스 리포트 내보내기",
     "workbench.files.exportSaved": "증거 묶음을 저장했습니다.",
     "workbench.files.exportDownloaded": "증거 묶음을 다운로드했습니다.",
     "workbench.files.exportCancelled": "증거 묶음 내보내기를 취소했습니다.",
+    "workbench.files.issueReportExportSaved": "이슈 리포트를 저장했습니다.",
+    "workbench.files.issueReportExportDownloaded": "이슈 리포트를 다운로드했습니다.",
+    "workbench.files.issueReportExportCancelled": "이슈 리포트 내보내기를 취소했습니다.",
     "workbench.files.workspaceReportExportSaved": "워크스페이스 리포트를 저장했습니다.",
     "workbench.files.workspaceReportExportDownloaded": "워크스페이스 리포트를 다운로드했습니다.",
     "workbench.files.workspaceReportExportCancelled": "워크스페이스 리포트 내보내기를 취소했습니다.",
+    "workbench.files.exportManifestSaved": "내보내기 매니페스트를 저장했습니다.",
+    "workbench.files.exportManifestDownloaded": "내보내기 매니페스트를 다운로드했습니다.",
+    "workbench.files.exportManifestCancelled": "내보내기 매니페스트 내보내기를 취소했습니다.",
     "workbench.files.recentContext": "최근 컨텍스트",
     "workbench.files.favoriteContext": "즐겨찾는 컨텍스트",
     "workbench.files.favorite": "즐겨찾기",

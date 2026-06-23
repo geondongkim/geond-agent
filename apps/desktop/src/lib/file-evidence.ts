@@ -1,6 +1,7 @@
 import { redactSensitiveTextContent } from "@geond-agent/claude-code-bridge";
 
 import type { InspectorSessionReadModel } from "./inspector-read-model.js";
+import { groupRecentContextByWorkspace, type RecentContextItem } from "./recent-context.js";
 import type { ProjectedActiveSession, ProjectedSessionListItem } from "./workbench-types.js";
 
 export interface FileEvidencePreviewModel {
@@ -263,6 +264,87 @@ export function createWorkspaceEvidenceReportDraft({
   ].join("\n");
 }
 
+export function createEvidenceExportManifestDraft({
+  activeSession,
+  inspectorData,
+  recentContextItems = [],
+  sessions
+}: {
+  readonly activeSession?: ProjectedActiveSession;
+  readonly inspectorData?: InspectorSessionReadModel;
+  readonly recentContextItems?: readonly RecentContextItem[];
+  readonly sessions: readonly ProjectedSessionListItem[];
+}): string {
+  const activeSessionId = activeSession?.id ?? inspectorData?.sessionId;
+  const activeSessionTitle = activeSession?.title ?? activeSessionId ?? "none";
+  const model = createFileEvidencePreviewModel({ activeSession, inspectorData });
+  const commandOutputs = inspectorData?.commandOutputs ?? activeSession?.commandOutputs ?? [];
+  const runAttempts = inspectorData?.runAttempts ?? activeSession?.runAttempts ?? [];
+  const favoriteContextItems = recentContextItems.filter((item) => item.favorite);
+  const workspaceGroups = groupRecentContextByWorkspace(favoriteContextItems, recentContextItems);
+  const warningSessionCount = sessions.filter((session) => session.warningCount > 0).length;
+  const errorSessionCount = sessions.filter((session) => session.errorCount > 0).length;
+  const resumableSessionCount = sessions.filter((session) => session.resumable).length;
+  const source = inspectorData?.source ?? "projection";
+  const selection = activeSession?.selection;
+
+  return [
+    "Workbench export manifest (metadata only).",
+    "Purpose: describe the safe evidence package before exporting, sharing, or filing a dogfood report.",
+    "Privacy boundary: raw private file contents, raw Claude logs, API keys, provider account state, and local session files are excluded.",
+    "",
+    "Active session",
+    `- id: ${activeSessionId ? safeText(activeSessionId) : "none"}`,
+    `- title: ${safeText(activeSessionTitle)}`,
+    `- workspace: ${safeText(activeSession?.workspacePath ?? "unknown workspace")}`,
+    `- evidence source: ${safeText(source)}`,
+    selection
+      ? `- route: backend=${safeText(selection.backendAdapterId)} provider=${safeText(selection.providerRouteId ?? "unknown")} model=${safeText(selection.modelProfileId ?? "unknown")} routing=${safeText(selection.routingMode)}`
+      : "- route: no selection snapshot projected yet.",
+    "",
+    "Included metadata sources",
+    "- session index and lifecycle metadata",
+    "- backend/model selection snapshot",
+    "- context attachment metadata and summaries",
+    "- normalized diff file paths, summaries, and stats",
+    "- command output status, exit codes, chunk counts, and redacted previews",
+    "- run attempt status, trigger, model, and failure kind metadata",
+    "- recent/favorite context labels, paths, and timestamps",
+    "",
+    "Excluded data classes",
+    "- raw private file contents",
+    "- raw Claude Code stream-json logs",
+    "- API keys, tokens, provider account state, and local session files",
+    "- screenshots and structured traces until explicit capture/export consent exists",
+    "",
+    "Evidence counts",
+    `- sessions: ${sessions.length}`,
+    `- resumable sessions: ${resumableSessionCount}`,
+    `- sessions with warnings: ${warningSessionCount}`,
+    `- sessions with errors: ${errorSessionCount}`,
+    `- attached context items: ${model.contextCount}`,
+    `- changed files: ${model.changedFileCount}`,
+    `- command outputs: ${commandOutputs.length}`,
+    `- run attempts: ${runAttempts.length}`,
+    `- favorite context items: ${favoriteContextItems.length}`,
+    "",
+    "Favorite context by workspace",
+    ...formatRecentContextWorkspaceGroups(workspaceGroups),
+    "",
+    "Export-ready documents",
+    "- active session evidence bundle: ready",
+    "- workspace report: ready",
+    "- issue/report draft: ready",
+    "- screenshot bundle: not collected in this slice",
+    "- structured trace bundle: not collected in this slice",
+    "",
+    "Review prompts",
+    "- Is the active session evidence enough to reproduce the concern without raw logs?",
+    "- Does a failed run need retry, resume, route health review, or a manual provider switch?",
+    "- Should screenshots or structured traces be captured in a later explicit-consent export?"
+  ].join("\n");
+}
+
 export function createEvidenceBundleFileName({
   activeSession,
   now = new Date()
@@ -280,12 +362,37 @@ export function createEvidenceBundleFileName({
   return `${date}-${slug}-evidence.md`;
 }
 
+export function createEvidenceReportFileName({
+  activeSession,
+  now = new Date()
+}: {
+  readonly activeSession?: ProjectedActiveSession;
+  readonly now?: Date;
+}): string {
+  const title = activeSession?.title ?? activeSession?.id ?? "workbench-session";
+  const slug = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "workbench-session";
+  const date = now.toISOString().slice(0, 10);
+  return `${date}-${slug}-report.md`;
+}
+
 export function createWorkspaceEvidenceReportFileName({
   now = new Date()
 }: {
   readonly now?: Date;
 } = {}): string {
   return `${now.toISOString().slice(0, 10)}-workbench-workspace-report.md`;
+}
+
+export function createEvidenceExportManifestFileName({
+  now = new Date()
+}: {
+  readonly now?: Date;
+} = {}): string {
+  return `${now.toISOString().slice(0, 10)}-workbench-export-manifest.md`;
 }
 
 function formatContextBundleItems(
@@ -385,6 +492,22 @@ function formatSessionIndexReportItems(
       .filter((part): part is string => Boolean(part))
       .join(" | ")
   );
+}
+
+function formatRecentContextWorkspaceGroups(
+  groups: ReturnType<typeof groupRecentContextByWorkspace>
+): readonly string[] {
+  if (!groups.length) {
+    return ["- none"];
+  }
+
+  return groups.flatMap((group) => [
+    `- ${safeText(group.label)}: path=${safeText(group.path)} items=${group.items.length} favorites=${group.favoriteCount}`,
+    ...group.items.map(
+      (item) =>
+        `  - ${safeText(item.label)}: ${safeText(item.kind)} | path=${safeText(item.path)} | updated=${safeText(item.updatedAt)}`
+    )
+  ]);
 }
 
 function safeText(value: string): string {
