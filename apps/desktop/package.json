@@ -11,6 +11,8 @@
     "lint": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --config vitest.config.ts && tsc -p tsconfig.json --noEmit",
     "test:e2e": "playwright test",
+    "test:e2e:layout": "playwright test e2e/layout.spec.ts --grep @layout",
+    "test:e2e:visual": "pnpm test:e2e:layout",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"
   },

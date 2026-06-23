@@ -62,6 +62,18 @@ for Vite-only development. It must not persist provider secrets, raw Claude
 logs, account state, private local tool session files, or raw private file
 contents from context attachments.
 
+## Verification
+
+- `pnpm --filter @geond-agent/desktop test:e2e` runs the full renderer
+  workbench e2e suite.
+- `pnpm --filter @geond-agent/desktop test:e2e:layout` runs the focused compact
+  and wide layout guard. It captures `workbench-compact-layout.png` and
+  `workbench-wide-layout.png` under Playwright `test-results` so CI can retain
+  visual evidence without committing screenshots.
+- The e2e suite is split by workbench surface: layout, context evidence,
+  settings persistence, and runner/approval review. Keep new tests in the
+  closest surface file instead of growing a single large spec again.
+
 `createDesktopMaterializedEventStore` is the renderer boundary for the v3
 materialized event views. It reads context attachments, tool calls, command
 output previews, diff summaries, and usage metadata through Tauri commands when
