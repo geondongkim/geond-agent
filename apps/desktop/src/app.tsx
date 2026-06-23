@@ -175,6 +175,7 @@ export function App({ document }: AppProps) {
     deleteActiveSession,
     resolveApproval,
     resumeActiveSession,
+    retryActiveSession,
     selectSession,
     startSelectedRunner,
     togglePinnedSession,
@@ -455,6 +456,7 @@ export function App({ document }: AppProps) {
             i18n={i18n}
             pendingApprovals={pendingApprovals}
             resumeActiveSession={resumeActiveSession}
+            retryActiveSession={retryActiveSession}
             runnerBusy={runnerBusy}
             runnerMode={runnerMode}
             runnerStatus={runnerStatus}
@@ -471,9 +473,11 @@ export function App({ document }: AppProps) {
               activeRunMode={activeRunMode}
               activeSession={activeSession}
               attachFileContext={attachFileContext}
+              attachWorkspaceContext={attachWorkspaceContext}
               agentLanguageOptions={agentLanguageOptions}
               backendOptions={backendOptions}
               bridgeCommand={document.bridgeCommand}
+              claudeCliProbe={document.claudeCliProbe}
               canFollowUpApprovals={canFollowUpApprovals}
               composerEnterBehaviorOptions={composerEnterBehaviorOptions}
               drafts={visibleSideChatDrafts}

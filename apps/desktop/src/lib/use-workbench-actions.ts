@@ -84,6 +84,18 @@ export function useWorkbenchActions({
     });
   };
 
+  const retryActiveSession = () => {
+    if (!activeSession || runnerBusy) {
+      return;
+    }
+
+    void startSession(runnerMode, {
+      resumeSessionId: activeSession.id,
+      externalSessionId: activeExternalSession?.externalSessionId,
+      trigger: activeExternalSession ? "manual_resume" : "manual"
+    });
+  };
+
   const togglePinnedSession = async () => {
     if (!activeSession) {
       return;
@@ -312,6 +324,7 @@ export function useWorkbenchActions({
     deleteActiveSession,
     resolveApproval,
     resumeActiveSession,
+    retryActiveSession,
     selectSession,
     startSelectedRunner,
     togglePinnedSession,

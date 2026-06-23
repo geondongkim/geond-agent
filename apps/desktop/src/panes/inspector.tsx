@@ -27,6 +27,7 @@ import { InspectorSideChatTab } from "./inspector/inspector-side-chat-tab.js";
 import { InspectorTerminalTab } from "./inspector/inspector-terminal-tab.js";
 import { InspectorReviewTab } from "./inspector/inspector-review-tab.js";
 import type { DesktopRunnerMode } from "../demo-workbench.js";
+import type { ClaudeCodeCliProbe } from "../claude-runner.js";
 import type { InspectorSessionReadModel } from "../lib/inspector-read-model.js";
 import type { SideChatDraft } from "../lib/side-chat-drafts.js";
 
@@ -35,10 +36,12 @@ export function InspectorPane({
   activeRunMode,
   activeSession,
   attachFileContext,
+  attachWorkspaceContext,
   canFollowUpApprovals,
   agentLanguageOptions,
   backendOptions,
   bridgeCommand,
+  claudeCliProbe,
   composerEnterBehaviorOptions,
   drafts,
   enqueueSideChatDraft,
@@ -73,10 +76,12 @@ export function InspectorPane({
   readonly activeRunMode?: DesktopRunnerMode;
   readonly activeSession?: ProjectedActiveSession;
   readonly attachFileContext: () => void;
+  readonly attachWorkspaceContext: () => void;
   readonly canFollowUpApprovals: boolean;
   readonly agentLanguageOptions: readonly { readonly value: string; readonly label: string }[];
   readonly backendOptions: readonly WorkbenchCatalogOption[];
   readonly bridgeCommand: string;
+  readonly claudeCliProbe?: ClaudeCodeCliProbe;
   readonly ignoredRecordCount: number;
   readonly composerEnterBehaviorOptions: readonly { readonly value: string; readonly label: string }[];
   readonly drafts: readonly SideChatDraft[];
@@ -227,6 +232,7 @@ export function InspectorPane({
         <InspectorFilesTab
           activeSession={activeSession}
           attachFileContext={attachFileContext}
+          attachWorkspaceContext={attachWorkspaceContext}
           enqueueSideChatDraft={enqueueSideChatDraft}
           inspectorData={inspectorData}
           i18n={i18n}
@@ -243,6 +249,7 @@ export function InspectorPane({
           agentLanguageOptions={agentLanguageOptions}
           backendOptions={backendOptions}
           bridgeCommand={bridgeCommand}
+          claudeCliProbe={claudeCliProbe}
           composerEnterBehaviorOptions={composerEnterBehaviorOptions}
           followUpPolicyOptions={followUpPolicyOptions}
           i18n={i18n}

@@ -236,6 +236,7 @@ export type UiMessageKey =
   | "workbench.actions.newDemoSession"
   | "workbench.actions.runClaudeSession"
   | "workbench.actions.resumeSession"
+  | "workbench.actions.retryRun"
   | "workbench.actions.cancelRun"
   | "workbench.actions.settings"
   | "workbench.actions.chooseWorkspace"
@@ -356,6 +357,7 @@ export type UiMessageKey =
   | "workbench.files.previewDetail"
   | "workbench.files.queueFollowUp"
   | "workbench.files.queueEvidenceBundle"
+  | "workbench.files.exportEvidenceBundle"
   | "workbench.files.rawContentBoundary"
   | "workbench.files.providerPromptBoundary"
   | "workbench.files.diffSource"
@@ -404,6 +406,10 @@ export type UiMessageKey =
   | "workbench.firstRun.bridgeCommand"
   | "workbench.firstRun.bridgeCommandReady"
   | "workbench.firstRun.bridgeCommandMissing"
+  | "workbench.firstRun.cliProbe"
+  | "workbench.firstRun.cliProbeAvailable"
+  | "workbench.firstRun.cliProbeMissing"
+  | "workbench.firstRun.cliProbeUnknown"
   | "workbench.firstRun.providerRoute"
   | "workbench.firstRun.providerRouteMissing"
   | "workbench.firstRun.modelProfile"
@@ -680,6 +686,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.newDemoSession": "New demo session",
     "workbench.actions.runClaudeSession": "Run Claude session",
     "workbench.actions.resumeSession": "Resume session",
+    "workbench.actions.retryRun": "Retry run",
     "workbench.actions.cancelRun": "Cancel run",
     "workbench.actions.settings": "Settings",
     "workbench.actions.chooseWorkspace": "Choose workspace",
@@ -800,6 +807,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.previewDetail": "Selected evidence can be queued as a side-chat follow-up without copying raw file content into the transcript.",
     "workbench.files.queueFollowUp": "Queue evidence follow-up",
     "workbench.files.queueEvidenceBundle": "Queue evidence bundle",
+    "workbench.files.exportEvidenceBundle": "Export evidence bundle",
     "workbench.files.rawContentBoundary": "Metadata and summaries only; raw private file content is not persisted here.",
     "workbench.files.providerPromptBoundary": "When you dispatch a run, selected evidence metadata such as paths, summaries, and diff stats may be included in the provider prompt. Raw private file contents are not attached.",
     "workbench.files.diffSource": "Diff source",
@@ -848,6 +856,10 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.firstRun.bridgeCommand": "Bridge command",
     "workbench.firstRun.bridgeCommandReady": "Command preview is available without exposing secrets.",
     "workbench.firstRun.bridgeCommandMissing": "Add a Claude Code command boundary before the first live run.",
+    "workbench.firstRun.cliProbe": "Claude CLI probe",
+    "workbench.firstRun.cliProbeAvailable": "Available",
+    "workbench.firstRun.cliProbeMissing": "Missing from PATH",
+    "workbench.firstRun.cliProbeUnknown": "Not checked in this runtime",
     "workbench.firstRun.providerRoute": "Provider route",
     "workbench.firstRun.providerRouteMissing": "The default provider route is not in the local catalog.",
     "workbench.firstRun.modelProfile": "Model profile",
@@ -1121,6 +1133,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.newDemoSession": "새 데모 세션",
     "workbench.actions.runClaudeSession": "Claude 세션 실행",
     "workbench.actions.resumeSession": "세션 이어쓰기",
+    "workbench.actions.retryRun": "실행 재시도",
     "workbench.actions.cancelRun": "실행 취소",
     "workbench.actions.settings": "설정",
     "workbench.actions.chooseWorkspace": "워크스페이스 선택",
@@ -1241,6 +1254,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.previewDetail": "선택한 증거를 원본 파일 내용 없이 사이드 채팅 후속 초안으로 보낼 수 있습니다.",
     "workbench.files.queueFollowUp": "증거 후속 초안 추가",
     "workbench.files.queueEvidenceBundle": "증거 묶음 초안 추가",
+    "workbench.files.exportEvidenceBundle": "증거 묶음 내보내기",
     "workbench.files.rawContentBoundary": "메타데이터와 요약만 사용하며, 원본 private 파일 내용은 여기에 저장하지 않습니다.",
     "workbench.files.providerPromptBoundary": "실행을 보내면 선택된 증거의 경로, 요약, diff 통계 같은 메타데이터가 provider 프롬프트에 포함될 수 있습니다. 원본 private 파일 내용은 첨부하지 않습니다.",
     "workbench.files.diffSource": "Diff 출처",
@@ -1289,6 +1303,10 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.firstRun.bridgeCommand": "Bridge 명령",
     "workbench.firstRun.bridgeCommandReady": "secret을 노출하지 않는 명령 미리보기를 사용할 수 있습니다.",
     "workbench.firstRun.bridgeCommandMissing": "첫 live 실행 전에 Claude Code 명령 경계를 추가해야 합니다.",
+    "workbench.firstRun.cliProbe": "Claude CLI 확인",
+    "workbench.firstRun.cliProbeAvailable": "사용 가능",
+    "workbench.firstRun.cliProbeMissing": "PATH에서 찾을 수 없음",
+    "workbench.firstRun.cliProbeUnknown": "이 runtime에서는 확인하지 않음",
     "workbench.firstRun.providerRoute": "Provider 라우트",
     "workbench.firstRun.providerRouteMissing": "기본 provider 라우트가 로컬 카탈로그에 없습니다.",
     "workbench.firstRun.modelProfile": "모델 프로필",

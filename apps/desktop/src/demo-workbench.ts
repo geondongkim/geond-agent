@@ -32,7 +32,11 @@ import {
   type WorkbenchSelectionCatalog
 } from "@geond-agent/ui-workbench";
 
-import { createTauriClaudeCodeExecutor } from "./claude-runner.js";
+import {
+  createTauriClaudeCodeExecutor,
+  probeTauriClaudeCodeExecutable,
+  type ClaudeCodeCliProbe
+} from "./claude-runner.js";
 import { createDesktopWorkbench } from "./index.js";
 import type { DesktopWorkbenchEventStore } from "./persistence/event-store.js";
 import { createDesktopWorkbenchEventStore } from "./persistence/event-store.js";
@@ -87,6 +91,7 @@ export interface DesktopDemoDocument {
   readonly persistence: WorkbenchPersistenceBoundary;
   readonly providerSummary: string;
   readonly bridgeCommand: string;
+  readonly claudeCliProbe: ClaudeCodeCliProbe;
   readonly ignoredRecordCount: number;
   readonly pinnedSessionIds: readonly string[];
   readonly initialControllerSnapshot: WorkbenchSessionControllerSnapshot;
@@ -152,6 +157,7 @@ export async function createDesktopDemoDocument(
   const savedSideChatDrafts = await loadSideChatDrafts(settingsStore);
   const runner = createClaudeCodeFixtureReplayRunner();
   const liveRunner = createClaudeCodeProcessRunner(createTauriClaudeCodeExecutor());
+  const claudeCliProbe = await probeTauriClaudeCodeExecutable();
   const eventStore = createDesktopWorkbenchEventStore();
   const materializedEventStore = createDesktopMaterializedEventStore();
   const sessionIndexStore = createDesktopWorkbenchSessionIndexStore();
@@ -211,6 +217,7 @@ export async function createDesktopDemoDocument(
     bridgeCommand: [workbench.bridge.process.executable, ...workbench.bridge.process.args]
       .filter((value) => value.length > 0)
       .join(" "),
+    claudeCliProbe,
     ignoredRecordCount: initialDocument.ignoredRecordCount,
     pinnedSessionIds,
     initialControllerSnapshot: controller.getSnapshot(),

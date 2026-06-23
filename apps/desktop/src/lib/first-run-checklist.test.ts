@@ -10,6 +10,12 @@ describe("createClaudeFirstRunChecklist", () => {
   it("summarizes a Claude live route as ready when required metadata is present", () => {
     const checklist = createClaudeFirstRunChecklist({
       bridgeCommand: "claude --bare -p --verbose --output-format stream-json",
+      claudeCliProbe: {
+        state: "available",
+        executable: "claude",
+        version: "2.1.183",
+        detail: "claude 2.1.183"
+      },
       i18n,
       modelAliasOptions: [{ value: "sonnet", label: "sonnet alias", detail: "text, reasoning" }],
       persistenceNotes: ["SQLite stores normalized events only."],
@@ -25,7 +31,7 @@ describe("createClaudeFirstRunChecklist", () => {
     });
 
     expect(checklist.level).toBe("ready");
-    expect(checklist.items).toHaveLength(7);
+    expect(checklist.items).toHaveLength(8);
   });
 
   it("keeps fixture mode visible as an attention item", () => {
@@ -48,6 +54,11 @@ describe("createClaudeFirstRunChecklist", () => {
   it("marks missing bridge command and catalog entries as blocked", () => {
     const checklist = createClaudeFirstRunChecklist({
       bridgeCommand: " ",
+      claudeCliProbe: {
+        state: "available",
+        executable: "claude",
+        detail: "Claude Code CLI is available."
+      },
       i18n,
       modelAliasOptions: [],
       persistenceNotes: [],
@@ -65,9 +76,37 @@ describe("createClaudeFirstRunChecklist", () => {
     ]);
   });
 
+  it("blocks live first-run readiness when the Claude CLI probe is missing", () => {
+    const checklist = createClaudeFirstRunChecklist({
+      bridgeCommand: "claude --bare -p --verbose --output-format stream-json",
+      claudeCliProbe: {
+        state: "missing",
+        executable: "claude",
+        detail: "No such file or directory"
+      },
+      i18n,
+      modelAliasOptions: [{ value: "sonnet", label: "sonnet alias" }],
+      persistenceNotes: ["SQLite stores normalized events only."],
+      providerRouteOptions: [{ value: "zai.anthropic-compatible", label: "Z.ai route" }],
+      runnerMode: "claude-live",
+      sessionDefaults: DEFAULT_WORKBENCH_SESSION_DEFAULTS
+    });
+
+    expect(checklist.level).toBe("blocked");
+    expect(checklist.items.find((item) => item.id === "cli-probe")).toMatchObject({
+      level: "blocked",
+      value: "Missing from PATH"
+    });
+  });
+
   it("uses active selection readiness when provider route metadata is blocked", () => {
     const checklist = createClaudeFirstRunChecklist({
       bridgeCommand: "claude --bare -p --verbose --output-format stream-json",
+      claudeCliProbe: {
+        state: "available",
+        executable: "claude",
+        detail: "Claude Code CLI is available."
+      },
       i18n,
       modelAliasOptions: [{ value: "sonnet", label: "sonnet alias" }],
       persistenceNotes: ["SQLite stores normalized events only."],

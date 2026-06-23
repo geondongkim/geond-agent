@@ -2,11 +2,13 @@ import type { UiI18n } from "@geond-agent/ui-workbench";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import {
+  Download,
   FileDiff,
   FilePlus,
   FileText,
   FolderOpen,
   MessageSquarePlus,
+  Paperclip,
   ShieldCheck
 } from "lucide-react";
 
@@ -16,6 +18,7 @@ import { EmptyState } from "../../components/workbench/empty-state.js";
 import { cn } from "../../lib/cn.js";
 import {
   createEvidenceBundleDraft,
+  createEvidenceBundleFileName,
   createEvidenceFollowUpDraft,
   createFileEvidencePreviewModel,
   findFileEvidenceSelection,
@@ -33,12 +36,14 @@ import type { ProjectedActiveSession } from "../../lib/workbench-types.js";
 export function InspectorFilesTab({
   activeSession,
   attachFileContext,
+  attachWorkspaceContext,
   enqueueSideChatDraft,
   inspectorData,
   i18n
 }: {
   readonly activeSession?: ProjectedActiveSession;
   readonly attachFileContext: () => void;
+  readonly attachWorkspaceContext: () => void;
   readonly enqueueSideChatDraft: (text: string, sourceLabel?: string) => void;
   readonly inspectorData?: InspectorSessionReadModel;
   readonly i18n: UiI18n;
@@ -69,6 +74,17 @@ export function InspectorFilesTab({
     enqueueSideChatDraft(
       createEvidenceBundleDraft({ activeSession, inspectorData }),
       activeSession.title
+    );
+  }
+
+  function exportEvidenceBundle() {
+    if (!activeSession) {
+      return;
+    }
+
+    downloadTextFile(
+      createEvidenceBundleFileName({ activeSession }),
+      createEvidenceBundleDraft({ activeSession, inspectorData })
     );
   }
 
@@ -112,6 +128,24 @@ export function InspectorFilesTab({
           >
             <MessageSquarePlus size={14} />
             {i18n.t("workbench.files.queueEvidenceBundle")}
+          </Button>
+          <Button
+            variant="ghost"
+            className="gap-2"
+            onClick={exportEvidenceBundle}
+            disabled={!activeSession}
+          >
+            <Download size={14} />
+            {i18n.t("workbench.files.exportEvidenceBundle")}
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => void attachWorkspaceContext()}
+            disabled={!activeSession}
+          >
+            <Paperclip size={14} />
+            {i18n.t("workbench.context.attachWorkspace")}
           </Button>
           <Button
             variant="outline"
@@ -182,6 +216,19 @@ export function InspectorFilesTab({
       )}
     </TabsContent>
   );
+}
+
+function downloadTextFile(fileName: string, text: string): void {
+  const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.rel = "noopener";
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }
 
 function EvidencePreviewCard({

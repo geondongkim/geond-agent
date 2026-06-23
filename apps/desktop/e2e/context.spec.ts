@@ -25,10 +25,15 @@ test("file evidence, provider prompt disclosure, browser check, and side chat dr
   await expect(filesPanel).toBeVisible();
   await expect(filesPanel.getByText("Evidence preview")).toBeVisible();
   await expect(filesPanel.getByText("Evidence detail")).toBeVisible();
+  await expect(filesPanel.getByRole("button", { name: "Attach workspace" })).toBeVisible();
   await expect(filesPanel.getByRole("button", { name: "Attach file" })).toBeVisible();
   await expect(filesPanel.getByRole("heading", { name: "Changed files" })).toBeVisible();
   await expect(filesPanel.getByText("Privacy boundary").first()).toBeVisible();
   await expect(filesPanel.getByText("When you dispatch a run")).toBeVisible();
+  const downloadPromise = page.waitForEvent("download");
+  await filesPanel.getByRole("button", { name: "Export evidence bundle" }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/local-workbench-session-evidence\.md$/);
   await filesPanel.getByRole("button", { name: "Queue evidence bundle" }).click();
   await expectSideChatStorage(page, "Workbench evidence bundle (metadata only).");
   await page.getByRole("tab", { name: "Side chat" }).click();

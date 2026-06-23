@@ -202,6 +202,23 @@ export function createEvidenceBundleDraft({
   ].join("\n");
 }
 
+export function createEvidenceBundleFileName({
+  activeSession,
+  now = new Date()
+}: {
+  readonly activeSession?: ProjectedActiveSession;
+  readonly now?: Date;
+}): string {
+  const title = activeSession?.title ?? activeSession?.id ?? "workbench-session";
+  const slug = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "workbench-session";
+  const date = now.toISOString().slice(0, 10);
+  return `${date}-${slug}-evidence.md`;
+}
+
 function formatContextBundleItems(
   items: readonly FileEvidenceContextItem[]
 ): readonly string[] {

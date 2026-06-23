@@ -44,6 +44,7 @@ test("settings and pinned session preferences persist across reload", async ({ p
   await expect(settingsPanel.getByRole("heading", { name: "First-run checklist" })).toBeVisible();
   await expect(settingsPanel.getByText("Runner mode", { exact: true }).first()).toBeVisible();
   await expect(settingsPanel.getByText("Bridge command", { exact: true }).first()).toBeVisible();
+  await expect(settingsPanel.getByText("Claude CLI probe", { exact: true }).first()).toBeVisible();
   await expect(settingsPanel.getByText("Persistence boundary", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Language", { exact: true })).toBeVisible();
   await expect(page.getByText("Backend and model route", { exact: true })).toBeVisible();
