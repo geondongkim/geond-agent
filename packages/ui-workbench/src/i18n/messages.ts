@@ -450,6 +450,7 @@ export type UiMessageKey =
   | "workbench.files.rawVisualCaptureBlocked"
   | "workbench.files.rawVisualCaptureUnsupported"
   | "workbench.files.rawVisualCaptureDisplayUnsupported"
+  | "workbench.files.rawVisualCaptureNativeUnsupported"
   | "workbench.files.rawVisualCaptureFailed"
   | "workbench.files.rawVisualCapturePathReference"
   | "workbench.files.rawVisualCaptureReasonMissingSession"
@@ -462,6 +463,8 @@ export type UiMessageKey =
   | "workbench.files.rawVisualCaptureReasonFrameTimeout"
   | "workbench.files.rawVisualCaptureReasonCanvas"
   | "workbench.files.rawVisualCaptureReasonPngEncoding"
+  | "workbench.files.rawVisualCaptureReasonNativeCaptureUnavailable"
+  | "workbench.files.rawVisualCaptureReasonNativeCaptureFailed"
   | "workbench.files.rawVisualCaptureReasonNativeWrite"
   | "workbench.files.rawVisualCaptureReasonUnknown"
   | "workbench.files.exportSaved"
@@ -1059,6 +1062,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.rawVisualCaptureBlocked": "Raw visual capture blocked by review gate.",
     "workbench.files.rawVisualCaptureUnsupported": "Raw visual capture is unavailable in this runtime.",
     "workbench.files.rawVisualCaptureDisplayUnsupported": "Display capture is unavailable in this desktop webview runtime; a native capture bridge is required before the OS picker can open.",
+    "workbench.files.rawVisualCaptureNativeUnsupported": "Native visual capture is unavailable in this desktop runtime.",
     "workbench.files.rawVisualCaptureFailed": "Raw visual capture failed.",
     "workbench.files.rawVisualCapturePathReference": "Path reference recorded",
     "workbench.files.rawVisualCaptureReasonMissingSession": "No active session",
@@ -1071,6 +1075,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.rawVisualCaptureReasonFrameTimeout": "Capture frame timed out",
     "workbench.files.rawVisualCaptureReasonCanvas": "Capture canvas unavailable",
     "workbench.files.rawVisualCaptureReasonPngEncoding": "PNG encoding failed",
+    "workbench.files.rawVisualCaptureReasonNativeCaptureUnavailable": "Native capture unavailable",
+    "workbench.files.rawVisualCaptureReasonNativeCaptureFailed": "Native capture failed",
     "workbench.files.rawVisualCaptureReasonNativeWrite": "Native PNG write failed",
     "workbench.files.rawVisualCaptureReasonUnknown": "Unknown capture failure",
     "workbench.files.exportSaved": "Evidence bundle saved.",
@@ -1665,6 +1671,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.rawVisualCaptureBlocked": "검토 gate가 원본 시각 캡처를 차단했습니다.",
     "workbench.files.rawVisualCaptureUnsupported": "이 런타임에서는 원본 시각 캡처를 사용할 수 없습니다.",
     "workbench.files.rawVisualCaptureDisplayUnsupported": "이 desktop webview runtime에서는 화면 캡처 API를 사용할 수 없습니다. OS 선택기를 열기 전에 native capture bridge가 필요합니다.",
+    "workbench.files.rawVisualCaptureNativeUnsupported": "이 desktop runtime에서는 native 시각 캡처를 사용할 수 없습니다.",
     "workbench.files.rawVisualCaptureFailed": "원본 시각 캡처가 실패했습니다.",
     "workbench.files.rawVisualCapturePathReference": "경로 참조를 기록했습니다",
     "workbench.files.rawVisualCaptureReasonMissingSession": "활성 세션 없음",
@@ -1677,6 +1684,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.rawVisualCaptureReasonFrameTimeout": "캡처 프레임 시간 초과",
     "workbench.files.rawVisualCaptureReasonCanvas": "캡처 canvas 사용 불가",
     "workbench.files.rawVisualCaptureReasonPngEncoding": "PNG 인코딩 실패",
+    "workbench.files.rawVisualCaptureReasonNativeCaptureUnavailable": "native 캡처 사용 불가",
+    "workbench.files.rawVisualCaptureReasonNativeCaptureFailed": "native 캡처 실패",
     "workbench.files.rawVisualCaptureReasonNativeWrite": "native PNG 쓰기 실패",
     "workbench.files.rawVisualCaptureReasonUnknown": "알 수 없는 캡처 실패",
     "workbench.files.exportSaved": "증거 묶음을 저장했습니다.",

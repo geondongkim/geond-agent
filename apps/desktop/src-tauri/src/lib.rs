@@ -296,6 +296,7 @@ pub fn run() {
             write_text_file,
             write_evidence_capture_artifact,
             write_raw_visual_capture_png,
+            capture_raw_visual_png,
             probe_claude_code_executable,
             run_claude_code_stream_json,
             cancel_claude_code_stream
@@ -584,25 +585,32 @@ fn write_raw_visual_capture_png(
     redaction_review: bool,
     visible_content_reviewed: bool,
 ) -> Result<(), String> {
-    if !explicit_consent {
-        return Err("Explicit visual capture consent is required.".to_string());
-    }
-    if !redaction_review {
-        return Err("Visual capture redaction review is required.".to_string());
-    }
-    if !visible_content_reviewed {
-        return Err("Visible content review is required before raw visual capture.".to_string());
-    }
-    if session_id.trim().is_empty() {
-        return Err("Active session id is required for raw visual capture.".to_string());
-    }
-
-    let path = path.trim();
-    if path.is_empty() {
-        return Err("Raw visual capture path is required.".to_string());
-    }
-    let path = PathBuf::from(path);
+    let path = ensure_raw_visual_capture_request(
+        &path,
+        &session_id,
+        explicit_consent,
+        redaction_review,
+        visible_content_reviewed,
+    )?;
     write_raw_visual_capture_png_file(path, &png_base64)
+}
+
+#[tauri::command]
+fn capture_raw_visual_png(
+    path: String,
+    session_id: String,
+    explicit_consent: bool,
+    redaction_review: bool,
+    visible_content_reviewed: bool,
+) -> Result<(), String> {
+    let path = ensure_raw_visual_capture_request(
+        &path,
+        &session_id,
+        explicit_consent,
+        redaction_review,
+        visible_content_reviewed,
+    )?;
+    capture_raw_visual_png_file(path)
 }
 
 #[tauri::command]
@@ -1006,6 +1014,55 @@ fn write_text_export_file(path: PathBuf, contents: &str) -> Result<(), String> {
 }
 
 fn write_raw_visual_capture_png_file(path: PathBuf, png_base64: &str) -> Result<(), String> {
+    ensure_raw_visual_capture_destination(&path)?;
+
+    let normalized = png_base64.trim();
+    if normalized.is_empty() {
+        return Err("Raw visual capture payload is required.".to_string());
+    }
+    let bytes = BASE64_STANDARD
+        .decode(normalized)
+        .map_err(|_| "Raw visual capture payload must be base64 PNG data.".to_string())?;
+    validate_raw_visual_capture_png_bytes(&bytes)?;
+
+    fs::write(path, bytes).map_err(to_string)
+}
+
+fn capture_raw_visual_png_file(path: PathBuf) -> Result<(), String> {
+    ensure_raw_visual_capture_destination(&path)?;
+    capture_raw_visual_png_file_platform(path)
+}
+
+fn ensure_raw_visual_capture_request(
+    path: &str,
+    session_id: &str,
+    explicit_consent: bool,
+    redaction_review: bool,
+    visible_content_reviewed: bool,
+) -> Result<PathBuf, String> {
+    if !explicit_consent {
+        return Err("Explicit visual capture consent is required.".to_string());
+    }
+    if !redaction_review {
+        return Err("Visual capture redaction review is required.".to_string());
+    }
+    if !visible_content_reviewed {
+        return Err("Visible content review is required before raw visual capture.".to_string());
+    }
+    if session_id.trim().is_empty() {
+        return Err("Active session id is required for raw visual capture.".to_string());
+    }
+
+    let path = path.trim();
+    if path.is_empty() {
+        return Err("Raw visual capture path is required.".to_string());
+    }
+    let path = PathBuf::from(path);
+    ensure_raw_visual_capture_destination(&path)?;
+    Ok(path)
+}
+
+fn ensure_raw_visual_capture_destination(path: &Path) -> Result<(), String> {
     if path.as_os_str().is_empty() {
         return Err("Raw visual capture path is required.".to_string());
     }
@@ -1016,29 +1073,106 @@ fn write_raw_visual_capture_png_file(path: PathBuf, png_base64: &str) -> Result<
         return Err("Raw visual capture must be saved as a .png file.".to_string());
     }
 
-    let normalized = png_base64.trim();
-    if normalized.is_empty() {
-        return Err("Raw visual capture payload is required.".to_string());
-    }
-    let bytes = BASE64_STANDARD
-        .decode(normalized)
-        .map_err(|_| "Raw visual capture payload must be base64 PNG data.".to_string())?;
-    if bytes.len() > RAW_VISUAL_CAPTURE_CAP_BYTES {
-        return Err(format!(
-            "Raw visual capture exceeds the {RAW_VISUAL_CAPTURE_CAP_BYTES} byte cap."
-        ));
-    }
-    if !is_png_payload(&bytes) {
-        return Err("Raw visual capture payload must be PNG data.".to_string());
-    }
-
     if let Some(parent) = path.parent() {
         if !parent.as_os_str().is_empty() && !parent.is_dir() {
             return Err("Raw visual capture parent directory must already exist.".to_string());
         }
     }
 
-    fs::write(path, bytes).map_err(to_string)
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn capture_raw_visual_png_file_platform(path: PathBuf) -> Result<(), String> {
+    let temp_path = temporary_raw_visual_capture_path(&path)?;
+    let output = Command::new("/usr/sbin/screencapture")
+        .arg("-i")
+        .arg("-x")
+        .arg("-t")
+        .arg("png")
+        .arg(&temp_path)
+        .output()
+        .map_err(|error| {
+            format!(
+                "native-capture-unavailable: macOS screencapture command is unavailable: {error}"
+            )
+        })?;
+
+    if !output.status.success() {
+        let _ = fs::remove_file(&temp_path);
+        let status = output.status.code().unwrap_or(-1);
+        return Err(format!(
+            "os-picker-denied-or-cancelled: macOS screenshot picker was cancelled or denied. status={status}"
+        ));
+    }
+
+    if !temp_path.is_file() {
+        return Err(
+            "os-picker-denied-or-cancelled: macOS screenshot picker did not produce a PNG file."
+                .to_string(),
+        );
+    }
+
+    validate_raw_visual_capture_png_file(&temp_path)?;
+    fs::rename(&temp_path, &path).map_err(|error| {
+        let _ = fs::remove_file(&temp_path);
+        format!(
+            "native-capture-failed: Unable to move raw visual capture into the selected path: {error}"
+        )
+    })
+}
+
+#[cfg(not(target_os = "macos"))]
+fn capture_raw_visual_png_file_platform(_path: PathBuf) -> Result<(), String> {
+    Err(
+        "native-capture-unavailable: Raw visual capture is only available on macOS in this build."
+            .to_string(),
+    )
+}
+
+fn temporary_raw_visual_capture_path(path: &Path) -> Result<PathBuf, String> {
+    let parent = path.parent().unwrap_or_else(|| Path::new(""));
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("raw-visual-capture.png");
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(to_string)?
+        .as_nanos();
+    Ok(parent.join(format!(
+        ".{file_name}.geond-capture-{}-{nonce}.tmp.png",
+        std::process::id()
+    )))
+}
+
+fn validate_raw_visual_capture_png_file(path: &Path) -> Result<(), String> {
+    let metadata = fs::metadata(path).map_err(to_string)?;
+    if !metadata.is_file() {
+        return Err("Native raw visual capture did not create a file.".to_string());
+    }
+    if metadata.len() as usize > RAW_VISUAL_CAPTURE_CAP_BYTES {
+        return Err(format!(
+            "Raw visual capture exceeds the {RAW_VISUAL_CAPTURE_CAP_BYTES} byte cap."
+        ));
+    }
+    let bytes = fs::read(path).map_err(to_string)?;
+    if bytes.is_empty() {
+        return Err("Native raw visual capture produced an empty file.".to_string());
+    }
+    validate_raw_visual_capture_png_bytes(&bytes)
+}
+
+fn validate_raw_visual_capture_png_bytes(bytes: &[u8]) -> Result<(), String> {
+    if bytes.len() > RAW_VISUAL_CAPTURE_CAP_BYTES {
+        return Err(format!(
+            "Raw visual capture exceeds the {RAW_VISUAL_CAPTURE_CAP_BYTES} byte cap."
+        ));
+    }
+    if !is_png_payload(bytes) {
+        return Err("Raw visual capture payload must be PNG data.".to_string());
+    }
+    Ok(())
 }
 
 fn has_png_extension(path: &Path) -> bool {
@@ -3478,6 +3612,36 @@ mod tests {
                 .to_string(),
             " ".to_string(),
             png_base64,
+            true,
+            true,
+            true,
+        )
+        .is_err());
+        assert!(capture_raw_visual_png(
+            root.join("native-missing-consent.png")
+                .to_string_lossy()
+                .to_string(),
+            "session-1".to_string(),
+            false,
+            true,
+            true,
+        )
+        .is_err());
+        assert!(capture_raw_visual_png(
+            root.join("native-bad-extension.jpg")
+                .to_string_lossy()
+                .to_string(),
+            "session-1".to_string(),
+            true,
+            true,
+            true,
+        )
+        .is_err());
+        assert!(capture_raw_visual_png(
+            root.join("native-missing-session.png")
+                .to_string_lossy()
+                .to_string(),
+            " ".to_string(),
             true,
             true,
             true,

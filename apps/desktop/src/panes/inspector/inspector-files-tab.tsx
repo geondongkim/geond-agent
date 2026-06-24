@@ -1312,9 +1312,11 @@ function formatRawVisualCaptureExportStatus(
         .join(" ");
     case "unsupported":
       return [
-        result.failureKind === "display-capture-unavailable"
-          ? i18n.t("workbench.files.rawVisualCaptureDisplayUnsupported")
-          : i18n.t("workbench.files.rawVisualCaptureUnsupported"),
+        result.failureKind === "native-capture-unavailable"
+          ? i18n.t("workbench.files.rawVisualCaptureNativeUnsupported")
+          : result.failureKind === "display-capture-unavailable"
+            ? i18n.t("workbench.files.rawVisualCaptureDisplayUnsupported")
+            : i18n.t("workbench.files.rawVisualCaptureUnsupported"),
         suffix
       ]
         .filter(Boolean)
@@ -1351,6 +1353,10 @@ function formatRawVisualCaptureFailureKind(
       return i18n.t("workbench.files.rawVisualCaptureReasonCanvas");
     case "png-encoding-failed":
       return i18n.t("workbench.files.rawVisualCaptureReasonPngEncoding");
+    case "native-capture-unavailable":
+      return i18n.t("workbench.files.rawVisualCaptureReasonNativeCaptureUnavailable");
+    case "native-capture-failed":
+      return i18n.t("workbench.files.rawVisualCaptureReasonNativeCaptureFailed");
     case "native-write-failed":
       return i18n.t("workbench.files.rawVisualCaptureReasonNativeWrite");
     case "unknown":
