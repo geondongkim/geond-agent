@@ -114,8 +114,10 @@ PostCSS, Autoprefixer, Radix Tabs, Tauri API/CLI, Tauri dialog plugin
 bindings/crates, `lucide-react`, `clsx`, `tailwind-merge`, Vitest, TypeScript,
 and `@types/*` packages, plus the Tauri Rust/crates.io dependencies used by
 `apps/desktop/src-tauri`. The raw visual PNG export path directly uses the
-`base64` Rust crate to decode renderer-captured PNG payloads before native
-signature and size validation.
+macOS `/usr/sbin/screencapture` tool through a Tauri command for the current
+native capture bridge, and keeps the `base64` Rust crate only for the
+backward-compatible PNG writer test/helper path before native signature and
+size validation.
 
 These dependencies are consumed as npm/pnpm packages or Rust crates. Their
 source is not copied into this repository as vendored app code, and upstream

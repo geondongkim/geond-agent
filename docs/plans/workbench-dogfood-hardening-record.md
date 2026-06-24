@@ -235,9 +235,10 @@ Follow-up implemented from the route refresh result:
 
 - The Files inspector now exposes a raw visual PNG capture action after the
   visual review checklist is complete.
-- The action first requires a Tauri save dialog path, then uses the browser/OS
-  display-capture picker, then writes exactly one PNG payload to the
-  user-selected path.
+- The action first requires a Tauri save dialog path, then calls the native
+  Tauri capture bridge. On macOS that bridge opens the system screenshot
+  picker through `/usr/sbin/screencapture` and writes exactly one PNG payload
+  to the user-selected path.
 - Browser-only/Vite runs do not write raw visual payloads because they cannot
   enforce a native save path.
 - The native command enforces consent, redaction review, visible-content review,
@@ -253,7 +254,8 @@ Follow-up implemented from the route refresh result:
   missing active session, missing native runtime, save dialog cancellation,
   save dialog failure, review-gate block, display capture unavailability, OS
   picker denial/cancellation, frame timeout, canvas failure, PNG encoding
-  failure, native write failure, and unknown failures.
+  failure, native capture unavailability, native capture failure, native write
+  failure, and unknown failures.
 - The Files inspector surfaces that failure kind in the runner status so macOS
   permission or OS picker behavior is visible to the operator without exposing
   raw screenshots.
@@ -266,10 +268,18 @@ Follow-up implemented from the route refresh result:
   export manifests can include those path-only references. Multi-session
   reports filter the references to the selected session ids.
 - Packaged Tauri dogfood should verify the following without committing the
-  captured image: the save dialog appears first, the OS display picker appears
-  second, macOS screen recording permission failure is reported as a picker or
-  display-capture failure kind, successful capture writes a PNG only to the
-  chosen path, and exported reports contain only the path reference.
+  captured image: the save dialog appears first, the native macOS screenshot
+  picker appears second, macOS screen recording permission failure is reported
+  as a picker or native-capture failure kind, successful capture writes a PNG
+  only to the chosen path, and exported reports contain only the path reference.
+- Packaged `.app` dogfood should use `pnpm --filter @geond-agent/desktop
+  tauri:build`, which now calls `tauri build --bundles app`. A plain
+  executable-only build can leave an older `.app` bundle on disk and make the
+  UI appear stale during manual validation.
+- The first packaged dogfood run confirmed the native sequence through the save
+  dialog and macOS screenshot picker. Cancelling the picker with `Esc` produced
+  an `os-picker-denied-or-cancelled` status in the UI, and no raw visual PNG was
+  written into the repository.
 - Packaging check: `pnpm --filter @geond-agent/desktop tauri:build` completed
   successfully and produced the release binary at
   `apps/desktop/src-tauri/target/release/geond-agent-desktop`. This confirms

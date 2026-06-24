@@ -28,6 +28,8 @@ export type RawVisualCaptureFailureKind =
   | "display-frame-timeout"
   | "canvas-unavailable"
   | "png-encoding-failed"
+  | "native-capture-unavailable"
+  | "native-capture-failed"
   | "native-write-failed"
   | "unknown";
 
@@ -105,14 +107,6 @@ export async function exportRawVisualCapturePng({
       detail: "Raw visual capture can only write through the native desktop runtime."
     };
   }
-  if (!isDisplayCaptureSupported()) {
-    return {
-      status: "unsupported",
-      failureKind: "display-capture-unavailable",
-      detail:
-        "Display capture is not available in this desktop webview runtime; a native capture bridge is required before the OS picker can open."
-    };
-  }
 
   let path: string | undefined;
   try {
@@ -148,32 +142,20 @@ export async function exportRawVisualCapturePng({
     };
   }
 
-  let pngBase64: string;
   try {
-    pngBase64 = await captureDisplayFrameAsPngBase64();
-  } catch (error) {
-    return {
-      status: classifyDisplayCaptureStatus(error),
-      failureKind: classifyDisplayCaptureFailure(error),
-      detail: sanitizeFailureDetail(error),
-      path
-    };
-  }
-
-  try {
-    await invoke("write_raw_visual_capture_png", {
+    await invoke("capture_raw_visual_png", {
       path,
       sessionId: activeSession.id,
-      pngBase64,
       explicitConsent: visualReview.explicitConsent,
       redactionReview: visualReview.redactionReview,
       visibleContentReviewed: visualReview.visibleContentReviewed
     });
   } catch (error) {
+    const failureKind = classifyNativeCaptureFailure(error);
     return {
-      status: "failed",
-      failureKind: "native-write-failed",
-      detail: sanitizeFailureDetail(error),
+      status: classifyNativeCaptureStatus(failureKind),
+      failureKind,
+      detail: sanitizeFailureDetail(error, failureKind),
       path
     };
   }
@@ -204,11 +186,6 @@ export function createRawVisualCaptureFileName({
     .replace(/^-+|-+$/g, "")
     .slice(0, 48) || "workbench-session";
   return `${now.toISOString().slice(0, 10)}-${slug}-raw-visual-capture.png`;
-}
-
-export function stripPngDataUrlPrefix(value: string): string | undefined {
-  const match = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/u.exec(value.trim());
-  return match?.[1];
 }
 
 export function createRawVisualCaptureArtifactReference({
@@ -254,116 +231,54 @@ async function requestRawVisualCapturePath(
   return typeof path === "string" && path.trim().length > 0 ? path : undefined;
 }
 
-async function captureDisplayFrameAsPngBase64(): Promise<string> {
-  const mediaDevices = globalThis.navigator?.mediaDevices;
-  if (!mediaDevices?.getDisplayMedia) {
-    throw createRawVisualCaptureError(
-      "display-capture-unavailable",
-      "Display capture is not available in this runtime."
-    );
-  }
-
-  const stream = await mediaDevices.getDisplayMedia({
-    audio: false,
-    video: {
-      displaySurface: "window"
-    }
-  });
-
-  try {
-    const video = globalThis.document.createElement("video");
-    video.muted = true;
-    video.playsInline = true;
-    video.srcObject = stream;
-    await video.play();
-    await waitForVideoFrame(video);
-
-    const width = Math.max(1, video.videoWidth);
-    const height = Math.max(1, video.videoHeight);
-    const canvas = globalThis.document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext("2d");
-    if (!context) {
-      throw createRawVisualCaptureError(
-        "canvas-unavailable",
-        "Unable to prepare visual capture canvas."
-      );
-    }
-    context.drawImage(video, 0, 0, width, height);
-    const dataUrl = canvas.toDataURL("image/png");
-    const base64 = stripPngDataUrlPrefix(dataUrl);
-    if (!base64) {
-      throw createRawVisualCaptureError(
-        "png-encoding-failed",
-        "Display capture did not produce PNG data."
-      );
-    }
-    return base64;
-  } finally {
-    stream.getTracks().forEach((track) => track.stop());
-  }
-}
-
-function waitForVideoFrame(video: HTMLVideoElement): Promise<void> {
-  if (video.videoWidth > 0 && video.videoHeight > 0) {
-    return Promise.resolve();
-  }
-
-  return new Promise((resolve, reject) => {
-    const timeout = globalThis.setTimeout(() => {
-      reject(
-        createRawVisualCaptureError(
-          "display-frame-timeout",
-          "Timed out waiting for display capture frame."
-        )
-      );
-    }, 5_000);
-
-    video.onloadedmetadata = () => {
-      globalThis.clearTimeout(timeout);
-      resolve();
-    };
-    video.onerror = () => {
-      globalThis.clearTimeout(timeout);
-      reject(createRawVisualCaptureError("png-encoding-failed", "Display capture video failed."));
-    };
-  });
-}
-
 function isTauriRuntime(): boolean {
   return Boolean((globalThis as { readonly __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
 }
 
-function isDisplayCaptureSupported(): boolean {
-  return typeof globalThis.navigator?.mediaDevices?.getDisplayMedia === "function";
+function classifyNativeCaptureStatus(
+  failureKind: RawVisualCaptureFailureKind
+): RawVisualCaptureExportStatus {
+  if (failureKind === "os-picker-denied-or-cancelled") {
+    return "cancelled";
+  }
+  if (failureKind === "native-capture-unavailable") {
+    return "unsupported";
+  }
+  return "failed";
 }
 
-function createRawVisualCaptureError(
-  failureKind: RawVisualCaptureFailureKind,
-  message: string
-): Error & { readonly failureKind: RawVisualCaptureFailureKind } {
-  const error = new Error(message) as Error & {
-    failureKind: RawVisualCaptureFailureKind;
-  };
-  error.failureKind = failureKind;
-  return error;
-}
-
-function classifyDisplayCaptureStatus(error: unknown): RawVisualCaptureExportStatus {
-  return classifyDisplayCaptureFailure(error) === "os-picker-denied-or-cancelled"
-    ? "cancelled"
-    : "failed";
-}
-
-function classifyDisplayCaptureFailure(error: unknown): RawVisualCaptureFailureKind {
+function classifyNativeCaptureFailure(error: unknown): RawVisualCaptureFailureKind {
   if (hasFailureKind(error)) {
+    if (error.failureKind === "display-capture-unavailable") {
+      return "native-capture-unavailable";
+    }
     return error.failureKind;
+  }
+  const message = getErrorText(error).toLowerCase();
+  if (
+    message.includes("os-picker-denied-or-cancelled") ||
+    message.includes("cancelled") ||
+    message.includes("denied")
+  ) {
+    return "os-picker-denied-or-cancelled";
+  }
+  if (
+    message.includes("native-capture-unavailable") ||
+    message.includes("screencapture") ||
+    message.includes("only available on macos")
+  ) {
+    return "native-capture-unavailable";
+  }
+  if (
+    message.includes("display-capture-unavailable") ||
+    message.includes("display capture is not available")
+  ) {
+    return "native-capture-unavailable";
   }
   if (isDomExceptionName(error, "NotAllowedError") || isDomExceptionName(error, "AbortError")) {
     return "os-picker-denied-or-cancelled";
   }
-  return "unknown";
+  return "native-capture-failed";
 }
 
 function hasFailureKind(
@@ -386,14 +301,26 @@ function isDomExceptionName(error: unknown, name: string): boolean {
   );
 }
 
-function sanitizeFailureDetail(error: unknown): string {
-  const raw =
-    error instanceof Error
-      ? error.message
-      : typeof error === "string"
-        ? error
-        : "Raw visual capture failed.";
+function sanitizeFailureDetail(
+  error: unknown,
+  failureKind?: RawVisualCaptureFailureKind
+): string {
+  const raw = getErrorText(error);
+  if (
+    failureKind === "native-capture-unavailable" &&
+    /display[- ]capture|webview runtime/iu.test(raw)
+  ) {
+    return "Native raw visual capture is unavailable in this desktop runtime.";
+  }
   return redactSensitiveTextContent(raw).trim().slice(0, 240) || "Raw visual capture failed.";
+}
+
+function getErrorText(error: unknown): string {
+  return error instanceof Error
+    ? error.message
+    : typeof error === "string"
+      ? error
+      : "Raw visual capture failed.";
 }
 
 function extractFileName(path: string): string {

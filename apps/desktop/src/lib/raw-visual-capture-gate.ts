@@ -132,7 +132,7 @@ function formatPolicySummary(
     return "Raw visual capture may proceed only for this explicit export action.";
   }
   if (status === "blocked-implementation-disabled") {
-    return "Consent, redaction, session, and storage are ready, but raw visual payload capture is not implemented in this build.";
+    return "Consent, redaction, session, and storage are ready, but raw visual payload capture is not enabled in this build.";
   }
   return `Raw visual capture is blocked until ${missingSteps.join(", ")} is resolved.`;
 }

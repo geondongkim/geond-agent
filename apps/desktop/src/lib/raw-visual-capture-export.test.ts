@@ -1,15 +1,33 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const tauriMocks = vi.hoisted(() => ({
+  invoke: vi.fn(),
+  save: vi.fn()
+}));
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: tauriMocks.invoke
+}));
+
+vi.mock("@tauri-apps/plugin-dialog", () => ({
+  save: tauriMocks.save
+}));
 
 import {
   createRawVisualCaptureArtifactReference,
   createRawVisualCaptureFileName,
   createRawVisualCaptureReadiness,
-  exportRawVisualCapturePng,
-  stripPngDataUrlPrefix
+  exportRawVisualCapturePng
 } from "./raw-visual-capture-export.js";
 import type { ProjectedActiveSession } from "./workbench-types.js";
 
 describe("raw visual capture export helpers", () => {
+  beforeEach(() => {
+    tauriMocks.invoke.mockReset();
+    tauriMocks.save.mockReset();
+    delete (globalThis as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
+  });
+
   it("requires review checks before capture can be requested", () => {
     const readiness = createRawVisualCaptureReadiness({
       activeSession: { id: "session-1" } as ProjectedActiveSession,
@@ -59,12 +77,6 @@ describe("raw visual capture export helpers", () => {
     expect(readiness.gate.status).toBe("blocked-missing-storage-path");
   });
 
-  it("strips only PNG data URL prefixes", () => {
-    expect(stripPngDataUrlPrefix("data:image/png;base64,aGVsbG8=")).toBe("aGVsbG8=");
-    expect(stripPngDataUrlPrefix("data:image/jpeg;base64,aGVsbG8=")).toBeUndefined();
-    expect(stripPngDataUrlPrefix("not-base64")).toBeUndefined();
-  });
-
   it("returns a specific unsupported reason outside the native desktop runtime", async () => {
     await expect(
       exportRawVisualCapturePng({
@@ -82,51 +94,103 @@ describe("raw visual capture export helpers", () => {
     });
   });
 
-  it("preflights display capture support before opening a save path", async () => {
-    const previousTauriInternals = (
-      globalThis as { __TAURI_INTERNALS__?: unknown }
-    ).__TAURI_INTERNALS__;
-    const previousNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
-
+  it("delegates native desktop capture to the Tauri command without renderer pixels", async () => {
     Object.defineProperty(globalThis, "__TAURI_INTERNALS__", {
       configurable: true,
       value: {}
     });
-    Object.defineProperty(globalThis, "navigator", {
-      configurable: true,
-      value: { mediaDevices: {} }
+    tauriMocks.save.mockResolvedValue("/tmp/geond-agent-visual-capture.png");
+    tauriMocks.invoke.mockResolvedValue(undefined);
+
+    await expect(
+      exportRawVisualCapturePng({
+        activeSession: { id: "session-1", title: "Native capture" } as ProjectedActiveSession,
+        now: new Date("2026-06-24T00:00:00.000Z"),
+        visualReview: {
+          explicitConsent: true,
+          redactionReview: true,
+          storagePathSelected: true,
+          visibleContentReviewed: true
+        }
+      })
+    ).resolves.toMatchObject({
+      status: "saved",
+      path: "/tmp/geond-agent-visual-capture.png",
+      artifactRef: {
+        payloadPersistedInWorkbench: false,
+        storagePolicy: "user-selected-path-only"
+      }
     });
 
-    try {
-      await expect(
-        exportRawVisualCapturePng({
-          activeSession: { id: "session-1" } as ProjectedActiveSession,
-          visualReview: {
-            explicitConsent: true,
-            redactionReview: true,
-            storagePathSelected: true,
-            visibleContentReviewed: true
-          }
-        })
-      ).resolves.toMatchObject({
-        status: "unsupported",
-        failureKind: "display-capture-unavailable"
-      });
-    } finally {
-      if (previousNavigator) {
-        Object.defineProperty(globalThis, "navigator", previousNavigator);
-      } else {
-        delete (globalThis as { navigator?: Navigator }).navigator;
-      }
-      if (previousTauriInternals === undefined) {
-        delete (globalThis as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
-      } else {
-        Object.defineProperty(globalThis, "__TAURI_INTERNALS__", {
-          configurable: true,
-          value: previousTauriInternals
-        });
-      }
-    }
+    expect(tauriMocks.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: [{ name: "PNG image", extensions: ["png"] }]
+      })
+    );
+    expect(tauriMocks.invoke).toHaveBeenCalledWith("capture_raw_visual_png", {
+      path: "/tmp/geond-agent-visual-capture.png",
+      sessionId: "session-1",
+      explicitConsent: true,
+      redactionReview: true,
+      visibleContentReviewed: true
+    });
+    expect(tauriMocks.invoke).not.toHaveBeenCalledWith(
+      "write_raw_visual_capture_png",
+      expect.anything()
+    );
+  });
+
+  it("classifies native capture availability failures separately from legacy display capture", async () => {
+    Object.defineProperty(globalThis, "__TAURI_INTERNALS__", {
+      configurable: true,
+      value: {}
+    });
+    tauriMocks.save.mockResolvedValue("/tmp/geond-agent-visual-capture.png");
+    tauriMocks.invoke.mockRejectedValue(
+      "native-capture-unavailable: Raw visual capture is only available on macOS in this build."
+    );
+
+    await expect(
+      exportRawVisualCapturePng({
+        activeSession: { id: "session-1" } as ProjectedActiveSession,
+        visualReview: {
+          explicitConsent: true,
+          redactionReview: true,
+          storagePathSelected: true,
+          visibleContentReviewed: true
+        }
+      })
+    ).resolves.toMatchObject({
+      status: "unsupported",
+      failureKind: "native-capture-unavailable"
+    });
+  });
+
+  it("normalizes legacy display-capture failures into the native capture bridge status", async () => {
+    Object.defineProperty(globalThis, "__TAURI_INTERNALS__", {
+      configurable: true,
+      value: {}
+    });
+    tauriMocks.save.mockResolvedValue("/tmp/geond-agent-visual-capture.png");
+    tauriMocks.invoke.mockRejectedValue(
+      "Display capture is not available in this desktop webview runtime; a native capture bridge is required before the OS picker can open."
+    );
+
+    await expect(
+      exportRawVisualCapturePng({
+        activeSession: { id: "session-1" } as ProjectedActiveSession,
+        visualReview: {
+          explicitConsent: true,
+          redactionReview: true,
+          storagePathSelected: true,
+          visibleContentReviewed: true
+        }
+      })
+    ).resolves.toMatchObject({
+      status: "unsupported",
+      failureKind: "native-capture-unavailable",
+      detail: "Native raw visual capture is unavailable in this desktop runtime."
+    });
   });
 
   it("creates path-only raw visual artifact references", () => {

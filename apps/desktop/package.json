@@ -15,7 +15,7 @@
     "test:e2e:layout": "playwright test e2e/layout.spec.ts --grep @layout",
     "test:e2e:visual": "pnpm test:e2e:layout",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build --bundles app"
   },
   "dependencies": {
     "@geond-agent/claude-code-bridge": "workspace:*",
