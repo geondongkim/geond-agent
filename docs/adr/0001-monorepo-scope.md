@@ -15,7 +15,7 @@ into this monorepo.
 
 ## Decision
 
-Use an Apache-2.0 licensed, TypeScript-oriented monorepo with separate app and
+Use an MPL-2.0 licensed, TypeScript-oriented monorepo with separate app and
 package boundaries:
 
 - `apps/desktop` for the native desktop experience.

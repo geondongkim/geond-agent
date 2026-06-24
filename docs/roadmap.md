@@ -3,7 +3,7 @@
 ## Milestone 0: Repository Hygiene
 
 - Public repository metadata.
-- Apache-2.0 license.
+- MPL-2.0 license.
 - Third-party notices policy.
 - Clear package boundaries.
 - Setup and integration docs.

@@ -1,11 +1,17 @@
 # Licensing Policy
 
-`geond-agent` is licensed under Apache License 2.0.
+`geond-agent` is licensed under Mozilla Public License 2.0 (MPL-2.0).
 
-This license was chosen because the project may integrate with or learn from
-Apache-2.0 projects such as Goose, ACP, and Cline. Apache-2.0 also provides an
-explicit patent grant, which is useful for an agent platform that may grow over
-time.
+MPL-2.0 was chosen to keep the core workbench source open and reciprocal while
+still allowing adapter, protocol, and integration ecosystems to grow around it.
+MPL-2.0 is a file-level copyleft license: modifications to MPL-covered source
+files must remain available under MPL-2.0, while larger works can combine those
+files with separately licensed files when the MPL requirements are preserved.
+
+Earlier revisions that were published under Apache-2.0 remain available under
+the license terms that applied to those revisions. New repository changes should
+use the MPL-2.0 repository license unless a subproject explicitly declares a
+different license.
 
 ## Current Repository State
 
@@ -84,6 +90,8 @@ Before copying, vendoring, or forking third-party code:
 
 - Apache-2.0 code can generally be incorporated when license and notice
   requirements are preserved.
+- MPL-2.0 code can generally be incorporated when file-level copyleft,
+  source-availability, and notice requirements are preserved.
 - MIT/BSD-style code can generally be incorporated with attribution and license
   preservation.
 - Source-available licenses may restrict competitive use or redistribution;
