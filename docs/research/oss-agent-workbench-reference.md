@@ -13,7 +13,7 @@ separate license review and attribution update.
 | Cline | `cline/cline` | `ee59f81` (`ee59f81706981e0a64c8b32f8f0415c9d39561fa`) | Apache-2.0 |
 | OpenCode | `sst/opencode` | `009f379` (`009f3799cd6d28cad5a3e1b3902a80f60f93122e`) | MIT |
 | OpenHands | `All-Hands-AI/OpenHands` | `7b228db` (`7b228db6ae143598b4caf65c6f7ed759b511f922`) | MIT outside `enterprise/`; `enterprise/` is PolyForm Free Trial and is excluded from design reuse |
-| Codex | `openai/codex` | `d667082` (`d66708232299bdbf373ec55b0d6b938c246cfa60`) | Apache-2.0 |
+| Codex | `openai/codex` | `98845e4` (`98845e484070a1f93fa24842db0e429c7cec9f81`) | Apache-2.0 |
 
 ## Product Patterns To Reuse
 
@@ -139,6 +139,10 @@ Reference points:
 - Snapshot-tested TUI quality: Codex TUI uses snapshot tests for chat widgets,
   bottom pane behavior, diff rendering, permission popups, markdown wrapping,
   status indicators, and resume/session pickers.
+- TypeScript SDK JSONL boundary: `codex exec` exposes thread, turn, and item
+  events. `agent_message`, `reasoning`, `command_execution`, `file_change`,
+  `mcp_tool_call`, `web_search`, `todo_list`, and `error` item categories are
+  useful adapter inputs for `WorkbenchEvent` replay.
 
 Implications for `geond-agent`:
 

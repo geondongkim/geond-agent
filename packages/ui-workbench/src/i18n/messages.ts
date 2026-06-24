@@ -251,6 +251,7 @@ export type UiMessageKey =
   | "workbench.shell.subtitle"
   | "workbench.actions.newDemoSession"
   | "workbench.actions.runClaudeSession"
+  | "workbench.actions.runCodexSession"
   | "workbench.actions.resumeSession"
   | "workbench.actions.retryRun"
   | "workbench.actions.cancelRun"
@@ -270,6 +271,7 @@ export type UiMessageKey =
   | "workbench.composer.label"
   | "workbench.composer.placeholder"
   | "workbench.composer.livePlaceholder"
+  | "workbench.composer.codexPlaceholder"
   | "workbench.composer.dispatch"
   | "workbench.composer.routeSettings"
   | "workbench.composer.model"
@@ -285,6 +287,7 @@ export type UiMessageKey =
   | "workbench.runner.fixtureReady"
   | "workbench.runner.startingFixture"
   | "workbench.runner.startingClaude"
+  | "workbench.runner.startingCodex"
   | "workbench.runner.resumingClaude"
   | "workbench.runner.appendedEvents"
   | "workbench.runner.failed"
@@ -292,6 +295,7 @@ export type UiMessageKey =
   | "workbench.runner.mode"
   | "workbench.runner.fixture"
   | "workbench.runner.claudeLive"
+  | "workbench.runner.codexLive"
   | "workbench.runner.running"
   | "workbench.runner.cancelled"
   | "workbench.runner.cancelFailed"
@@ -867,6 +871,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.shell.subtitle": "Local native workbench with session selection, Claude Code runner boundaries, persisted settings, and normalized event storage.",
     "workbench.actions.newDemoSession": "New demo session",
     "workbench.actions.runClaudeSession": "Run Claude session",
+    "workbench.actions.runCodexSession": "Run Codex session",
     "workbench.actions.resumeSession": "Resume session",
     "workbench.actions.retryRun": "Retry run",
     "workbench.actions.cancelRun": "Cancel run",
@@ -886,6 +891,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.composer.label": "Agent command",
     "workbench.composer.placeholder": "Review the current workspace and continue the implementation.",
     "workbench.composer.livePlaceholder": "Run a concise geond-agent workbench smoke session. Do not modify files.",
+    "workbench.composer.codexPlaceholder": "Run a Codex CLI JSONL fixture session against the current workspace metadata.",
     "workbench.composer.dispatch": "Dispatch",
     "workbench.composer.routeSettings": "Route settings",
     "workbench.composer.model": "Model",
@@ -901,6 +907,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runner.fixtureReady": "Fixture runner ready.",
     "workbench.runner.startingFixture": "Starting local fixture runner...",
     "workbench.runner.startingClaude": "Starting Claude Code stream-json runner...",
+    "workbench.runner.startingCodex": "Starting Codex CLI JSONL fixture runner...",
     "workbench.runner.resumingClaude": "Resuming Claude Code session...",
     "workbench.runner.appendedEvents": "Appended {count} events from {executable} stream-json {mode} run #{index}.",
     "workbench.runner.failed": "Runner failed.",
@@ -908,6 +915,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runner.mode": "Runner mode",
     "workbench.runner.fixture": "Local fixture",
     "workbench.runner.claudeLive": "Claude Code live",
+    "workbench.runner.codexLive": "Codex CLI JSONL",
     "workbench.runner.running": "Running...",
     "workbench.runner.cancelled": "Cancel requested for the live Claude run.",
     "workbench.runner.cancelFailed": "No live Claude process was available to cancel.",
@@ -1480,6 +1488,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.shell.subtitle": "세션 선택, Claude Code 실행 경계, 저장되는 설정, 정규화 이벤트 저장소를 갖춘 로컬 네이티브 워크벤치입니다.",
     "workbench.actions.newDemoSession": "새 데모 세션",
     "workbench.actions.runClaudeSession": "Claude 세션 실행",
+    "workbench.actions.runCodexSession": "Codex 세션 실행",
     "workbench.actions.resumeSession": "세션 이어쓰기",
     "workbench.actions.retryRun": "실행 재시도",
     "workbench.actions.cancelRun": "실행 취소",
@@ -1499,6 +1508,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.composer.label": "에이전트 명령",
     "workbench.composer.placeholder": "현재 워크스페이스를 검토하고 구현을 이어갑니다.",
     "workbench.composer.livePlaceholder": "간결한 geond-agent 워크벤치 smoke 세션을 실행합니다. 파일은 수정하지 않습니다.",
+    "workbench.composer.codexPlaceholder": "현재 워크스페이스 메타데이터로 Codex CLI JSONL fixture 세션을 실행합니다.",
     "workbench.composer.dispatch": "실행",
     "workbench.composer.routeSettings": "라우트 설정",
     "workbench.composer.model": "모델",
@@ -1514,6 +1524,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runner.fixtureReady": "Fixture runner 준비됨.",
     "workbench.runner.startingFixture": "로컬 fixture runner 시작 중...",
     "workbench.runner.startingClaude": "Claude Code stream-json runner 시작 중...",
+    "workbench.runner.startingCodex": "Codex CLI JSONL fixture runner 시작 중...",
     "workbench.runner.resumingClaude": "Claude Code 세션 이어쓰기 중...",
     "workbench.runner.appendedEvents": "{executable} stream-json {mode} 실행 #{index}에서 이벤트 {count}개를 추가했습니다.",
     "workbench.runner.failed": "실행기가 실패했습니다.",
@@ -1521,6 +1532,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runner.mode": "Runner 모드",
     "workbench.runner.fixture": "로컬 fixture",
     "workbench.runner.claudeLive": "Claude Code live",
+    "workbench.runner.codexLive": "Codex CLI JSONL",
     "workbench.runner.running": "실행 중...",
     "workbench.runner.cancelled": "Live Claude 실행 취소를 요청했습니다.",
     "workbench.runner.cancelFailed": "취소할 수 있는 Live Claude 프로세스가 없습니다.",

@@ -94,7 +94,7 @@ export type WorkbenchProviderRouteHealthStatus =
 
 export interface WorkbenchRunAttemptSnapshot {
   readonly id: string;
-  readonly mode: "fixture" | "claude-live";
+  readonly mode: "fixture" | "claude-live" | "codex-live";
   readonly status: WorkbenchRunAttemptStatus;
   readonly backendAdapterId?: string;
   readonly providerRouteId?: string;

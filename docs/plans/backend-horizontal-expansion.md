@@ -142,13 +142,13 @@ forcing all backends to pretend they support the same features. New adapter
 examples should start from `examples/adapters/mock-backend/` before adding
 runtime code.
 
-`packages/codex-cli-bridge` is the first metadata-only second adapter consumer
-of the SDK. It does not launch Codex or copy Codex source; it proves that
-backend metadata, capability status, execution policy ids, and artifact
-references can be described outside the Claude Code bridge before a real runner
-exists. `apps/desktop` can list it in the backend picker as a non-executable
-candidate so the UI path exercises multi-backend selection without pretending a
-Codex runner exists.
+`packages/codex-cli-bridge` is the first deeper second adapter consumer of the
+SDK. It does not launch Codex or copy Codex source, but it now follows the
+upstream Apache-2.0 Codex TypeScript SDK thread/turn/item JSONL shape for an
+original normalizer, sanitized fixture replay, stdin prompt command boundary,
+and execution-policy mapping. `apps/desktop` can list it as a Codex JSONL
+fixture runner so the UI path exercises multi-backend selection and replay
+without pretending native live process execution is complete.
 
 `packages/opencode-bridge` is the next metadata-only consumer. It records the
 OpenCode-specific questions that matter before a real runner exists: selected

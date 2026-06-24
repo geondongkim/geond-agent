@@ -32,6 +32,7 @@ import {
   normalizeSideChatDrafts,
   type SideChatDraft
 } from "./lib/side-chat-drafts.js";
+import { formatRunnerModeLabel } from "./lib/workbench-format.js";
 import {
   toggleRecentContextPathFavorite,
   toggleRecentContextItemFavorite,
@@ -253,10 +254,7 @@ export function App({ document }: AppProps) {
       {
         id: "start-session",
         label: i18n.t("workbench.commandPalette.newSession"),
-        detail:
-          runnerMode === "claude-live"
-            ? i18n.t("workbench.runner.claudeLive")
-            : i18n.t("workbench.runner.fixture"),
+        detail: formatRunnerModeLabel(i18n, runnerMode),
         disabled: runnerBusy,
         run: startSelectedRunner
       },

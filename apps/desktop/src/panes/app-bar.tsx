@@ -12,6 +12,7 @@ import { cn } from "../lib/cn.js";
 import type { ProjectedActiveSession } from "../lib/workbench-types.js";
 import {
   formatLiveRunGuidanceLabel,
+  formatRunnerModeLabel,
   formatStatusLabel,
   lifecycleTone,
   liveRunGuidanceTone
@@ -99,9 +100,7 @@ export function AppBar({
             </span>
           ) : null}
           <span className="metric-pill">
-            {runnerMode === "claude-live"
-              ? i18n.t("workbench.runner.claudeLive")
-              : i18n.t("workbench.runner.fixture")}
+            {formatRunnerModeLabel(i18n, runnerMode)}
           </span>
           {latestIssue ? (
             <button

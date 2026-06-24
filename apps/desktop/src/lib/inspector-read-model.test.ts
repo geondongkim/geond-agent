@@ -117,11 +117,11 @@ describe("inspector read model", () => {
           {
             sessionId: "session-a",
             attemptId: "attempt-sqlite",
-            mode: "claude-live",
+            mode: "codex-live",
             status: "succeeded",
-            backendAdapterId: "claude-code.external-cli-acp",
-            providerRouteId: "zai.anthropic-compatible",
-            modelProfileId: "opus",
+            backendAdapterId: "codex.cli.metadata",
+            providerRouteId: "openai.host-mediated",
+            modelProfileId: "gpt-5.1-codex",
             routingMode: "manual",
             permissionMode: "plan",
             externalSessionId: "claude-session-1",
@@ -154,8 +154,10 @@ describe("inspector read model", () => {
     expect(model.usageReports[0]?.costUsd).toBeUndefined();
     expect(model.runAttempts[0]).toMatchObject({
       id: "attempt-sqlite",
+      mode: "codex-live",
       status: "succeeded",
-      modelProfileId: "opus",
+      backendAdapterId: "codex.cli.metadata",
+      modelProfileId: "gpt-5.1-codex",
       eventCount: 12,
       failureKind: "provider_overloaded",
       trigger: "approval_follow_up",

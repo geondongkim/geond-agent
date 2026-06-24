@@ -9,9 +9,15 @@ export interface RunnerPromptContext {
 }
 
 export function getComposerPlaceholder(mode: DesktopRunnerMode, i18n: UiI18n): string {
-  return mode === "claude-live"
-    ? i18n.t("workbench.composer.livePlaceholder")
-    : i18n.t("workbench.composer.placeholder");
+  if (mode === "claude-live") {
+    return i18n.t("workbench.composer.livePlaceholder");
+  }
+
+  if (mode === "codex-live") {
+    return i18n.t("workbench.composer.codexPlaceholder");
+  }
+
+  return i18n.t("workbench.composer.placeholder");
 }
 
 export function buildDispatchPrompt(

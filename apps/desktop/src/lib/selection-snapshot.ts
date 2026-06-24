@@ -6,6 +6,7 @@ import {
   describeProviderRoute,
   resolveModelProfile
 } from "@geond-agent/ui-workbench";
+import { buildCodexCliExecJsonCommand } from "@geond-agent/codex-cli-bridge";
 import type {
   UiI18n,
   WorkbenchSelectionCatalog,
@@ -60,6 +61,25 @@ export function describeLiveCommandPreview(request: RunnerRequest): string {
     `permission: ${request.permissionMode ?? "plan"}`,
     `workspace: ${request.workspacePath ?? request.cwd ?? "(default)"}`,
     `provider route: ${request.providerRouteId ?? "unknown"}`,
+    `resume: ${request.externalSessionId ? "stored external session" : "new session"}`,
+    `routing mode: ${request.routingMode ?? "manual"}`
+  ].join("\n");
+}
+
+export function describeCodexCommandPreview(request: RunnerRequest): string {
+  const command = buildCodexCliExecJsonCommand({
+    prompt: request.prompt,
+    cwd: request.workspacePath ?? request.cwd,
+    modelAlias: request.modelAlias,
+    externalSessionId: request.externalSessionId,
+    executionPolicy: "plan"
+  });
+
+  return [
+    [command.executable, ...command.args].join(" "),
+    `prompt: ${request.prompt.trim().length > 0 ? "provided" : "empty"}`,
+    `workspace: ${request.workspacePath ?? request.cwd ?? "(default)"}`,
+    `provider route: ${request.providerRouteId ?? "host-mediated"}`,
     `resume: ${request.externalSessionId ? "stored external session" : "new session"}`,
     `routing mode: ${request.routingMode ?? "manual"}`
   ].join("\n");

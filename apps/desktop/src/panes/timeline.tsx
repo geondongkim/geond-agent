@@ -27,6 +27,7 @@ import {
   formatLiveRunGuidanceDetail,
   formatLiveRunGuidanceLabel,
   formatMessage,
+  formatRunnerModeLabel,
   formatStatusLabel,
   lifecycleTone
 } from "../lib/workbench-format.js";
@@ -246,10 +247,8 @@ export function TimelinePane({
               {i18n.t("workbench.composer.label")}
             </label>
             <p className="composer-route-line">
-              {runnerMode === "claude-live"
-                ? i18n.t("workbench.runner.claudeLive")
-                : i18n.t("workbench.runner.fixture")}{" "}
-              / {sessionDefaults.defaultBackendAdapterId} / {sessionDefaults.defaultProviderRouteId}
+              {formatRunnerModeLabel(i18n, runnerMode)} / {sessionDefaults.defaultBackendAdapterId} /{" "}
+              {sessionDefaults.defaultProviderRouteId}
             </p>
           </div>
           <button
