@@ -439,6 +439,14 @@ export type UiMessageKey =
   | "workbench.files.exportStructuredTrace"
   | "workbench.files.exportMultiSessionTraceBundle"
   | "workbench.files.exportVisualCapturePolicy"
+  | "workbench.files.rawVisualCapturePng"
+  | "workbench.files.rawVisualCaptureStorage"
+  | "workbench.files.exportRawVisualCapturePng"
+  | "workbench.files.rawVisualCaptureSaved"
+  | "workbench.files.rawVisualCaptureCancelled"
+  | "workbench.files.rawVisualCaptureBlocked"
+  | "workbench.files.rawVisualCaptureUnsupported"
+  | "workbench.files.rawVisualCaptureFailed"
   | "workbench.files.exportSaved"
   | "workbench.files.exportDownloaded"
   | "workbench.files.exportCancelled"
@@ -1013,7 +1021,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.liveDogfoodStepEvidenceExport": "Evidence/report export",
     "workbench.files.liveDogfoodStepEvidenceExportDetail": "Use metadata-only reports and trace bundles for dogfood issues.",
     "workbench.files.liveDogfoodStepRawVisualCapture": "Raw visual capture",
-    "workbench.files.liveDogfoodStepRawVisualCaptureDetail": "Keep raw capture blocked until consent, redaction, path, and implementation gates pass.",
+    "workbench.files.liveDogfoodStepRawVisualCaptureDetail": "Capture only after consent, redaction review, user-selected PNG path, and OS display picker.",
     "workbench.files.exportManifest": "Export manifest",
     "workbench.files.exportEvidenceBundle": "Export evidence bundle",
     "workbench.files.exportIssueReport": "Export report",
@@ -1023,6 +1031,14 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.exportStructuredTrace": "Export structured trace",
     "workbench.files.exportMultiSessionTraceBundle": "Export multi-session trace bundle",
     "workbench.files.exportVisualCapturePolicy": "Export visual capture policy",
+    "workbench.files.rawVisualCapturePng": "Raw visual PNG",
+    "workbench.files.rawVisualCaptureStorage": "User-selected PNG path",
+    "workbench.files.exportRawVisualCapturePng": "Capture raw PNG",
+    "workbench.files.rawVisualCaptureSaved": "Raw visual PNG saved.",
+    "workbench.files.rawVisualCaptureCancelled": "Raw visual capture cancelled.",
+    "workbench.files.rawVisualCaptureBlocked": "Raw visual capture blocked by review gate.",
+    "workbench.files.rawVisualCaptureUnsupported": "Raw visual capture requires the native desktop runtime.",
+    "workbench.files.rawVisualCaptureFailed": "Raw visual capture failed or was denied by the OS picker.",
     "workbench.files.exportSaved": "Evidence bundle saved.",
     "workbench.files.exportDownloaded": "Evidence bundle downloaded.",
     "workbench.files.exportCancelled": "Evidence bundle export cancelled.",
@@ -1051,7 +1067,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.visualCapturePolicyExportDownloaded": "Visual capture policy downloaded.",
     "workbench.files.visualCapturePolicyExportCancelled": "Visual capture policy export cancelled.",
     "workbench.files.visualCaptureReview": "Visual capture review",
-    "workbench.files.visualCaptureReviewDetail": "Raw visual capture remains disabled; this checklist is recorded only in the policy artifact.",
+    "workbench.files.visualCaptureReviewDetail": "Raw visual capture requires this checklist, a user-selected PNG path, and the OS display picker for each export.",
     "workbench.files.resetVisualReview": "Reset review",
     "workbench.files.visualConsentCheck": "Explicit per-export consent is confirmed.",
     "workbench.files.visualRedactionCheck": "Visible secrets, account state, and private local files were reviewed.",
@@ -1594,7 +1610,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.liveDogfoodStepEvidenceExport": "증거/리포트 내보내기",
     "workbench.files.liveDogfoodStepEvidenceExportDetail": "Dogfood 이슈에는 메타데이터 전용 리포트와 trace 묶음을 사용합니다.",
     "workbench.files.liveDogfoodStepRawVisualCapture": "원본 시각 캡처",
-    "workbench.files.liveDogfoodStepRawVisualCaptureDetail": "동의, 가림, 경로, 구현 gate가 모두 통과할 때까지 원본 캡처를 차단합니다.",
+    "workbench.files.liveDogfoodStepRawVisualCaptureDetail": "동의, 가림 검토, 사용자 선택 PNG 경로, OS 화면 선택기를 거친 뒤에만 캡처합니다.",
     "workbench.files.exportManifest": "내보내기 매니페스트",
     "workbench.files.exportEvidenceBundle": "증거 묶음 내보내기",
     "workbench.files.exportIssueReport": "리포트 내보내기",
@@ -1604,6 +1620,14 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.exportStructuredTrace": "구조화 trace 내보내기",
     "workbench.files.exportMultiSessionTraceBundle": "멀티세션 trace 묶음 내보내기",
     "workbench.files.exportVisualCapturePolicy": "시각 캡처 정책 내보내기",
+    "workbench.files.rawVisualCapturePng": "원본 시각 PNG",
+    "workbench.files.rawVisualCaptureStorage": "사용자가 선택한 PNG 경로",
+    "workbench.files.exportRawVisualCapturePng": "원본 PNG 캡처",
+    "workbench.files.rawVisualCaptureSaved": "원본 시각 PNG를 저장했습니다.",
+    "workbench.files.rawVisualCaptureCancelled": "원본 시각 캡처를 취소했습니다.",
+    "workbench.files.rawVisualCaptureBlocked": "검토 gate가 원본 시각 캡처를 차단했습니다.",
+    "workbench.files.rawVisualCaptureUnsupported": "원본 시각 캡처는 native desktop runtime이 필요합니다.",
+    "workbench.files.rawVisualCaptureFailed": "원본 시각 캡처가 실패했거나 OS 선택기에서 거부되었습니다.",
     "workbench.files.exportSaved": "증거 묶음을 저장했습니다.",
     "workbench.files.exportDownloaded": "증거 묶음을 다운로드했습니다.",
     "workbench.files.exportCancelled": "증거 묶음 내보내기를 취소했습니다.",
@@ -1632,7 +1656,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.visualCapturePolicyExportDownloaded": "시각 캡처 정책을 다운로드했습니다.",
     "workbench.files.visualCapturePolicyExportCancelled": "시각 캡처 정책 내보내기를 취소했습니다.",
     "workbench.files.visualCaptureReview": "시각 캡처 검토",
-    "workbench.files.visualCaptureReviewDetail": "원본 시각 캡처는 여전히 비활성화 상태이며, 이 체크리스트는 정책 artifact에만 기록합니다.",
+    "workbench.files.visualCaptureReviewDetail": "원본 시각 캡처는 매번 이 체크리스트, 사용자 선택 PNG 경로, OS 화면 선택기를 거쳐야 합니다.",
     "workbench.files.resetVisualReview": "검토 초기화",
     "workbench.files.visualConsentCheck": "내보내기별 명시적 동의를 확인했습니다.",
     "workbench.files.visualRedactionCheck": "보이는 secret, 계정 상태, private 로컬 파일을 검토했습니다.",

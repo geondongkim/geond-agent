@@ -331,7 +331,7 @@ export function createMultiSessionIssueReportDraft({
     "Scope",
     "- Use this report when several sessions or trace artifacts need one local issue/review bundle.",
     "- Attach separate structured trace JSON artifacts only after explicit metadata export.",
-    "- Capture raw visuals only through the separate visual consent/redaction policy.",
+    "- Capture raw visuals only through the separate consent/redaction, user-selected PNG path, and OS picker flow.",
     "",
     `Session count: ${sessions.length}`,
     `Attention session count: ${attentionSessions.length}`,
@@ -355,7 +355,7 @@ export function createMultiSessionIssueReportDraft({
     "Trace/export checklist",
     "- Export the multi-session trace bundle for session index and route metadata.",
     "- Export per-session structured traces for sessions that need deeper replay evidence.",
-    "- Keep visual capture disabled unless a human explicitly approves a redacted visual artifact.",
+    "- Keep visual capture blocked unless a human explicitly approves a redacted visual artifact and selects a PNG save path.",
     "",
     "Decision prompts",
     "- Is this a provider route issue, tool runner issue, workbench replay issue, or UX issue?",
@@ -493,7 +493,7 @@ export function createLiveDogfoodRunbookDraft({
     "- Retry: compare parent attempt id, follow-up attempt id, trigger, route, and final status.",
     "- Cancel: confirm the UI labels cancellation as local/user initiated rather than provider failure.",
     "- Resume: confirm external session continuity without exporting raw Claude session files.",
-    "- Raw visual capture: keep blocked until the dedicated consent/redaction/storage implementation is enabled."
+    "- Raw visual capture: use only the dedicated consent/redaction, save-path, and OS-picker flow."
   ].join("\n");
 }
 

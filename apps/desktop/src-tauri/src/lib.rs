@@ -1,3 +1,4 @@
+use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -28,6 +29,7 @@ const CLAUDE_MAX_TIMEOUT_MS: u64 = 60 * 60 * 1000;
 const PROCESS_OUTPUT_CAP_BYTES: usize = 1024 * 1024;
 const TEXT_EXPORT_CAP_BYTES: usize = 2 * 1024 * 1024;
 const CAPTURE_ARTIFACT_CAP_BYTES: usize = 1024 * 1024;
+const RAW_VISUAL_CAPTURE_CAP_BYTES: usize = 16 * 1024 * 1024;
 const PROCESS_OUTPUT_TRUNCATED_MARKER: &str = "\n... [truncated]\n";
 const EVENT_STORE_SCHEMA_VERSION: i64 = 8;
 const ZAI_ANTHROPIC_BASE_URL: &str = "https://api.z.ai/api/anthropic";
@@ -293,6 +295,7 @@ pub fn run() {
             list_workspaces,
             write_text_file,
             write_evidence_capture_artifact,
+            write_raw_visual_capture_png,
             probe_claude_code_executable,
             run_claude_code_stream_json,
             cancel_claude_code_stream
@@ -570,6 +573,36 @@ fn write_evidence_capture_artifact(
     }
 
     write_text_export_file(PathBuf::from(path), &contents)
+}
+
+#[tauri::command]
+fn write_raw_visual_capture_png(
+    path: String,
+    session_id: String,
+    png_base64: String,
+    explicit_consent: bool,
+    redaction_review: bool,
+    visible_content_reviewed: bool,
+) -> Result<(), String> {
+    if !explicit_consent {
+        return Err("Explicit visual capture consent is required.".to_string());
+    }
+    if !redaction_review {
+        return Err("Visual capture redaction review is required.".to_string());
+    }
+    if !visible_content_reviewed {
+        return Err("Visible content review is required before raw visual capture.".to_string());
+    }
+    if session_id.trim().is_empty() {
+        return Err("Active session id is required for raw visual capture.".to_string());
+    }
+
+    let path = path.trim();
+    if path.is_empty() {
+        return Err("Raw visual capture path is required.".to_string());
+    }
+    let path = PathBuf::from(path);
+    write_raw_visual_capture_png_file(path, &png_base64)
 }
 
 #[tauri::command]
@@ -970,6 +1003,53 @@ fn write_text_export_file(path: PathBuf, contents: &str) -> Result<(), String> {
     }
 
     fs::write(path, contents).map_err(to_string)
+}
+
+fn write_raw_visual_capture_png_file(path: PathBuf, png_base64: &str) -> Result<(), String> {
+    if path.as_os_str().is_empty() {
+        return Err("Raw visual capture path is required.".to_string());
+    }
+    if path.is_dir() {
+        return Err("Raw visual capture path must be a file.".to_string());
+    }
+    if !has_png_extension(&path) {
+        return Err("Raw visual capture must be saved as a .png file.".to_string());
+    }
+
+    let normalized = png_base64.trim();
+    if normalized.is_empty() {
+        return Err("Raw visual capture payload is required.".to_string());
+    }
+    let bytes = BASE64_STANDARD
+        .decode(normalized)
+        .map_err(|_| "Raw visual capture payload must be base64 PNG data.".to_string())?;
+    if bytes.len() > RAW_VISUAL_CAPTURE_CAP_BYTES {
+        return Err(format!(
+            "Raw visual capture exceeds the {RAW_VISUAL_CAPTURE_CAP_BYTES} byte cap."
+        ));
+    }
+    if !is_png_payload(&bytes) {
+        return Err("Raw visual capture payload must be PNG data.".to_string());
+    }
+
+    if let Some(parent) = path.parent() {
+        if !parent.as_os_str().is_empty() && !parent.is_dir() {
+            return Err("Raw visual capture parent directory must already exist.".to_string());
+        }
+    }
+
+    fs::write(path, bytes).map_err(to_string)
+}
+
+fn has_png_extension(path: &Path) -> bool {
+    path.extension()
+        .and_then(|extension| extension.to_str())
+        .map(|extension| extension.eq_ignore_ascii_case("png"))
+        .unwrap_or(false)
+}
+
+fn is_png_payload(bytes: &[u8]) -> bool {
+    bytes.starts_with(&[0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A])
 }
 
 fn ensure_evidence_capture_kind(kind: &str) -> Result<(), String> {
@@ -1599,7 +1679,11 @@ fn migrate_event_store(connection: &mut Connection) -> Result<(), String> {
 
     if version < 8 {
         let transaction = connection.transaction().map_err(to_string)?;
-        if !column_exists(&transaction, "workbench_run_attempts", "parent_run_attempt_id")? {
+        if !column_exists(
+            &transaction,
+            "workbench_run_attempts",
+            "parent_run_attempt_id",
+        )? {
             transaction
                 .execute_batch(
                     "alter table workbench_run_attempts add column parent_run_attempt_id text;",
@@ -3332,6 +3416,71 @@ mod tests {
             root.join("huge.json").to_string_lossy().to_string(),
             "structured-trace".to_string(),
             "x".repeat(CAPTURE_ARTIFACT_CAP_BYTES + 1)
+        )
+        .is_err());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn writes_raw_visual_capture_png_only_after_review_flags() {
+        let root = env::temp_dir().join(format!(
+            "geond-agent-raw-visual-capture-test-{}",
+            std::process::id()
+        ));
+        let path = root.join("visual-capture.png");
+        fs::create_dir_all(&root).expect("create raw capture test dir");
+        let png_bytes = [0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0];
+        let png_base64 = BASE64_STANDARD.encode(png_bytes);
+
+        write_raw_visual_capture_png(
+            path.to_string_lossy().to_string(),
+            "session-1".to_string(),
+            png_base64.clone(),
+            true,
+            true,
+            true,
+        )
+        .expect("write raw visual capture png");
+
+        assert_eq!(fs::read(&path).expect("read png"), png_bytes);
+        assert!(write_raw_visual_capture_png(
+            root.join("missing-consent.png")
+                .to_string_lossy()
+                .to_string(),
+            "session-1".to_string(),
+            png_base64.clone(),
+            false,
+            true,
+            true,
+        )
+        .is_err());
+        assert!(write_raw_visual_capture_png(
+            root.join("bad-extension.jpg").to_string_lossy().to_string(),
+            "session-1".to_string(),
+            png_base64.clone(),
+            true,
+            true,
+            true,
+        )
+        .is_err());
+        assert!(write_raw_visual_capture_png(
+            root.join("bad-payload.png").to_string_lossy().to_string(),
+            "session-1".to_string(),
+            BASE64_STANDARD.encode("not png"),
+            true,
+            true,
+            true,
+        )
+        .is_err());
+        assert!(write_raw_visual_capture_png(
+            root.join("missing-session.png")
+                .to_string_lossy()
+                .to_string(),
+            " ".to_string(),
+            png_base64,
+            true,
+            true,
+            true,
         )
         .is_err());
         let _ = fs::remove_dir_all(root);

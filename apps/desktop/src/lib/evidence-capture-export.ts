@@ -141,6 +141,8 @@ export function createVisualCapturePolicyArtifact(
   });
   const rawVisualCaptureGate = createRawVisualCaptureGate({
     activeSession: options.activeSession,
+    rawCaptureImplementationEnabled: true,
+    requireStoragePathValue: true,
     visualReview
   });
   const liveDogfoodRunbook = createLiveDogfoodRunbook({
@@ -163,10 +165,10 @@ export function createVisualCapturePolicyArtifact(
     activeSession: serializeSession(options.activeSession, options.inspectorData),
     visualCapture: {
       status: reviewReady
-        ? "policy-reviewed-raw-capture-still-disabled"
+        ? "policy-reviewed-per-export-capture-gated"
         : "deferred-until-explicit-consent-and-redaction",
       rawImageStorageDefault: "disabled",
-      requiredUserAction: "per-export visual capture consent",
+      requiredUserAction: "per-export visual capture consent, PNG save path, and OS picker",
       reviewReady,
       review: visualReview,
       gate: rawVisualCaptureGate,
