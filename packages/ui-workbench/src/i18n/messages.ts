@@ -406,6 +406,30 @@ export type UiMessageKey =
   | "workbench.files.dogfoodActionMultiSessionReport"
   | "workbench.files.dogfoodActionVisualPolicy"
   | "workbench.files.dogfoodActionContinue"
+  | "workbench.files.liveDogfoodRunbook"
+  | "workbench.files.liveDogfoodRunbookDetail"
+  | "workbench.files.queueLiveDogfoodRunbook"
+  | "workbench.files.exportLiveDogfoodRunbook"
+  | "workbench.files.liveDogfoodRunbookExportSaved"
+  | "workbench.files.liveDogfoodRunbookExportDownloaded"
+  | "workbench.files.liveDogfoodRunbookExportCancelled"
+  | "workbench.files.liveDogfoodStatusObserved"
+  | "workbench.files.liveDogfoodStatusReady"
+  | "workbench.files.liveDogfoodStatusAttention"
+  | "workbench.files.liveDogfoodStatusBlocked"
+  | "workbench.files.liveDogfoodStatusPending"
+  | "workbench.files.liveDogfoodStepRouteSwitch"
+  | "workbench.files.liveDogfoodStepRouteSwitchDetail"
+  | "workbench.files.liveDogfoodStepRetry"
+  | "workbench.files.liveDogfoodStepRetryDetail"
+  | "workbench.files.liveDogfoodStepCancel"
+  | "workbench.files.liveDogfoodStepCancelDetail"
+  | "workbench.files.liveDogfoodStepResume"
+  | "workbench.files.liveDogfoodStepResumeDetail"
+  | "workbench.files.liveDogfoodStepEvidenceExport"
+  | "workbench.files.liveDogfoodStepEvidenceExportDetail"
+  | "workbench.files.liveDogfoodStepRawVisualCapture"
+  | "workbench.files.liveDogfoodStepRawVisualCaptureDetail"
   | "workbench.files.exportManifest"
   | "workbench.files.exportEvidenceBundle"
   | "workbench.files.exportIssueReport"
@@ -966,6 +990,30 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.dogfoodActionMultiSessionReport": "Export or queue a multi-session issue report for attention sessions.",
     "workbench.files.dogfoodActionVisualPolicy": "Complete the visual capture consent/redaction policy before raw capture.",
     "workbench.files.dogfoodActionContinue": "Continue dogfooding; no immediate recovery action is projected.",
+    "workbench.files.liveDogfoodRunbook": "Live dogfood runbook",
+    "workbench.files.liveDogfoodRunbookDetail": "Route, retry, cancel, resume, export, and visual-gate checks",
+    "workbench.files.queueLiveDogfoodRunbook": "Queue runbook",
+    "workbench.files.exportLiveDogfoodRunbook": "Export runbook",
+    "workbench.files.liveDogfoodRunbookExportSaved": "Live dogfood runbook saved.",
+    "workbench.files.liveDogfoodRunbookExportDownloaded": "Live dogfood runbook downloaded.",
+    "workbench.files.liveDogfoodRunbookExportCancelled": "Live dogfood runbook export cancelled.",
+    "workbench.files.liveDogfoodStatusObserved": "Observed",
+    "workbench.files.liveDogfoodStatusReady": "Ready",
+    "workbench.files.liveDogfoodStatusAttention": "Attention",
+    "workbench.files.liveDogfoodStatusBlocked": "Blocked",
+    "workbench.files.liveDogfoodStatusPending": "Pending",
+    "workbench.files.liveDogfoodStepRouteSwitch": "Manual route switch",
+    "workbench.files.liveDogfoodStepRouteSwitchDetail": "Review provider route health and next-run route before switching.",
+    "workbench.files.liveDogfoodStepRetry": "Retry after failure",
+    "workbench.files.liveDogfoodStepRetryDetail": "Compare failed, parent, and follow-up attempts without raw logs.",
+    "workbench.files.liveDogfoodStepCancel": "Cancel during live run",
+    "workbench.files.liveDogfoodStepCancelDetail": "Confirm cancellation is labeled as local/user action, not provider failure.",
+    "workbench.files.liveDogfoodStepResume": "Resume external session",
+    "workbench.files.liveDogfoodStepResumeDetail": "Check external session continuity without exporting Claude session files.",
+    "workbench.files.liveDogfoodStepEvidenceExport": "Evidence/report export",
+    "workbench.files.liveDogfoodStepEvidenceExportDetail": "Use metadata-only reports and trace bundles for dogfood issues.",
+    "workbench.files.liveDogfoodStepRawVisualCapture": "Raw visual capture",
+    "workbench.files.liveDogfoodStepRawVisualCaptureDetail": "Keep raw capture blocked until consent, redaction, path, and implementation gates pass.",
     "workbench.files.exportManifest": "Export manifest",
     "workbench.files.exportEvidenceBundle": "Export evidence bundle",
     "workbench.files.exportIssueReport": "Export report",
@@ -1523,6 +1571,30 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.dogfoodActionMultiSessionReport": "주의 세션에 대한 멀티세션 이슈 리포트를 내보내거나 초안에 추가합니다.",
     "workbench.files.dogfoodActionVisualPolicy": "원본 캡처 전에 시각 캡처 동의/가림 정책을 완료합니다.",
     "workbench.files.dogfoodActionContinue": "즉시 필요한 복구 조치가 없으므로 dogfood를 계속 진행합니다.",
+    "workbench.files.liveDogfoodRunbook": "Live dogfood 실행표",
+    "workbench.files.liveDogfoodRunbookDetail": "경로 전환, 재시도, 취소, 재개, 내보내기, 시각 gate 점검",
+    "workbench.files.queueLiveDogfoodRunbook": "실행표 초안에 추가",
+    "workbench.files.exportLiveDogfoodRunbook": "실행표 내보내기",
+    "workbench.files.liveDogfoodRunbookExportSaved": "Live dogfood 실행표를 저장했습니다.",
+    "workbench.files.liveDogfoodRunbookExportDownloaded": "Live dogfood 실행표를 다운로드했습니다.",
+    "workbench.files.liveDogfoodRunbookExportCancelled": "Live dogfood 실행표 내보내기를 취소했습니다.",
+    "workbench.files.liveDogfoodStatusObserved": "관찰됨",
+    "workbench.files.liveDogfoodStatusReady": "준비됨",
+    "workbench.files.liveDogfoodStatusAttention": "주의",
+    "workbench.files.liveDogfoodStatusBlocked": "차단됨",
+    "workbench.files.liveDogfoodStatusPending": "대기",
+    "workbench.files.liveDogfoodStepRouteSwitch": "수동 경로 전환",
+    "workbench.files.liveDogfoodStepRouteSwitchDetail": "전환 전에 provider route 상태와 다음 실행 경로를 확인합니다.",
+    "workbench.files.liveDogfoodStepRetry": "실패 후 재시도",
+    "workbench.files.liveDogfoodStepRetryDetail": "원본 로그 없이 실패, 부모, 후속 실행 시도를 비교합니다.",
+    "workbench.files.liveDogfoodStepCancel": "Live 실행 중 취소",
+    "workbench.files.liveDogfoodStepCancelDetail": "취소가 provider 실패가 아니라 로컬/사용자 동작으로 표시되는지 확인합니다.",
+    "workbench.files.liveDogfoodStepResume": "외부 세션 재개",
+    "workbench.files.liveDogfoodStepResumeDetail": "Claude 세션 파일을 내보내지 않고 외부 세션 연속성을 확인합니다.",
+    "workbench.files.liveDogfoodStepEvidenceExport": "증거/리포트 내보내기",
+    "workbench.files.liveDogfoodStepEvidenceExportDetail": "Dogfood 이슈에는 메타데이터 전용 리포트와 trace 묶음을 사용합니다.",
+    "workbench.files.liveDogfoodStepRawVisualCapture": "원본 시각 캡처",
+    "workbench.files.liveDogfoodStepRawVisualCaptureDetail": "동의, 가림, 경로, 구현 gate가 모두 통과할 때까지 원본 캡처를 차단합니다.",
     "workbench.files.exportManifest": "내보내기 매니페스트",
     "workbench.files.exportEvidenceBundle": "증거 묶음 내보내기",
     "workbench.files.exportIssueReport": "리포트 내보내기",

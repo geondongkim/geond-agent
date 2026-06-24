@@ -211,6 +211,50 @@ Follow-up implemented from the route refresh result:
   keys, private file contents, local session files, and visual payloads are not
   persisted into normalized workbench artifacts.
 
+## Live Dogfood Runbook and Raw Visual Gate: 2026-06-24
+
+- The Files inspector now projects a live Claude dogfood runbook from existing
+  metadata: manual route switch, retry, cancel, resume, metadata-only export,
+  and raw visual capture gate status.
+- The runbook can be queued as a side-chat draft or exported as Markdown. It is
+  intended for real route switching, retry, cancel, and resume dogfood runs
+  without attaching raw Claude stream logs, provider keys, private file
+  contents, local session files, or visual payloads.
+- Workspace reports, multi-session issue reports, export manifests, structured
+  trace artifacts, screenshot manifests, multi-session trace bundles, and visual
+  capture policy artifacts now include the same live dogfood runbook summary.
+- Raw visual capture now has an explicit gate model. It requires explicit
+  per-export consent, redaction review, an active session, user-selected storage
+  path readiness, visible-content review, and a separate implementation gate.
+- Even when the human review checklist is complete, raw visual payload capture
+  remains blocked until the implementation gate is deliberately enabled in a
+  later slice.
+- The native artifact writer still accepts only metadata artifacts and rejects
+  unsupported raw capture kinds.
+
+## Live Claude Runbook Gate Dogfood: 2026-06-24
+
+Raw run output is local-only under
+`output/local/claude-live-dogfood/runbook-gate-20260624-165928/` and is not
+tracked. This tracked record keeps only safe operational findings.
+
+- `sonnet` route smoke reached Z.ai through the Claude `apiKeyHelper` settings
+  boundary and returned `is_error=false` with `modelUsage=glm-4.7`.
+- `opus` route smoke reached Claude Code but returned `is_error=true`; the safe
+  field scan found provider error status and overloaded/auth-related text in the
+  result. This should be shown as a provider route/model issue, not as a
+  workbench replay failure.
+- Retry and resume stream-json probes emitted parseable `system`, `assistant`,
+  and `result` records, but the final result had `api_error_status=529`. The
+  workbench should preserve event shape evidence while recommending retry later
+  or manual route review.
+- The local cancellation probe exited `143` with no stderr and no stream
+  records. This remains a valid local/user cancellation shape and should not be
+  presented as provider failure.
+- Product implication: the new runbook should keep route switching, retry,
+  cancel, resume, and evidence export separate so one failing GLM-5.2 route does
+  not collapse the entire Claude path verdict.
+
 ## Verification Checklist
 
 - `git diff --check`
@@ -222,10 +266,11 @@ Follow-up implemented from the route refresh result:
 
 ## Remaining TODO
 
-- Add true raw visual capture only after a dedicated implementation can enforce
-  the reviewed consent/redaction checklist and write to a user-selected path.
+- Add true raw visual payload capture only after the new gate can be connected
+  to a dedicated capture implementation with explicit per-export consent,
+  redaction review, and a user-selected save path.
 - Run more live Claude dogfood sessions with successful route switch, retry,
-  cancel, and resume paths so the workflow summary can be tuned against real
+  cancel, and resume paths so the runbook statuses can be tuned against real
   operator behavior.
 - Add deeper issue/report export packaging if multi-session reports need to be
   bundled with multiple per-session structured trace artifacts in one action.

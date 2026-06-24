@@ -8,6 +8,7 @@ import {
   FilePlus,
   FileText,
   FolderOpen,
+  ListChecks,
   MessageSquarePlus,
   Paperclip,
   ShieldCheck,
@@ -43,6 +44,8 @@ import {
   createEvidenceExportManifestFileName,
   createEvidenceReportDraft,
   createEvidenceReportFileName,
+  createLiveDogfoodRunbookDraft,
+  createLiveDogfoodRunbookFileName,
   createMultiSessionIssueReportDraft,
   createMultiSessionIssueReportFileName,
   createWorkspaceEvidenceReportDraft,
@@ -58,6 +61,12 @@ import {
   type FileEvidenceSelection
 } from "../../lib/file-evidence.js";
 import type { InspectorSessionReadModel } from "../../lib/inspector-read-model.js";
+import {
+  createLiveDogfoodRunbook,
+  type LiveDogfoodRunbook,
+  type LiveDogfoodRunbookStep,
+  type LiveDogfoodRunbookStepStatus
+} from "../../lib/live-dogfood-runbook.js";
 import {
   groupRecentContextByWorkspace,
   type RecentContextItem,
@@ -142,6 +151,13 @@ export function InspectorFilesTab({
     inspectorData,
     selectedSessions: selectedExportSessions,
     sessions: projectedSessions,
+    visualReview
+  });
+  const liveDogfoodRunbook = createLiveDogfoodRunbook({
+    activeSession,
+    inspectorData,
+    projectedSessions,
+    selectedSessions: selectedExportSessions,
     visualReview
   });
 
@@ -248,6 +264,36 @@ export function InspectorFilesTab({
         sessions: projectedSessions
       }),
       i18n.t("workbench.files.exportManifest")
+    );
+  }
+
+  function queueLiveDogfoodRunbook() {
+    enqueueSideChatDraft(
+      createLiveDogfoodRunbookDraft({
+        activeSession,
+        inspectorData,
+        sessions: selectedExportSessions
+      }),
+      i18n.t("workbench.files.liveDogfoodRunbook")
+    );
+  }
+
+  async function exportLiveDogfoodRunbook() {
+    const result = await exportMarkdownFile({
+      fileName: createLiveDogfoodRunbookFileName(),
+      text: createLiveDogfoodRunbookDraft({
+        activeSession,
+        inspectorData,
+        sessions: selectedExportSessions
+      }),
+      title: i18n.t("workbench.files.exportLiveDogfoodRunbook")
+    });
+    setRunnerStatus(
+      result === "saved"
+        ? i18n.t("workbench.files.liveDogfoodRunbookExportSaved")
+        : result === "downloaded"
+          ? i18n.t("workbench.files.liveDogfoodRunbookExportDownloaded")
+          : i18n.t("workbench.files.liveDogfoodRunbookExportCancelled")
     );
   }
 
@@ -450,7 +496,13 @@ export function InspectorFilesTab({
         sessions={projectedSessions}
       />
 
-      <DogfoodWorkflowSection i18n={i18n} summary={dogfoodWorkflowSummary} />
+      <DogfoodWorkflowSection
+        exportRunbook={() => void exportLiveDogfoodRunbook()}
+        i18n={i18n}
+        queueRunbook={queueLiveDogfoodRunbook}
+        runbook={liveDogfoodRunbook}
+        summary={dogfoodWorkflowSummary}
+      />
 
       <EvidenceExportSection
         activeSession={activeSession}
@@ -735,10 +787,16 @@ function MultiSessionExportScopeSection({
 }
 
 function DogfoodWorkflowSection({
+  exportRunbook,
   i18n,
+  queueRunbook,
+  runbook,
   summary
 }: {
+  readonly exportRunbook: () => void;
   readonly i18n: UiI18n;
+  readonly queueRunbook: () => void;
+  readonly runbook: LiveDogfoodRunbook;
   readonly summary: DogfoodWorkflowSummary;
 }) {
   return (
@@ -795,7 +853,61 @@ function DogfoodWorkflowSection({
           ))}
         </ul>
       </div>
+      <div className="mt-3 file-evidence-card">
+        <div className="file-evidence-card-header">
+          <span className="file-evidence-icon">
+            <ListChecks size={15} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="muted-meta">{i18n.t("workbench.files.liveDogfoodRunbook")}</p>
+            <h4 className="truncate text-sm font-semibold">
+              {i18n.t("workbench.files.liveDogfoodRunbookDetail")}
+            </h4>
+          </div>
+        </div>
+        <div className="mt-3 grid gap-2">
+          {runbook.steps.map((step) => (
+            <LiveDogfoodStepCard i18n={i18n} key={step.id} step={step} />
+          ))}
+        </div>
+        <div className="mt-3 flex flex-wrap justify-end gap-2">
+          <Button variant="ghost" className="gap-2" onClick={queueRunbook}>
+            <MessageSquarePlus size={14} />
+            {i18n.t("workbench.files.queueLiveDogfoodRunbook")}
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={exportRunbook}>
+            <Download size={14} />
+            {i18n.t("workbench.files.exportLiveDogfoodRunbook")}
+          </Button>
+        </div>
+      </div>
     </EvidenceSection>
+  );
+}
+
+function LiveDogfoodStepCard({
+  i18n,
+  step
+}: {
+  readonly i18n: UiI18n;
+  readonly step: LiveDogfoodRunbookStep;
+}) {
+  return (
+    <div className="rounded-md border border-white/[0.055] px-3 py-2">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold">
+            {formatLiveDogfoodStepTitle(i18n, step.id)}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-[color:var(--ink-soft)]">
+            {formatLiveDogfoodStepDetail(i18n, step.id)}
+          </p>
+        </div>
+        <span className={cn("status-pill", liveDogfoodStepStatusTone(step.status))}>
+          {formatLiveDogfoodStepStatus(i18n, step.status)}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -894,6 +1006,78 @@ function formatDogfoodActionLabel(i18n: UiI18n, action: DogfoodWorkflowAction): 
       return i18n.t("workbench.files.dogfoodActionVisualPolicy");
     case "continue_dogfood":
       return i18n.t("workbench.files.dogfoodActionContinue");
+  }
+}
+
+function formatLiveDogfoodStepTitle(
+  i18n: UiI18n,
+  id: LiveDogfoodRunbookStep["id"]
+): string {
+  switch (id) {
+    case "route_switch":
+      return i18n.t("workbench.files.liveDogfoodStepRouteSwitch");
+    case "retry":
+      return i18n.t("workbench.files.liveDogfoodStepRetry");
+    case "cancel":
+      return i18n.t("workbench.files.liveDogfoodStepCancel");
+    case "resume":
+      return i18n.t("workbench.files.liveDogfoodStepResume");
+    case "evidence_export":
+      return i18n.t("workbench.files.liveDogfoodStepEvidenceExport");
+    case "raw_visual_capture":
+      return i18n.t("workbench.files.liveDogfoodStepRawVisualCapture");
+  }
+}
+
+function formatLiveDogfoodStepDetail(
+  i18n: UiI18n,
+  id: LiveDogfoodRunbookStep["id"]
+): string {
+  switch (id) {
+    case "route_switch":
+      return i18n.t("workbench.files.liveDogfoodStepRouteSwitchDetail");
+    case "retry":
+      return i18n.t("workbench.files.liveDogfoodStepRetryDetail");
+    case "cancel":
+      return i18n.t("workbench.files.liveDogfoodStepCancelDetail");
+    case "resume":
+      return i18n.t("workbench.files.liveDogfoodStepResumeDetail");
+    case "evidence_export":
+      return i18n.t("workbench.files.liveDogfoodStepEvidenceExportDetail");
+    case "raw_visual_capture":
+      return i18n.t("workbench.files.liveDogfoodStepRawVisualCaptureDetail");
+  }
+}
+
+function formatLiveDogfoodStepStatus(
+  i18n: UiI18n,
+  status: LiveDogfoodRunbookStepStatus
+): string {
+  switch (status) {
+    case "observed":
+      return i18n.t("workbench.files.liveDogfoodStatusObserved");
+    case "ready":
+      return i18n.t("workbench.files.liveDogfoodStatusReady");
+    case "attention":
+      return i18n.t("workbench.files.liveDogfoodStatusAttention");
+    case "blocked":
+      return i18n.t("workbench.files.liveDogfoodStatusBlocked");
+    case "pending":
+      return i18n.t("workbench.files.liveDogfoodStatusPending");
+  }
+}
+
+function liveDogfoodStepStatusTone(status: LiveDogfoodRunbookStepStatus): string {
+  switch (status) {
+    case "observed":
+    case "ready":
+      return "status-ok";
+    case "attention":
+      return "status-warn";
+    case "blocked":
+      return "status-danger";
+    case "pending":
+      return "status-neutral";
   }
 }
 
