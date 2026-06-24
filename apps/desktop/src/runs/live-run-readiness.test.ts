@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { createUiI18n, type WorkbenchSelectionSnapshot } from "@geond-agent/ui-workbench";
+import {
+  createEmptyBackendAdapterCapabilities,
+  createUiI18n,
+  type WorkbenchSelectionSnapshot
+} from "@geond-agent/ui-workbench";
 
 import { formatLiveRunReadinessBlockMessage } from "./live-run-readiness.js";
 
@@ -38,6 +42,26 @@ describe("desktop live run readiness guard", () => {
         createUiI18n("en")
       )
     ).toBeUndefined();
+  });
+
+  it("blocks Claude live launch when a metadata-only Codex backend is selected", () => {
+    expect(
+      formatLiveRunReadinessBlockMessage(
+        {
+          backendAdapterId: "codex.cli.metadata",
+          routingMode: "manual",
+          backendAdapter: {
+            id: "codex.cli.metadata",
+            label: "Codex CLI metadata candidate",
+            kind: "external-cli",
+            capabilities: createEmptyBackendAdapterCapabilities()
+          }
+        },
+        createUiI18n("en")
+      )
+    ).toBe(
+      "Claude Code live run is blocked before process launch: Selected backend Codex CLI metadata candidate is not executable by the Claude Code live runner. Switch the runner mode to Local fixture or select the Claude Code backend before launching."
+    );
   });
 });
 

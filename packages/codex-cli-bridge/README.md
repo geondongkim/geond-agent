@@ -14,5 +14,10 @@ Use this package as a future adapter checklist:
 - keep artifacts as metadata-only references until a safe export path exists,
 - avoid coupling to Codex internal storage or private session state.
 
+`apps/desktop` may list this backend in the backend picker as a candidate, but
+the Claude Code live runner must not launch it. Until a real Codex runner exists,
+selecting this backend is for catalog/readiness review and fixture-mode
+experiments only.
+
 If source from `openai/codex` is ever imported, follow
 `docs/reference/licensing.md` first and preserve Apache-2.0 notices.
