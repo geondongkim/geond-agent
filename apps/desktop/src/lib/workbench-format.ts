@@ -415,14 +415,16 @@ export function formatUsageSourceLabel(i18n: UiI18n, source: string): string {
   }
 }
 
-export function formatUsageNumber(i18n: UiI18n, value: number | undefined): string {
-  return value === undefined
+export function formatUsageNumber(i18n: UiI18n, value: number | null | undefined): string {
+  return typeof value !== "number" || !Number.isFinite(value)
     ? i18n.t("workbench.status.notAvailable")
     : new Intl.NumberFormat("en").format(value);
 }
 
-export function formatUsageCost(i18n: UiI18n, value: number | undefined): string {
-  return value === undefined ? i18n.t("workbench.status.notAvailable") : `$${value.toFixed(4)}`;
+export function formatUsageCost(i18n: UiI18n, value: number | null | undefined): string {
+  return typeof value !== "number" || !Number.isFinite(value)
+    ? i18n.t("workbench.status.notAvailable")
+    : `$${value.toFixed(4)}`;
 }
 
 export function approvalTone(status: string, decision?: string): string {

@@ -219,82 +219,94 @@ export function InspectorPane({
           </TabsList>
         </div>
 
-        <InspectorReviewTab
-          activeExternalSession={activeExternalSession}
-          activeSession={activeSession}
-          bridgeCommand={bridgeCommand}
-          canFollowUpApprovals={canFollowUpApprovals}
-          enqueueSideChatDraft={enqueueSideChatDraft}
-          i18n={i18n}
-          ignoredRecordCount={ignoredRecordCount}
-          inspectorData={inspectorData}
-          providerRouteOptions={providerRouteOptions}
-          resolveApproval={resolveApproval}
-          runtimeSnapshot={runtimeSnapshot}
-          sessionDefaults={sessionDefaults}
-          setInspectorTab={setInspectorTab}
-          updateSessionDefaults={updateSessionDefaults}
-        />
-        <InspectorTerminalTab
-          activeSession={activeSession}
-          commandOutputs={inspectorData?.commandOutputs}
-          enqueueSideChatDraft={enqueueSideChatDraft}
-          i18n={i18n}
-        />
-        <InspectorBrowserTab
-          activeSession={activeSession}
-          commandOutputs={inspectorData?.commandOutputs}
-          enqueueSideChatDraft={enqueueSideChatDraft}
-          i18n={i18n}
-          setInspectorTab={setInspectorTab}
-        />
-        <InspectorFilesTab
-          activeSession={activeSession}
-          attachRecentContext={attachRecentContext}
-          attachFileContext={attachFileContext}
-          attachWorkspaceContext={attachWorkspaceContext}
-          enqueueSideChatDraft={enqueueSideChatDraft}
-          evidenceExportPreferences={evidenceExportPreferences}
-          inspectorData={inspectorData}
-          i18n={i18n}
-          projectedSessions={projectedSessions}
-          recentContextItems={recentContextItems}
-          setRunnerStatus={setRunnerStatus}
-          toggleRecentContextFavorite={toggleRecentContextFavorite}
-          updateEvidenceExportPreferences={updateEvidenceExportPreferences}
-        />
-        <InspectorSideChatTab
-          drafts={drafts}
-          enqueueSideChatDraft={enqueueSideChatDraft}
-          followUpPolicy={sessionDefaults.followUpPolicy}
-          i18n={i18n}
-          removeSideChatDraft={removeSideChatDraft}
-          setComposerPrompt={setComposerPrompt}
-        />
-        <InspectorSettingsTab
-          agentLanguageOptions={agentLanguageOptions}
-          backendOptions={backendOptions}
-          bridgeCommand={bridgeCommand}
-          claudeCliProbe={claudeCliProbe}
-          composerEnterBehaviorOptions={composerEnterBehaviorOptions}
-          followUpPolicyOptions={followUpPolicyOptions}
-          i18n={i18n}
-          modelAliasOptions={modelAliasOptions}
-          permissionModeOptions={permissionModeOptions}
-          persistenceNotes={persistenceNotes}
-          providerRouteOptions={providerRouteOptions}
-          reviewDeliveryOptions={reviewDeliveryOptions}
-          routingModeOptions={routingModeOptions}
-          runtimeSnapshot={runtimeSnapshot}
-          runnerMode={runnerMode}
-          selectionReadiness={activeSession?.selection?.readiness}
-          sessionDefaults={sessionDefaults}
-          settingsLabels={settingsLabels}
-          updateAgentResponseLanguage={updateAgentResponseLanguage}
-          updateRunnerMode={updateRunnerMode}
-          updateSessionDefaults={updateSessionDefaults}
-          updateUiLanguage={updateUiLanguage}
-        />
+        {inspectorTab === "review" ? (
+          <InspectorReviewTab
+            activeExternalSession={activeExternalSession}
+            activeSession={activeSession}
+            bridgeCommand={bridgeCommand}
+            canFollowUpApprovals={canFollowUpApprovals}
+            enqueueSideChatDraft={enqueueSideChatDraft}
+            i18n={i18n}
+            ignoredRecordCount={ignoredRecordCount}
+            inspectorData={inspectorData}
+            providerRouteOptions={providerRouteOptions}
+            resolveApproval={resolveApproval}
+            runtimeSnapshot={runtimeSnapshot}
+            sessionDefaults={sessionDefaults}
+            setInspectorTab={setInspectorTab}
+            updateSessionDefaults={updateSessionDefaults}
+          />
+        ) : null}
+        {inspectorTab === "terminal" ? (
+          <InspectorTerminalTab
+            activeSession={activeSession}
+            commandOutputs={inspectorData?.commandOutputs}
+            enqueueSideChatDraft={enqueueSideChatDraft}
+            i18n={i18n}
+          />
+        ) : null}
+        {inspectorTab === "browser" ? (
+          <InspectorBrowserTab
+            activeSession={activeSession}
+            commandOutputs={inspectorData?.commandOutputs}
+            enqueueSideChatDraft={enqueueSideChatDraft}
+            i18n={i18n}
+            setInspectorTab={setInspectorTab}
+          />
+        ) : null}
+        {inspectorTab === "files" ? (
+          <InspectorFilesTab
+            activeSession={activeSession}
+            attachRecentContext={attachRecentContext}
+            attachFileContext={attachFileContext}
+            attachWorkspaceContext={attachWorkspaceContext}
+            enqueueSideChatDraft={enqueueSideChatDraft}
+            evidenceExportPreferences={evidenceExportPreferences}
+            inspectorData={inspectorData}
+            i18n={i18n}
+            projectedSessions={projectedSessions}
+            recentContextItems={recentContextItems}
+            setRunnerStatus={setRunnerStatus}
+            toggleRecentContextFavorite={toggleRecentContextFavorite}
+            updateEvidenceExportPreferences={updateEvidenceExportPreferences}
+          />
+        ) : null}
+        {inspectorTab === "chat" ? (
+          <InspectorSideChatTab
+            drafts={drafts}
+            enqueueSideChatDraft={enqueueSideChatDraft}
+            followUpPolicy={sessionDefaults.followUpPolicy}
+            i18n={i18n}
+            removeSideChatDraft={removeSideChatDraft}
+            setComposerPrompt={setComposerPrompt}
+          />
+        ) : null}
+        {inspectorTab === "settings" ? (
+          <InspectorSettingsTab
+            agentLanguageOptions={agentLanguageOptions}
+            backendOptions={backendOptions}
+            bridgeCommand={bridgeCommand}
+            claudeCliProbe={claudeCliProbe}
+            composerEnterBehaviorOptions={composerEnterBehaviorOptions}
+            followUpPolicyOptions={followUpPolicyOptions}
+            i18n={i18n}
+            modelAliasOptions={modelAliasOptions}
+            permissionModeOptions={permissionModeOptions}
+            persistenceNotes={persistenceNotes}
+            providerRouteOptions={providerRouteOptions}
+            reviewDeliveryOptions={reviewDeliveryOptions}
+            routingModeOptions={routingModeOptions}
+            runtimeSnapshot={runtimeSnapshot}
+            runnerMode={runnerMode}
+            selectionReadiness={activeSession?.selection?.readiness}
+            sessionDefaults={sessionDefaults}
+            settingsLabels={settingsLabels}
+            updateAgentResponseLanguage={updateAgentResponseLanguage}
+            updateRunnerMode={updateRunnerMode}
+            updateSessionDefaults={updateSessionDefaults}
+            updateUiLanguage={updateUiLanguage}
+          />
+        ) : null}
       </Tabs>
     </aside>
   );

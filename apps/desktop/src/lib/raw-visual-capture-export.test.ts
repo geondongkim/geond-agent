@@ -82,6 +82,53 @@ describe("raw visual capture export helpers", () => {
     });
   });
 
+  it("preflights display capture support before opening a save path", async () => {
+    const previousTauriInternals = (
+      globalThis as { __TAURI_INTERNALS__?: unknown }
+    ).__TAURI_INTERNALS__;
+    const previousNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+
+    Object.defineProperty(globalThis, "__TAURI_INTERNALS__", {
+      configurable: true,
+      value: {}
+    });
+    Object.defineProperty(globalThis, "navigator", {
+      configurable: true,
+      value: { mediaDevices: {} }
+    });
+
+    try {
+      await expect(
+        exportRawVisualCapturePng({
+          activeSession: { id: "session-1" } as ProjectedActiveSession,
+          visualReview: {
+            explicitConsent: true,
+            redactionReview: true,
+            storagePathSelected: true,
+            visibleContentReviewed: true
+          }
+        })
+      ).resolves.toMatchObject({
+        status: "unsupported",
+        failureKind: "display-capture-unavailable"
+      });
+    } finally {
+      if (previousNavigator) {
+        Object.defineProperty(globalThis, "navigator", previousNavigator);
+      } else {
+        delete (globalThis as { navigator?: Navigator }).navigator;
+      }
+      if (previousTauriInternals === undefined) {
+        delete (globalThis as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
+      } else {
+        Object.defineProperty(globalThis, "__TAURI_INTERNALS__", {
+          configurable: true,
+          value: previousTauriInternals
+        });
+      }
+    }
+  });
+
   it("creates path-only raw visual artifact references", () => {
     const reference = createRawVisualCaptureArtifactReference({
       activeSession: {

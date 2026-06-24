@@ -105,6 +105,14 @@ export async function exportRawVisualCapturePng({
       detail: "Raw visual capture can only write through the native desktop runtime."
     };
   }
+  if (!isDisplayCaptureSupported()) {
+    return {
+      status: "unsupported",
+      failureKind: "display-capture-unavailable",
+      detail:
+        "Display capture is not available in this desktop webview runtime; a native capture bridge is required before the OS picker can open."
+    };
+  }
 
   let path: string | undefined;
   try {
@@ -325,6 +333,10 @@ function waitForVideoFrame(video: HTMLVideoElement): Promise<void> {
 
 function isTauriRuntime(): boolean {
   return Boolean((globalThis as { readonly __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
+}
+
+function isDisplayCaptureSupported(): boolean {
+  return typeof globalThis.navigator?.mediaDevices?.getDisplayMedia === "function";
 }
 
 function createRawVisualCaptureError(

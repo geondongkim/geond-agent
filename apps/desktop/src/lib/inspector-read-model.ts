@@ -200,13 +200,13 @@ export function createMaterializedInspectorSessionReadModel(
     id: record.usageId,
     source: normalizeUsageSource(record.source),
     model: record.model,
-    inputTokens: record.inputTokens,
-    outputTokens: record.outputTokens,
-    cacheCreationInputTokens: record.cacheCreationInputTokens,
-    cacheReadInputTokens: record.cacheReadInputTokens,
-    contextWindow: record.contextWindow,
-    maxOutputTokens: record.maxOutputTokens,
-    costUsd: record.costUsd,
+    inputTokens: normalizeOptionalNumber(record.inputTokens),
+    outputTokens: normalizeOptionalNumber(record.outputTokens),
+    cacheCreationInputTokens: normalizeOptionalNumber(record.cacheCreationInputTokens),
+    cacheReadInputTokens: normalizeOptionalNumber(record.cacheReadInputTokens),
+    contextWindow: normalizeOptionalNumber(record.contextWindow),
+    maxOutputTokens: normalizeOptionalNumber(record.maxOutputTokens),
+    costUsd: normalizeOptionalNumber(record.costUsd),
     serviceTier: record.serviceTier,
     note: record.note
   }));
@@ -272,6 +272,10 @@ function createTextSignature(value: string | undefined): string {
   }
 
   return `${value.length}:${fnv1a32(value)}`;
+}
+
+function normalizeOptionalNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function fnv1a32(value: string): string {
