@@ -124,6 +124,58 @@ Follow-up implemented from the export dogfood result:
 - The tracked record separates provider auth failure from runner/process failure
   and keeps raw local outputs ignored.
 
+## Live Claude Route Refresh Dogfood: 2026-06-24
+
+Raw run output is local-only under
+`output/local/claude-live-dogfood/route-refresh-settings-2026-06-24b/` and is
+not tracked. This tracked record keeps only safe operational findings.
+
+- Reusing shell env alone still returned provider auth `401`.
+- Following the Z.ai Claude Code setup shape with a local Claude settings file
+  that provides `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL`, timeout,
+  nonessential-traffic disablement, compact-window, and model alias metadata
+  returned successful smoke, retry, and resume probes.
+- The successful smoke result returned `type=result`, `subtype=success`,
+  `is_error=false`, and a session id without exposing the key.
+- The successful retry stream produced parseable stream-json records across
+  `system`, `stream_event`, `assistant`, `user`, and `result` shapes with no
+  API error status.
+- The successful resume probe against the same external session id returned a
+  parseable `result` record and confirmed route continuity after refresh.
+- Product conclusion: geond-agent should keep `ZAI_API_KEY` as the local
+  operator-facing secret name, derive process-local `ANTHROPIC_AUTH_TOKEN` only
+  inside the native runner, inject an ephemeral Claude `--settings` file, and
+  delete it after the process exits.
+
+Follow-up implemented from the route refresh result:
+
+- The native Claude runner now maps local `ZAI_API_KEY` to
+  `ANTHROPIC_AUTH_TOKEN`, applies Z.ai Claude Code defaults, injects an
+  ephemeral `--settings` file, and excludes `ZAI_API_KEY` from the child/settings
+  environment.
+- The Z.ai provider helper treats either `ZAI_API_KEY` or
+  `ANTHROPIC_AUTH_TOKEN` as credential-present metadata without returning the
+  credential value.
+- Claude bridge redaction fixtures explicitly cover `ANTHROPIC_AUTH_TOKEN`.
+- After implementing the native settings injection boundary, a fresh local
+  probe under
+  `output/local/claude-live-dogfood/route-refresh-implemented-20260624-111400/`
+  returned smoke/retry/resume exit `0`. The retry stream parsed 167 records and
+  the resume stream parsed 106 records with no API error status.
+
+## Evidence Capture Command Boundary: 2026-06-24
+
+- The native app exposes `write_evidence_capture_artifact` for explicit,
+  user-selected capture artifact paths.
+- Supported artifact kinds are `screenshot-manifest` and `structured-trace`.
+- The command enforces a metadata cap and rejects unsupported raw capture kinds.
+- The Files inspector now exports a screenshot manifest and a structured trace
+  JSON artifact through the same Tauri save-dialog/browser-download split as
+  the existing evidence package.
+- Screenshot manifests do not include bitmap data. Structured traces include
+  metadata-only session, selection, count, diff path/stat, latest run attempt,
+  and capture-policy evidence.
+
 ## Verification Checklist
 
 - `git diff --check`
@@ -135,12 +187,9 @@ Follow-up implemented from the export dogfood result:
 
 ## Remaining TODO
 
-- Refresh the local Z.ai key or provider route and rerun a successful live
-  Claude retry/resume dogfood; the current export dogfood is blocked at
-  provider auth (`401`).
-- Add explicit screenshot and structured trace capture/export after the consent
-  and redaction boundaries are wired to a real capture command.
-- Add a multi-session issue/report bundle once screenshots and structured traces
-  exist.
+- Add a multi-session issue/report bundle that can include multiple structured
+  trace artifacts without raw logs.
+- Design a separate consent/redaction path before capturing raw screenshot
+  bitmap data.
 - Continue workspace/file picker polish with favorites, recency, and workspace
   switcher integration.

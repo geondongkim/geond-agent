@@ -39,6 +39,9 @@ Updated on 2026-06-21:
 - [x] The local env values provide `ZAI_API_KEY`, the Z.ai Anthropic-compatible
       base URL, and Claude Code default model aliases without exposing the key
       in tracked files.
+- [x] The desktop Claude runner maps local `ZAI_API_KEY` to the process-local
+      `ANTHROPIC_AUTH_TOKEN` expected by the Z.ai Claude Code route through an
+      ephemeral Claude settings file.
 - [x] The first paid evaluation task has been run and scored with OpenCode;
       see [Z.ai evaluation run: OpenCode Task 1](zai-evaluation-run-opencode-task1.md).
 - [x] The second paid evaluation task has been run and scored with Cline;

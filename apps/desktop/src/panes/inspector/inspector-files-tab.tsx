@@ -23,6 +23,12 @@ import {
   type EvidenceCaptureReadiness
 } from "../../lib/evidence-capture.js";
 import {
+  createScreenshotManifestArtifact,
+  createStructuredTraceArtifact,
+  type EvidenceCaptureArtifact,
+  type EvidenceCaptureArtifactKind
+} from "../../lib/evidence-capture-export.js";
+import {
   createEvidenceBundleDraft,
   createEvidenceBundleFileName,
   createEvidenceExportManifestDraft,
@@ -47,7 +53,11 @@ import {
   type RecentContextItem,
   type RecentContextWorkspaceGroup
 } from "../../lib/recent-context.js";
-import { exportMarkdownFile } from "../../lib/text-export.js";
+import {
+  exportJsonArtifact,
+  exportMarkdownFile,
+  type TextExportResult
+} from "../../lib/text-export.js";
 import { formatContextKindLabel } from "../../lib/workbench-format.js";
 import type { ProjectedActiveSession, ProjectedSessionListItem } from "../../lib/workbench-types.js";
 
@@ -219,6 +229,32 @@ export function InspectorFilesTab({
     );
   }
 
+  async function exportScreenshotManifest() {
+    const artifact = createScreenshotManifestArtifact({
+      activeSession,
+      inspectorData,
+      projectedSessions
+    });
+    const result = await exportCaptureArtifact(
+      artifact,
+      i18n.t("workbench.files.exportScreenshotManifest")
+    );
+    setRunnerStatus(formatCaptureExportStatus(i18n, "screenshot-manifest", result));
+  }
+
+  async function exportStructuredTrace() {
+    const artifact = createStructuredTraceArtifact({
+      activeSession,
+      inspectorData,
+      projectedSessions
+    });
+    const result = await exportCaptureArtifact(
+      artifact,
+      i18n.t("workbench.files.exportStructuredTrace")
+    );
+    setRunnerStatus(formatCaptureExportStatus(i18n, "structured-trace", result));
+  }
+
   return (
     <TabsContent value="files" className="border-0 bg-transparent p-0">
       <div className="file-evidence-hero">
@@ -285,7 +321,13 @@ export function InspectorFilesTab({
         queueWorkspaceReport={queueWorkspaceReport}
       />
 
-      <EvidenceCaptureBoundarySection i18n={i18n} items={captureReadiness} />
+      <EvidenceCaptureBoundarySection
+        disabled={!activeSession}
+        exportScreenshotManifest={() => void exportScreenshotManifest()}
+        exportStructuredTrace={() => void exportStructuredTrace()}
+        i18n={i18n}
+        items={captureReadiness}
+      />
 
       {favoriteContextItems.length > 0 ? (
         <RecentContextSection
@@ -371,9 +413,15 @@ export function InspectorFilesTab({
 }
 
 function EvidenceCaptureBoundarySection({
+  disabled,
+  exportScreenshotManifest,
+  exportStructuredTrace,
   i18n,
   items
 }: {
+  readonly disabled: boolean;
+  readonly exportScreenshotManifest: () => void;
+  readonly exportStructuredTrace: () => void;
   readonly i18n: UiI18n;
   readonly items: readonly EvidenceCaptureReadiness[];
 }) {
@@ -384,7 +432,14 @@ function EvidenceCaptureBoundarySection({
       </p>
       <div className="grid gap-2">
         {items.map((item) => (
-          <EvidenceCaptureBoundaryCard i18n={i18n} item={item} key={item.kind} />
+          <EvidenceCaptureBoundaryCard
+            disabled={disabled}
+            exportScreenshotManifest={exportScreenshotManifest}
+            exportStructuredTrace={exportStructuredTrace}
+            i18n={i18n}
+            item={item}
+            key={item.kind}
+          />
         ))}
       </div>
     </EvidenceSection>
@@ -392,9 +447,15 @@ function EvidenceCaptureBoundarySection({
 }
 
 function EvidenceCaptureBoundaryCard({
+  disabled,
+  exportScreenshotManifest,
+  exportStructuredTrace,
   i18n,
   item
 }: {
+  readonly disabled: boolean;
+  readonly exportScreenshotManifest: () => void;
+  readonly exportStructuredTrace: () => void;
   readonly i18n: UiI18n;
   readonly item: EvidenceCaptureReadiness;
 }) {
@@ -430,8 +491,53 @@ function EvidenceCaptureBoundaryCard({
           value={item.rawStoragePolicy}
         />
       </dl>
+      <div className="mt-3 flex justify-end">
+        <Button
+          variant="outline"
+          className="gap-2"
+          disabled={disabled}
+          onClick={item.kind === "screenshot" ? exportScreenshotManifest : exportStructuredTrace}
+        >
+          <Download size={14} />
+          {item.kind === "screenshot"
+            ? i18n.t("workbench.files.exportScreenshotManifest")
+            : i18n.t("workbench.files.exportStructuredTrace")}
+        </Button>
+      </div>
     </div>
   );
+}
+
+async function exportCaptureArtifact(
+  artifact: EvidenceCaptureArtifact,
+  title: string
+): Promise<TextExportResult> {
+  return exportJsonArtifact({
+    fileName: artifact.fileName,
+    kind: artifact.kind,
+    text: artifact.text,
+    title
+  });
+}
+
+function formatCaptureExportStatus(
+  i18n: UiI18n,
+  kind: EvidenceCaptureArtifactKind,
+  result: TextExportResult
+): string {
+  if (kind === "screenshot-manifest") {
+    return result === "saved"
+      ? i18n.t("workbench.files.screenshotManifestExportSaved")
+      : result === "downloaded"
+        ? i18n.t("workbench.files.screenshotManifestExportDownloaded")
+        : i18n.t("workbench.files.screenshotManifestExportCancelled");
+  }
+
+  return result === "saved"
+    ? i18n.t("workbench.files.structuredTraceExportSaved")
+    : result === "downloaded"
+      ? i18n.t("workbench.files.structuredTraceExportDownloaded")
+      : i18n.t("workbench.files.structuredTraceExportCancelled");
 }
 
 function EvidenceExportSection({

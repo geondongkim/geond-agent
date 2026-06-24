@@ -15,6 +15,7 @@ import {
 
 export interface ZaiProviderEnvironment {
   readonly ZAI_API_KEY?: string;
+  readonly ANTHROPIC_AUTH_TOKEN?: string;
   readonly ANTHROPIC_BASE_URL?: string;
   readonly ANTHROPIC_DEFAULT_HAIKU_MODEL?: string;
   readonly ANTHROPIC_DEFAULT_SONNET_MODEL?: string;
@@ -43,7 +44,9 @@ export function createZaiProviderConfig(
   const opusModel = asZaiModel(readNonEmptyString(environment.ANTHROPIC_DEFAULT_OPUS_MODEL));
   const anthropicBaseUrl =
     readNonEmptyString(environment.ANTHROPIC_BASE_URL) ?? ZAI_ANTHROPIC_BASE_URL;
-  const hasApiKey = readNonEmptyString(environment.ZAI_API_KEY) !== undefined;
+  const hasApiKey =
+    readNonEmptyString(environment.ZAI_API_KEY) !== undefined ||
+    readNonEmptyString(environment.ANTHROPIC_AUTH_TOKEN) !== undefined;
 
   if (haikuModel) {
     routingOverrides.haiku = haikuModel;

@@ -74,7 +74,7 @@ Do not subscribe until each item is complete:
 - [ ] Claude Code, Cline, and OpenCode setup paths are documented without
       committing secrets.
 - [ ] Local-only environment variable names are understood:
-      `ZAI_API_KEY`, `ANTHROPIC_BASE_URL`,
+      `ZAI_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL`,
       `ANTHROPIC_DEFAULT_HAIKU_MODEL`,
       `ANTHROPIC_DEFAULT_SONNET_MODEL`, and
       `ANTHROPIC_DEFAULT_OPUS_MODEL`.

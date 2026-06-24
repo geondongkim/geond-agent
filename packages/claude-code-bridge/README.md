@@ -85,7 +85,7 @@ is safe to write to logs. An env value is replaced with `[redacted]` when its
 name is secret-like: case-insensitively containing `key`, `token`, `secret`,
 `auth`, `password`, or `session`. This covers mixed-case names such as
 `ApiKey` or `MySecret`, common provider aliases such as `ANTHROPIC_API_KEY`,
-`OPENAI_KEY`, `AZURE_OPENAI_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`,
+`ANTHROPIC_AUTH_TOKEN`, `OPENAI_KEY`, `AZURE_OPENAI_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`,
 `GITHUB_TOKEN`, `AWS_SECRET_ACCESS_KEY`, and `SESSION_ID`.
 
 Non-secret values such as `PATH`, `HOME`, `NODE_ENV`, or `EDITOR` are left
@@ -109,15 +109,15 @@ const boundary = defineClaudeCodeAcpBoundary({
   transport: "stdio",
   env: {
     PATH: "/usr/bin",
-    ANTHROPIC_API_KEY: "<provider-secret-value>",
+    ANTHROPIC_AUTH_TOKEN: "<provider-secret-value>",
     NODE_ENV: "development"
   }
 });
 
 const safeForLogs = redactClaudeCodeAcpBoundary(boundary);
-const redactedValue = safeForLogs.process.env["ANTHROPIC_API_KEY"];
+const redactedValue = safeForLogs.process.env["ANTHROPIC_AUTH_TOKEN"];
 const visiblePath = safeForLogs.process.env.PATH;
-const originalValue = boundary.process.env?.["ANTHROPIC_API_KEY"];
+const originalValue = boundary.process.env?.["ANTHROPIC_AUTH_TOKEN"];
 
 // redactedValue is "[redacted]".
 // visiblePath is "/usr/bin".

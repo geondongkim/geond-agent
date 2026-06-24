@@ -368,6 +368,8 @@ export type UiMessageKey =
   | "workbench.files.exportEvidenceBundle"
   | "workbench.files.exportIssueReport"
   | "workbench.files.exportWorkspaceReport"
+  | "workbench.files.exportScreenshotManifest"
+  | "workbench.files.exportStructuredTrace"
   | "workbench.files.exportSaved"
   | "workbench.files.exportDownloaded"
   | "workbench.files.exportCancelled"
@@ -380,6 +382,12 @@ export type UiMessageKey =
   | "workbench.files.exportManifestSaved"
   | "workbench.files.exportManifestDownloaded"
   | "workbench.files.exportManifestCancelled"
+  | "workbench.files.screenshotManifestExportSaved"
+  | "workbench.files.screenshotManifestExportDownloaded"
+  | "workbench.files.screenshotManifestExportCancelled"
+  | "workbench.files.structuredTraceExportSaved"
+  | "workbench.files.structuredTraceExportDownloaded"
+  | "workbench.files.structuredTraceExportCancelled"
   | "workbench.files.captureBoundary"
   | "workbench.files.captureBoundaryDetail"
   | "workbench.files.screenshotBundle"
@@ -857,6 +865,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.exportEvidenceBundle": "Export evidence bundle",
     "workbench.files.exportIssueReport": "Export report",
     "workbench.files.exportWorkspaceReport": "Export workspace report",
+    "workbench.files.exportScreenshotManifest": "Export screenshot manifest",
+    "workbench.files.exportStructuredTrace": "Export structured trace",
     "workbench.files.exportSaved": "Evidence bundle saved.",
     "workbench.files.exportDownloaded": "Evidence bundle downloaded.",
     "workbench.files.exportCancelled": "Evidence bundle export cancelled.",
@@ -869,6 +879,12 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.exportManifestSaved": "Export manifest saved.",
     "workbench.files.exportManifestDownloaded": "Export manifest downloaded.",
     "workbench.files.exportManifestCancelled": "Export manifest export cancelled.",
+    "workbench.files.screenshotManifestExportSaved": "Screenshot manifest saved.",
+    "workbench.files.screenshotManifestExportDownloaded": "Screenshot manifest downloaded.",
+    "workbench.files.screenshotManifestExportCancelled": "Screenshot manifest export cancelled.",
+    "workbench.files.structuredTraceExportSaved": "Structured trace saved.",
+    "workbench.files.structuredTraceExportDownloaded": "Structured trace downloaded.",
+    "workbench.files.structuredTraceExportCancelled": "Structured trace export cancelled.",
     "workbench.files.captureBoundary": "Capture boundary",
     "workbench.files.captureBoundaryDetail": "Screenshots and structured traces can contain private workspace state. They stay deferred until explicit consent and redaction are both ready.",
     "workbench.files.screenshotBundle": "Screenshot bundle",
@@ -1343,6 +1359,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.exportEvidenceBundle": "증거 묶음 내보내기",
     "workbench.files.exportIssueReport": "리포트 내보내기",
     "workbench.files.exportWorkspaceReport": "워크스페이스 리포트 내보내기",
+    "workbench.files.exportScreenshotManifest": "스크린샷 매니페스트 내보내기",
+    "workbench.files.exportStructuredTrace": "구조화 trace 내보내기",
     "workbench.files.exportSaved": "증거 묶음을 저장했습니다.",
     "workbench.files.exportDownloaded": "증거 묶음을 다운로드했습니다.",
     "workbench.files.exportCancelled": "증거 묶음 내보내기를 취소했습니다.",
@@ -1355,6 +1373,12 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.exportManifestSaved": "내보내기 매니페스트를 저장했습니다.",
     "workbench.files.exportManifestDownloaded": "내보내기 매니페스트를 다운로드했습니다.",
     "workbench.files.exportManifestCancelled": "내보내기 매니페스트 내보내기를 취소했습니다.",
+    "workbench.files.screenshotManifestExportSaved": "스크린샷 매니페스트를 저장했습니다.",
+    "workbench.files.screenshotManifestExportDownloaded": "스크린샷 매니페스트를 다운로드했습니다.",
+    "workbench.files.screenshotManifestExportCancelled": "스크린샷 매니페스트 내보내기를 취소했습니다.",
+    "workbench.files.structuredTraceExportSaved": "구조화 trace를 저장했습니다.",
+    "workbench.files.structuredTraceExportDownloaded": "구조화 trace를 다운로드했습니다.",
+    "workbench.files.structuredTraceExportCancelled": "구조화 trace 내보내기를 취소했습니다.",
     "workbench.files.captureBoundary": "캡처 경계",
     "workbench.files.captureBoundaryDetail": "스크린샷과 구조화 trace에는 private 워크스페이스 상태가 들어갈 수 있습니다. 명시적 동의와 가림 처리가 모두 준비될 때까지 보류합니다.",
     "workbench.files.screenshotBundle": "스크린샷 묶음",

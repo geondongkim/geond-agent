@@ -21,6 +21,8 @@ test("file evidence export package and capture boundary stay metadata-only", asy
   await expect(filesPanel.getByRole("heading", { name: "Capture boundary" })).toBeVisible();
   await expect(filesPanel.getByText("Screenshot bundle")).toBeVisible();
   await expect(filesPanel.getByText("Structured trace bundle")).toBeVisible();
+  await expect(filesPanel.getByRole("button", { name: "Export screenshot manifest" })).toBeVisible();
+  await expect(filesPanel.getByRole("button", { name: "Export structured trace" })).toBeVisible();
   await expect(filesPanel.getByText("Explicit consent required").first()).toBeVisible();
   await expect(filesPanel.getByRole("heading", { name: "Changed files" })).toBeVisible();
   await expect(filesPanel.getByText("Privacy boundary").first()).toBeVisible();
@@ -40,6 +42,18 @@ test("file evidence export package and capture boundary stay metadata-only", asy
   await filesPanel.getByRole("button", { name: "Export manifest", exact: true }).click();
   const manifestDownload = await manifestDownloadPromise;
   expect(manifestDownload.suggestedFilename()).toMatch(/workbench-export-manifest\.md$/);
+
+  const screenshotManifestDownloadPromise = page.waitForEvent("download");
+  await filesPanel.getByRole("button", { name: "Export screenshot manifest" }).click();
+  const screenshotManifestDownload = await screenshotManifestDownloadPromise;
+  expect(screenshotManifestDownload.suggestedFilename()).toMatch(
+    /local-session-1-screenshot-manifest\.json$/
+  );
+
+  const traceDownloadPromise = page.waitForEvent("download");
+  await filesPanel.getByRole("button", { name: "Export structured trace" }).click();
+  const traceDownload = await traceDownloadPromise;
+  expect(traceDownload.suggestedFilename()).toMatch(/local-session-1-structured-trace\.json$/);
 
   await queueAndClearDraft(page, filesPanel, "Queue evidence bundle", "Workbench evidence bundle");
   await queueAndClearDraft(page, filesPanel, "Queue report", "Workbench dogfood report");

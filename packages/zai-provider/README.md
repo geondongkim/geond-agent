@@ -36,9 +36,15 @@ presence through `hasApiKey`, but it does not expose or persist key values.
 
 Empty or whitespace-only values for `ANTHROPIC_BASE_URL`, the
 `ANTHROPIC_DEFAULT_HAIKU_MODEL`, `ANTHROPIC_DEFAULT_SONNET_MODEL`, and
-`ANTHROPIC_DEFAULT_OPUS_MODEL` aliases, and `ZAI_API_KEY` are treated as
-missing. The default endpoint and model routing therefore stay stable, and
-`hasApiKey` stays `false` until a non-empty key is present.
+`ANTHROPIC_DEFAULT_OPUS_MODEL` aliases, `ZAI_API_KEY`, and
+`ANTHROPIC_AUTH_TOKEN` are treated as missing. The default endpoint and model
+routing therefore stay stable, and `hasApiKey` stays `false` until a non-empty
+Z.ai/Anthropic route credential is present.
+
+The desktop runner may derive a process-local `ANTHROPIC_AUTH_TOKEN` from
+ignored local `ZAI_API_KEY` immediately before launching Claude Code, but this
+package still exposes only endpoint/model metadata and the boolean key-presence
+flag.
 
 The package also exposes a pre-subscription model catalog and route metadata:
 

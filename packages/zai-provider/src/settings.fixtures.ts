@@ -25,8 +25,8 @@ import {
  *      endpoint instead of overwriting it with an empty string.
  *   2. Empty or whitespace-only model alias env vars fall back to the default
  *      model routing.
- *   3. `hasApiKey` is `false` for empty or whitespace-only keys, and no helper
- *      ever exposes the real API key value.
+ *   3. `hasApiKey` is `false` for empty or whitespace-only keys/tokens, and no
+ *      helper ever exposes the real API key value.
  */
 
 type AssertEqual<X, Y> =
@@ -89,21 +89,26 @@ export function verifyEmptyApiKeyReportsMissing(): void {
   for (const value of EMPTY_PROVIDER_VALUE_FIXTURES) {
     const config = createZaiProviderConfig({
       ...DEFAULT_PROVIDER_ENVIRONMENT,
+      ANTHROPIC_AUTH_TOKEN: value,
       ZAI_API_KEY: value
     });
     if (config.hasApiKey) {
-      throw new Error(`Empty ZAI_API_KEY was reported as present: ${JSON.stringify(value)}`);
+      throw new Error(`Empty Z.ai credential was reported as present: ${JSON.stringify(value)}`);
     }
   }
 }
 
 export function verifyNonEmptyApiKeyReportsPresent(): void {
-  const config = createZaiProviderConfig({
+  const zaiConfig = createZaiProviderConfig({
     ...DEFAULT_PROVIDER_ENVIRONMENT,
     ZAI_API_KEY: FAKE_API_KEY_MARKER
   });
-  if (!config.hasApiKey) {
-    throw new Error("Non-empty ZAI_API_KEY was reported as missing");
+  const anthropicConfig = createZaiProviderConfig({
+    ...DEFAULT_PROVIDER_ENVIRONMENT,
+    ANTHROPIC_AUTH_TOKEN: FAKE_API_KEY_MARKER
+  });
+  if (!zaiConfig.hasApiKey || !anthropicConfig.hasApiKey) {
+    throw new Error("Non-empty Z.ai credential was reported as missing");
   }
 }
 
@@ -118,6 +123,7 @@ export function verifyConfigNeverExposesKeyValue(): void {
 
   if (
     Object.hasOwn(anthropicEnv, "ZAI_API_KEY") ||
+    Object.hasOwn(anthropicEnv, "ANTHROPIC_AUTH_TOKEN") ||
     JSON.stringify(anthropicEnv).includes(FAKE_API_KEY_MARKER) ||
     description.includes(FAKE_API_KEY_MARKER)
   ) {
