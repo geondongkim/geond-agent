@@ -183,6 +183,13 @@ Follow-up implemented from the route refresh result:
   captured.
 - A multi-session issue report can be queued as a side-chat draft or exported as
   markdown when several sessions need one local review bundle.
+- Multi-session report and trace exports now use a visible session export scope
+  checklist. The default includes all projected sessions, and the user can
+  switch to attention sessions or toggle individual sessions before exporting.
+- Raw visual capture remains disabled, but the Files inspector now has a
+  visual capture review checklist for explicit consent, redaction review,
+  user-selected storage path readiness, and visible-content review. The checked
+  state is recorded in the visual capture policy artifact.
 
 ## Verification Checklist
 
@@ -195,9 +202,9 @@ Follow-up implemented from the route refresh result:
 
 ## Remaining TODO
 
-- Add true raw visual capture only after a dedicated consent UI, redaction
-  review, and user-selected storage path are implemented.
-- Let users select which sessions are included in a multi-session trace/report
-  bundle instead of exporting the whole projected session index.
+- Add true raw visual capture only after a dedicated implementation can enforce
+  the reviewed consent/redaction checklist and write to a user-selected path.
+- Persist the multi-session export scope and visual review checklist in local
+  app settings if users need those choices to survive reloads.
 - Continue workspace/file picker polish with favorites, recency, and workspace
   switcher integration.

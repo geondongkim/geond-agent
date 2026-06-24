@@ -28,7 +28,8 @@ import {
   createStructuredTraceArtifact,
   createVisualCapturePolicyArtifact,
   type EvidenceCaptureArtifact,
-  type EvidenceCaptureArtifactKind
+  type EvidenceCaptureArtifactKind,
+  type VisualCaptureReviewState
 } from "../../lib/evidence-capture-export.js";
 import {
   createEvidenceBundleDraft,
@@ -91,6 +92,15 @@ export function InspectorFilesTab({
   readonly toggleRecentContextFavorite: (itemId: string) => void;
 }) {
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | undefined>();
+  const [selectedExportSessionIds, setSelectedExportSessionIds] = useState<
+    readonly string[] | undefined
+  >();
+  const [visualReview, setVisualReview] = useState<VisualCaptureReviewState>({
+    explicitConsent: false,
+    redactionReview: false,
+    storagePathSelected: false,
+    visibleContentReviewed: false
+  });
   const model = createFileEvidencePreviewModel({ activeSession, inspectorData });
   const hasEvidence = model.contextCount > 0 || model.changedFileCount > 0;
   const favoriteContextItems = recentContextItems.filter((item) => item.favorite);
@@ -98,6 +108,16 @@ export function InspectorFilesTab({
   const selectedEvidence = findFileEvidenceSelection(model, selectedEvidenceId);
   const resolvedSelectedEvidenceId = getFileEvidenceSelectionId(selectedEvidence);
   const captureReadiness = createEvidenceCaptureReadiness();
+  const allExportSessionIds = projectedSessions.map((session) => session.id);
+  const validExportSessionIds = new Set(allExportSessionIds);
+  const resolvedSelectedExportSessionIds = (
+    selectedExportSessionIds ?? allExportSessionIds
+  ).filter((sessionId) => validExportSessionIds.has(sessionId));
+  const selectedExportSessionSet = new Set(resolvedSelectedExportSessionIds);
+  const selectedExportSessions = projectedSessions.filter((session) =>
+    selectedExportSessionSet.has(session.id)
+  );
+  const selectedExportSessionCount = selectedExportSessions.length;
 
   function queueSelectedEvidenceFollowUp() {
     if (!selectedEvidence) {
@@ -168,7 +188,7 @@ export function InspectorFilesTab({
       createMultiSessionIssueReportDraft({
         activeSession,
         inspectorData,
-        sessions: projectedSessions
+        sessions: selectedExportSessions
       }),
       i18n.t("workbench.files.multiSessionIssueReport")
     );
@@ -180,7 +200,7 @@ export function InspectorFilesTab({
       text: createMultiSessionIssueReportDraft({
         activeSession,
         inspectorData,
-        sessions: projectedSessions
+        sessions: selectedExportSessions
       }),
       title: i18n.t("workbench.files.exportMultiSessionIssueReport")
     });
@@ -293,7 +313,7 @@ export function InspectorFilesTab({
     const artifact = createMultiSessionTraceBundleArtifact({
       activeSession,
       inspectorData,
-      projectedSessions
+      projectedSessions: selectedExportSessions
     });
     const result = await exportCaptureArtifact(
       artifact,
@@ -306,7 +326,8 @@ export function InspectorFilesTab({
     const artifact = createVisualCapturePolicyArtifact({
       activeSession,
       inspectorData,
-      projectedSessions
+      projectedSessions,
+      visualReview
     });
     const result = await exportCaptureArtifact(
       artifact,
@@ -368,6 +389,33 @@ export function InspectorFilesTab({
         </div>
       </div>
 
+      <MultiSessionExportScopeSection
+        i18n={i18n}
+        onSelectAll={() => setSelectedExportSessionIds(allExportSessionIds)}
+        onSelectAttention={() =>
+          setSelectedExportSessionIds(
+            projectedSessions
+              .filter(
+                (session) =>
+                  session.errorCount > 0 ||
+                  session.warningCount > 0 ||
+                  session.pendingApprovalCount > 0 ||
+                  session.resumable
+              )
+              .map((session) => session.id)
+          )
+        }
+        onToggleSession={(sessionId) => {
+          const next = selectedExportSessionSet.has(sessionId)
+            ? resolvedSelectedExportSessionIds.filter((id) => id !== sessionId)
+            : [...resolvedSelectedExportSessionIds, sessionId];
+          setSelectedExportSessionIds(next);
+        }}
+        selectedSessionIds={selectedExportSessionSet}
+        selectedSessionCount={selectedExportSessionCount}
+        sessions={projectedSessions}
+      />
+
       <EvidenceExportSection
         activeSession={activeSession}
         exportEvidenceBundle={() => void exportEvidenceBundle()}
@@ -391,7 +439,11 @@ export function InspectorFilesTab({
         exportVisualCapturePolicy={() => void exportVisualCapturePolicy()}
         i18n={i18n}
         items={captureReadiness}
-        traceBundleDisabled={projectedSessions.length === 0}
+        onToggleVisualReview={(key) =>
+          setVisualReview((current) => ({ ...current, [key]: !current[key] }))
+        }
+        traceBundleDisabled={selectedExportSessions.length === 0}
+        visualReview={visualReview}
       />
 
       {favoriteContextItems.length > 0 ? (
@@ -485,7 +537,9 @@ function EvidenceCaptureBoundarySection({
   exportVisualCapturePolicy,
   i18n,
   items,
-  traceBundleDisabled
+  onToggleVisualReview,
+  traceBundleDisabled,
+  visualReview
 }: {
   readonly disabled: boolean;
   readonly exportMultiSessionTraceBundle: () => void;
@@ -494,7 +548,9 @@ function EvidenceCaptureBoundarySection({
   readonly exportVisualCapturePolicy: () => void;
   readonly i18n: UiI18n;
   readonly items: readonly EvidenceCaptureReadiness[];
+  readonly onToggleVisualReview: (key: keyof VisualCaptureReviewState) => void;
   readonly traceBundleDisabled: boolean;
+  readonly visualReview: VisualCaptureReviewState;
 }) {
   return (
     <EvidenceSection count={items.length} title={i18n.t("workbench.files.captureBoundary")}>
@@ -531,7 +587,152 @@ function EvidenceCaptureBoundarySection({
           title={i18n.t("workbench.files.visualCapturePolicy")}
         />
       </div>
+      <VisualCaptureReviewSection
+        i18n={i18n}
+        onToggle={onToggleVisualReview}
+        review={visualReview}
+      />
     </EvidenceSection>
+  );
+}
+
+function MultiSessionExportScopeSection({
+  i18n,
+  onSelectAll,
+  onSelectAttention,
+  onToggleSession,
+  selectedSessionCount,
+  selectedSessionIds,
+  sessions
+}: {
+  readonly i18n: UiI18n;
+  readonly onSelectAll: () => void;
+  readonly onSelectAttention: () => void;
+  readonly onToggleSession: (sessionId: string) => void;
+  readonly selectedSessionCount: number;
+  readonly selectedSessionIds: ReadonlySet<string>;
+  readonly sessions: readonly ProjectedSessionListItem[];
+}) {
+  if (!sessions.length) {
+    return null;
+  }
+
+  return (
+    <EvidenceSection count={selectedSessionCount} title={i18n.t("workbench.files.exportScope")}>
+      <p className="mb-3 px-1 text-xs leading-5 text-[color:var(--ink-soft)]">
+        {i18n.t("workbench.files.exportScopeDetail")}
+      </p>
+      <div className="mb-3 flex flex-wrap justify-end gap-2">
+        <Button variant="ghost" className="gap-2" onClick={onSelectAttention}>
+          <ShieldCheck size={14} />
+          {i18n.t("workbench.files.selectAttentionSessions")}
+        </Button>
+        <Button variant="outline" className="gap-2" onClick={onSelectAll}>
+          <FolderOpen size={14} />
+          {i18n.t("workbench.files.selectAllSessions")}
+        </Button>
+      </div>
+      <div className="grid gap-2">
+        {sessions.map((session) => (
+          <label className="file-evidence-card" key={session.id}>
+            <div className="file-evidence-card-header">
+              <input
+                aria-label={`${i18n.t("workbench.files.includeSession")} ${session.title}`}
+                checked={selectedSessionIds.has(session.id)}
+                className="accent-[color:var(--accent)]"
+                onChange={() => onToggleSession(session.id)}
+                type="checkbox"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="muted-meta">{session.lifecycle}</p>
+                <h4 className="truncate text-sm font-semibold">{session.title}</h4>
+              </div>
+              <span className="status-pill status-neutral">
+                {session.errorCount > 0 || session.warningCount > 0
+                  ? i18n.t("workbench.files.attention")
+                  : i18n.t("workbench.status.ready")}
+              </span>
+            </div>
+            <dl className="file-evidence-details">
+              <EvidenceDetail label={i18n.t("workbench.files.sessionId")} value={session.id} />
+              <EvidenceDetail
+                label={i18n.t("workbench.files.sessionSignals")}
+                value={`approvals=${session.pendingApprovalCount} warnings=${session.warningCount} errors=${session.errorCount} resumable=${session.resumable ? "yes" : "no"}`}
+              />
+            </dl>
+          </label>
+        ))}
+      </div>
+    </EvidenceSection>
+  );
+}
+
+function VisualCaptureReviewSection({
+  i18n,
+  onToggle,
+  review
+}: {
+  readonly i18n: UiI18n;
+  readonly onToggle: (key: keyof VisualCaptureReviewState) => void;
+  readonly review: VisualCaptureReviewState;
+}) {
+  const ready =
+    review.explicitConsent &&
+    review.redactionReview &&
+    review.storagePathSelected &&
+    review.visibleContentReviewed;
+  const items: readonly {
+    readonly key: keyof VisualCaptureReviewState;
+    readonly label: string;
+  }[] = [
+    { key: "explicitConsent", label: i18n.t("workbench.files.visualConsentCheck") },
+    { key: "redactionReview", label: i18n.t("workbench.files.visualRedactionCheck") },
+    { key: "storagePathSelected", label: i18n.t("workbench.files.visualStorageCheck") },
+    {
+      key: "visibleContentReviewed",
+      label: i18n.t("workbench.files.visualVisibleContentCheck")
+    }
+  ];
+
+  return (
+    <div className="mt-3 file-evidence-card">
+      <div className="file-evidence-card-header">
+        <span className="file-evidence-icon">
+          <Camera size={15} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="muted-meta">{i18n.t("workbench.files.visualCaptureReview")}</p>
+          <h4 className="truncate text-sm font-semibold">
+            {ready
+              ? i18n.t("workbench.files.visualPolicyReviewed")
+              : i18n.t("workbench.files.visualPolicyBlocked")}
+          </h4>
+        </div>
+        <span className="status-pill status-neutral">
+          {i18n.t("workbench.files.captureDeferred")}
+        </span>
+      </div>
+      <p className="mt-3 text-xs leading-5 text-[color:var(--ink-soft)]">
+        {i18n.t("workbench.files.visualCaptureReviewDetail")}
+      </p>
+      <div className="mt-3 grid gap-2">
+        {items.map((item) => (
+          <label
+            className="flex items-start gap-2 rounded-md border border-white/[0.055] px-3 py-2 text-xs text-[color:var(--ink-soft)]"
+            key={item.key}
+          >
+            <input
+              aria-label={item.label}
+              checked={review[item.key]}
+              className="mt-0.5 accent-[color:var(--accent)]"
+              onChange={() => onToggle(item.key)}
+              type="checkbox"
+            />
+            <span>{item.label}</span>
+          </label>
+        ))}
+      </div>
+    </div>
   );
 }
 

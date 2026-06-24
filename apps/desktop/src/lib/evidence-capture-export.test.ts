@@ -66,6 +66,7 @@ describe("evidence capture artifact export", () => {
         pendingApprovalCount: 1,
         resumableSessionCount: 1,
         sessionCount: 2,
+        selectedSessionIds: ["session-ok", "session-attention"],
         warningSessionCount: 1
       }
     });
@@ -84,8 +85,27 @@ describe("evidence capture artifact export", () => {
     expect(artifact.fileName).toBe("workbench-visual-capture-policy.json");
     expect(payload.kind).toBe("visual-capture-policy");
     expect(payload.visualCapture.status).toBe("deferred-until-explicit-consent-and-redaction");
+    expect(payload.visualCapture.reviewReady).toBe(false);
     expect(payload.visualCapture.rawImageStorageDefault).toBe("disabled");
     expect(JSON.stringify(payload)).not.toMatch(/data:image|base64/i);
+  });
+
+  it("records completed visual capture policy review without enabling raw capture", () => {
+    const artifact = createVisualCapturePolicyArtifact({
+      activeSession: createSessionFixture(),
+      generatedAt: "2026-06-24T00:00:00.000Z",
+      visualReview: {
+        explicitConsent: true,
+        redactionReview: true,
+        storagePathSelected: true,
+        visibleContentReviewed: true
+      }
+    });
+    const payload = JSON.parse(artifact.text);
+
+    expect(payload.visualCapture.reviewReady).toBe(true);
+    expect(payload.visualCapture.status).toBe("policy-reviewed-raw-capture-still-disabled");
+    expect(payload.visualCapture.rawImageStorageDefault).toBe("disabled");
   });
 });
 
