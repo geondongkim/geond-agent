@@ -9,6 +9,8 @@ import {
   createEvidenceReportFileName,
   createEvidenceFollowUpDraft,
   createFileEvidencePreviewModel,
+  createMultiSessionIssueReportDraft,
+  createMultiSessionIssueReportFileName,
   createWorkspaceEvidenceReportDraft,
   createWorkspaceEvidenceReportFileName,
   findFileEvidenceSelection,
@@ -314,6 +316,63 @@ describe("file evidence preview model", () => {
         now: new Date("2026-06-24T00:00:00.000Z")
       })
     ).toBe("2026-06-24-workbench-workspace-report.md");
+  });
+
+  it("creates a metadata-only multi-session issue report", () => {
+    const sensitiveValue = ["sk", "local", "123456789012345678901234567890"].join("-");
+    const report = createMultiSessionIssueReportDraft({
+      activeSession: {
+        id: "session-1",
+        title: "Claude dogfood",
+        workspacePath: "/workspace/geond-agent",
+        contextAttachments: [],
+        commandOutputs: [],
+        diffs: [],
+        runAttempts: [
+          {
+            id: "attempt-1",
+            mode: "claude-live",
+            status: "failed",
+            errorMessage: sensitiveValue
+          }
+        ]
+      } as unknown as ProjectedActiveSession,
+      sessions: [
+        {
+          id: "session-1",
+          title: "Claude dogfood",
+          lifecycle: "failed",
+          workspacePath: "/workspace/geond-agent",
+          resumable: true,
+          pendingApprovalCount: 1,
+          warningCount: 1,
+          errorCount: 1
+        },
+        {
+          id: "session-2",
+          title: "Quiet path",
+          lifecycle: "completed",
+          resumable: false,
+          pendingApprovalCount: 0,
+          warningCount: 0,
+          errorCount: 0
+        }
+      ]
+    });
+
+    expect(report).toContain("Workbench multi-session issue report (metadata only).");
+    expect(report).toContain("Attention session count: 1");
+    expect(report).toContain("Trace/export checklist");
+    expect(report).toContain("visual consent/redaction policy");
+    expect(report).not.toContain(sensitiveValue);
+  });
+
+  it("creates stable multi-session issue report filenames", () => {
+    expect(
+      createMultiSessionIssueReportFileName({
+        now: new Date("2026-06-24T00:00:00.000Z")
+      })
+    ).toBe("2026-06-24-workbench-multi-session-issue-report.md");
   });
 
   it("creates a metadata-only export manifest with workspace context groups", () => {

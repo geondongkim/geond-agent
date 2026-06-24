@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createMultiSessionTraceBundleArtifact,
   createScreenshotManifestArtifact,
-  createStructuredTraceArtifact
+  createStructuredTraceArtifact,
+  createVisualCapturePolicyArtifact
 } from "./evidence-capture-export.js";
-import type { ProjectedActiveSession } from "./workbench-types.js";
+import type { ProjectedActiveSession, ProjectedSessionListItem } from "./workbench-types.js";
 
 describe("evidence capture artifact export", () => {
   it("creates metadata-only structured trace artifacts", () => {
@@ -47,7 +49,77 @@ describe("evidence capture artifact export", () => {
     expect(payload.note).toContain("does not include image payload data");
     expect(JSON.stringify(payload)).not.toMatch(/data:image|base64|bitmap/i);
   });
+
+  it("creates multi-session trace bundles without raw logs", () => {
+    const artifact = createMultiSessionTraceBundleArtifact({
+      activeSession: createSessionFixture(),
+      generatedAt: "2026-06-24T00:00:00.000Z",
+      projectedSessions: createSessionIndexFixture()
+    });
+    const payload = JSON.parse(artifact.text);
+
+    expect(artifact.fileName).toBe("workbench-multi-session-trace-bundle.json");
+    expect(payload).toMatchObject({
+      kind: "multi-session-trace-bundle",
+      traceBundle: {
+        errorSessionCount: 1,
+        pendingApprovalCount: 1,
+        resumableSessionCount: 1,
+        sessionCount: 2,
+        warningSessionCount: 1
+      }
+    });
+    expect(JSON.stringify(payload)).not.toMatch(
+      /ZAI_API_KEY|ANTHROPIC_API_KEY|ANTHROPIC_AUTH_TOKEN|rawLog|transcript|sk-[A-Za-z0-9_-]{20,}/
+    );
+  });
+
+  it("creates visual capture policy artifacts without image data", () => {
+    const artifact = createVisualCapturePolicyArtifact({
+      activeSession: createSessionFixture(),
+      generatedAt: "2026-06-24T00:00:00.000Z"
+    });
+    const payload = JSON.parse(artifact.text);
+
+    expect(artifact.fileName).toBe("workbench-visual-capture-policy.json");
+    expect(payload.kind).toBe("visual-capture-policy");
+    expect(payload.visualCapture.status).toBe("deferred-until-explicit-consent-and-redaction");
+    expect(payload.visualCapture.rawImageStorageDefault).toBe("disabled");
+    expect(JSON.stringify(payload)).not.toMatch(/data:image|base64/i);
+  });
 });
+
+function createSessionIndexFixture(): readonly ProjectedSessionListItem[] {
+  return [
+    {
+      errorCount: 0,
+      id: "session-ok",
+      lifecycle: "completed",
+      pendingApprovalCount: 0,
+      providerKeyMissing: false,
+      resumable: false,
+      title: "Finished session",
+      warningCount: 0,
+      workspacePath: "/Users/example/project"
+    },
+    {
+      backendAdapterId: "claude-code",
+      backendLabel: "Claude Code",
+      capabilityWarning: "Route attention",
+      errorCount: 1,
+      id: "session-attention",
+      lifecycle: "failed",
+      pendingApprovalCount: 1,
+      providerKeyMissing: false,
+      providerRouteLabel: "Z.ai",
+      resumable: true,
+      title: "Attention session",
+      updatedAt: "2026-06-24T00:00:00.000Z",
+      warningCount: 1,
+      workspacePath: "/Users/example/project"
+    }
+  ] as unknown as readonly ProjectedSessionListItem[];
+}
 
 function createSessionFixture(): ProjectedActiveSession {
   return {

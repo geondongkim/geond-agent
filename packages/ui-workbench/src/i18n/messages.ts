@@ -359,17 +359,24 @@ export type UiMessageKey =
   | "workbench.files.queueEvidenceBundle"
   | "workbench.files.queueIssueReport"
   | "workbench.files.queueWorkspaceReport"
+  | "workbench.files.queueMultiSessionReport"
   | "workbench.files.queueExportManifest"
   | "workbench.files.exportPackage"
   | "workbench.files.evidenceBundle"
   | "workbench.files.issueReport"
   | "workbench.files.workspaceReport"
+  | "workbench.files.multiSessionIssueReport"
+  | "workbench.files.multiSessionTraceBundle"
+  | "workbench.files.visualCapturePolicy"
   | "workbench.files.exportManifest"
   | "workbench.files.exportEvidenceBundle"
   | "workbench.files.exportIssueReport"
   | "workbench.files.exportWorkspaceReport"
+  | "workbench.files.exportMultiSessionIssueReport"
   | "workbench.files.exportScreenshotManifest"
   | "workbench.files.exportStructuredTrace"
+  | "workbench.files.exportMultiSessionTraceBundle"
+  | "workbench.files.exportVisualCapturePolicy"
   | "workbench.files.exportSaved"
   | "workbench.files.exportDownloaded"
   | "workbench.files.exportCancelled"
@@ -379,6 +386,9 @@ export type UiMessageKey =
   | "workbench.files.workspaceReportExportSaved"
   | "workbench.files.workspaceReportExportDownloaded"
   | "workbench.files.workspaceReportExportCancelled"
+  | "workbench.files.multiSessionReportExportSaved"
+  | "workbench.files.multiSessionReportExportDownloaded"
+  | "workbench.files.multiSessionReportExportCancelled"
   | "workbench.files.exportManifestSaved"
   | "workbench.files.exportManifestDownloaded"
   | "workbench.files.exportManifestCancelled"
@@ -388,6 +398,12 @@ export type UiMessageKey =
   | "workbench.files.structuredTraceExportSaved"
   | "workbench.files.structuredTraceExportDownloaded"
   | "workbench.files.structuredTraceExportCancelled"
+  | "workbench.files.multiSessionTraceExportSaved"
+  | "workbench.files.multiSessionTraceExportDownloaded"
+  | "workbench.files.multiSessionTraceExportCancelled"
+  | "workbench.files.visualCapturePolicyExportSaved"
+  | "workbench.files.visualCapturePolicyExportDownloaded"
+  | "workbench.files.visualCapturePolicyExportCancelled"
   | "workbench.files.captureBoundary"
   | "workbench.files.captureBoundaryDetail"
   | "workbench.files.screenshotBundle"
@@ -856,17 +872,24 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.queueEvidenceBundle": "Queue evidence bundle",
     "workbench.files.queueIssueReport": "Queue report",
     "workbench.files.queueWorkspaceReport": "Queue workspace report",
+    "workbench.files.queueMultiSessionReport": "Queue multi-session report",
     "workbench.files.queueExportManifest": "Queue export manifest",
     "workbench.files.exportPackage": "Export package",
     "workbench.files.evidenceBundle": "Evidence bundle",
     "workbench.files.issueReport": "Issue report",
     "workbench.files.workspaceReport": "Workspace report",
+    "workbench.files.multiSessionIssueReport": "Multi-session issue report",
+    "workbench.files.multiSessionTraceBundle": "Multi-session trace bundle",
+    "workbench.files.visualCapturePolicy": "Visual capture policy",
     "workbench.files.exportManifest": "Export manifest",
     "workbench.files.exportEvidenceBundle": "Export evidence bundle",
     "workbench.files.exportIssueReport": "Export report",
     "workbench.files.exportWorkspaceReport": "Export workspace report",
+    "workbench.files.exportMultiSessionIssueReport": "Export multi-session report",
     "workbench.files.exportScreenshotManifest": "Export screenshot manifest",
     "workbench.files.exportStructuredTrace": "Export structured trace",
+    "workbench.files.exportMultiSessionTraceBundle": "Export multi-session trace bundle",
+    "workbench.files.exportVisualCapturePolicy": "Export visual capture policy",
     "workbench.files.exportSaved": "Evidence bundle saved.",
     "workbench.files.exportDownloaded": "Evidence bundle downloaded.",
     "workbench.files.exportCancelled": "Evidence bundle export cancelled.",
@@ -876,6 +899,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.workspaceReportExportSaved": "Workspace report saved.",
     "workbench.files.workspaceReportExportDownloaded": "Workspace report downloaded.",
     "workbench.files.workspaceReportExportCancelled": "Workspace report export cancelled.",
+    "workbench.files.multiSessionReportExportSaved": "Multi-session report saved.",
+    "workbench.files.multiSessionReportExportDownloaded": "Multi-session report downloaded.",
+    "workbench.files.multiSessionReportExportCancelled": "Multi-session report export cancelled.",
     "workbench.files.exportManifestSaved": "Export manifest saved.",
     "workbench.files.exportManifestDownloaded": "Export manifest downloaded.",
     "workbench.files.exportManifestCancelled": "Export manifest export cancelled.",
@@ -885,6 +911,12 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.structuredTraceExportSaved": "Structured trace saved.",
     "workbench.files.structuredTraceExportDownloaded": "Structured trace downloaded.",
     "workbench.files.structuredTraceExportCancelled": "Structured trace export cancelled.",
+    "workbench.files.multiSessionTraceExportSaved": "Multi-session trace bundle saved.",
+    "workbench.files.multiSessionTraceExportDownloaded": "Multi-session trace bundle downloaded.",
+    "workbench.files.multiSessionTraceExportCancelled": "Multi-session trace bundle export cancelled.",
+    "workbench.files.visualCapturePolicyExportSaved": "Visual capture policy saved.",
+    "workbench.files.visualCapturePolicyExportDownloaded": "Visual capture policy downloaded.",
+    "workbench.files.visualCapturePolicyExportCancelled": "Visual capture policy export cancelled.",
     "workbench.files.captureBoundary": "Capture boundary",
     "workbench.files.captureBoundaryDetail": "Screenshots and structured traces can contain private workspace state. They stay deferred until explicit consent and redaction are both ready.",
     "workbench.files.screenshotBundle": "Screenshot bundle",
@@ -1350,17 +1382,24 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.queueEvidenceBundle": "증거 묶음 초안 추가",
     "workbench.files.queueIssueReport": "리포트 초안 추가",
     "workbench.files.queueWorkspaceReport": "워크스페이스 리포트 초안 추가",
+    "workbench.files.queueMultiSessionReport": "멀티세션 리포트 초안 추가",
     "workbench.files.queueExportManifest": "내보내기 매니페스트 초안 추가",
     "workbench.files.exportPackage": "내보내기 패키지",
     "workbench.files.evidenceBundle": "증거 묶음",
     "workbench.files.issueReport": "이슈 리포트",
     "workbench.files.workspaceReport": "워크스페이스 리포트",
+    "workbench.files.multiSessionIssueReport": "멀티세션 이슈 리포트",
+    "workbench.files.multiSessionTraceBundle": "멀티세션 trace 묶음",
+    "workbench.files.visualCapturePolicy": "시각 캡처 정책",
     "workbench.files.exportManifest": "내보내기 매니페스트",
     "workbench.files.exportEvidenceBundle": "증거 묶음 내보내기",
     "workbench.files.exportIssueReport": "리포트 내보내기",
     "workbench.files.exportWorkspaceReport": "워크스페이스 리포트 내보내기",
+    "workbench.files.exportMultiSessionIssueReport": "멀티세션 리포트 내보내기",
     "workbench.files.exportScreenshotManifest": "스크린샷 매니페스트 내보내기",
     "workbench.files.exportStructuredTrace": "구조화 trace 내보내기",
+    "workbench.files.exportMultiSessionTraceBundle": "멀티세션 trace 묶음 내보내기",
+    "workbench.files.exportVisualCapturePolicy": "시각 캡처 정책 내보내기",
     "workbench.files.exportSaved": "증거 묶음을 저장했습니다.",
     "workbench.files.exportDownloaded": "증거 묶음을 다운로드했습니다.",
     "workbench.files.exportCancelled": "증거 묶음 내보내기를 취소했습니다.",
@@ -1370,6 +1409,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.workspaceReportExportSaved": "워크스페이스 리포트를 저장했습니다.",
     "workbench.files.workspaceReportExportDownloaded": "워크스페이스 리포트를 다운로드했습니다.",
     "workbench.files.workspaceReportExportCancelled": "워크스페이스 리포트 내보내기를 취소했습니다.",
+    "workbench.files.multiSessionReportExportSaved": "멀티세션 리포트를 저장했습니다.",
+    "workbench.files.multiSessionReportExportDownloaded": "멀티세션 리포트를 다운로드했습니다.",
+    "workbench.files.multiSessionReportExportCancelled": "멀티세션 리포트 내보내기를 취소했습니다.",
     "workbench.files.exportManifestSaved": "내보내기 매니페스트를 저장했습니다.",
     "workbench.files.exportManifestDownloaded": "내보내기 매니페스트를 다운로드했습니다.",
     "workbench.files.exportManifestCancelled": "내보내기 매니페스트 내보내기를 취소했습니다.",
@@ -1379,6 +1421,12 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.structuredTraceExportSaved": "구조화 trace를 저장했습니다.",
     "workbench.files.structuredTraceExportDownloaded": "구조화 trace를 다운로드했습니다.",
     "workbench.files.structuredTraceExportCancelled": "구조화 trace 내보내기를 취소했습니다.",
+    "workbench.files.multiSessionTraceExportSaved": "멀티세션 trace 묶음을 저장했습니다.",
+    "workbench.files.multiSessionTraceExportDownloaded": "멀티세션 trace 묶음을 다운로드했습니다.",
+    "workbench.files.multiSessionTraceExportCancelled": "멀티세션 trace 묶음 내보내기를 취소했습니다.",
+    "workbench.files.visualCapturePolicyExportSaved": "시각 캡처 정책을 저장했습니다.",
+    "workbench.files.visualCapturePolicyExportDownloaded": "시각 캡처 정책을 다운로드했습니다.",
+    "workbench.files.visualCapturePolicyExportCancelled": "시각 캡처 정책 내보내기를 취소했습니다.",
     "workbench.files.captureBoundary": "캡처 경계",
     "workbench.files.captureBoundaryDetail": "스크린샷과 구조화 trace에는 private 워크스페이스 상태가 들어갈 수 있습니다. 명시적 동의와 가림 처리가 모두 준비될 때까지 보류합니다.",
     "workbench.files.screenshotBundle": "스크린샷 묶음",

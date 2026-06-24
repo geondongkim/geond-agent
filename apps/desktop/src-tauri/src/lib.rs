@@ -969,7 +969,10 @@ fn write_text_export_file(path: PathBuf, contents: &str) -> Result<(), String> {
 
 fn ensure_evidence_capture_kind(kind: &str) -> Result<(), String> {
     match kind {
-        "screenshot-manifest" | "structured-trace" => Ok(()),
+        "screenshot-manifest"
+        | "structured-trace"
+        | "multi-session-trace-bundle"
+        | "visual-capture-policy" => Ok(()),
         _ => Err("Unsupported evidence capture artifact kind.".to_string()),
     }
 }
@@ -3205,6 +3208,18 @@ mod tests {
             "{}".to_string()
         )
         .is_err());
+        assert!(write_evidence_capture_artifact(
+            root.join("bundle.json").to_string_lossy().to_string(),
+            "multi-session-trace-bundle".to_string(),
+            "{\"metadataOnly\":true}".to_string()
+        )
+        .is_ok());
+        assert!(write_evidence_capture_artifact(
+            root.join("policy.json").to_string_lossy().to_string(),
+            "visual-capture-policy".to_string(),
+            "{\"metadataOnly\":true}".to_string()
+        )
+        .is_ok());
         assert!(write_evidence_capture_artifact(
             root.join("huge.json").to_string_lossy().to_string(),
             "structured-trace".to_string(),

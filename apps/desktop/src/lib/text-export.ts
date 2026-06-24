@@ -2,7 +2,11 @@ import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 
 export type TextExportResult = "saved" | "downloaded" | "cancelled";
-export type JsonArtifactKind = "screenshot-manifest" | "structured-trace";
+export type JsonArtifactKind =
+  | "screenshot-manifest"
+  | "structured-trace"
+  | "multi-session-trace-bundle"
+  | "visual-capture-policy";
 
 export interface ExportMarkdownFileOptions {
   readonly fileName: string;

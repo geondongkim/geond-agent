@@ -23,8 +23,10 @@ import {
   type EvidenceCaptureReadiness
 } from "../../lib/evidence-capture.js";
 import {
+  createMultiSessionTraceBundleArtifact,
   createScreenshotManifestArtifact,
   createStructuredTraceArtifact,
+  createVisualCapturePolicyArtifact,
   type EvidenceCaptureArtifact,
   type EvidenceCaptureArtifactKind
 } from "../../lib/evidence-capture-export.js";
@@ -35,6 +37,8 @@ import {
   createEvidenceExportManifestFileName,
   createEvidenceReportDraft,
   createEvidenceReportFileName,
+  createMultiSessionIssueReportDraft,
+  createMultiSessionIssueReportFileName,
   createWorkspaceEvidenceReportDraft,
   createWorkspaceEvidenceReportFileName,
   createEvidenceFollowUpDraft,
@@ -159,6 +163,36 @@ export function InspectorFilesTab({
     );
   }
 
+  function queueMultiSessionReport() {
+    enqueueSideChatDraft(
+      createMultiSessionIssueReportDraft({
+        activeSession,
+        inspectorData,
+        sessions: projectedSessions
+      }),
+      i18n.t("workbench.files.multiSessionIssueReport")
+    );
+  }
+
+  async function exportMultiSessionReport() {
+    const result = await exportMarkdownFile({
+      fileName: createMultiSessionIssueReportFileName(),
+      text: createMultiSessionIssueReportDraft({
+        activeSession,
+        inspectorData,
+        sessions: projectedSessions
+      }),
+      title: i18n.t("workbench.files.exportMultiSessionIssueReport")
+    });
+    setRunnerStatus(
+      result === "saved"
+        ? i18n.t("workbench.files.multiSessionReportExportSaved")
+        : result === "downloaded"
+          ? i18n.t("workbench.files.multiSessionReportExportDownloaded")
+          : i18n.t("workbench.files.multiSessionReportExportCancelled")
+    );
+  }
+
   function queueEvidenceManifest() {
     enqueueSideChatDraft(
       createEvidenceExportManifestDraft({
@@ -255,6 +289,32 @@ export function InspectorFilesTab({
     setRunnerStatus(formatCaptureExportStatus(i18n, "structured-trace", result));
   }
 
+  async function exportMultiSessionTraceBundle() {
+    const artifact = createMultiSessionTraceBundleArtifact({
+      activeSession,
+      inspectorData,
+      projectedSessions
+    });
+    const result = await exportCaptureArtifact(
+      artifact,
+      i18n.t("workbench.files.exportMultiSessionTraceBundle")
+    );
+    setRunnerStatus(formatCaptureExportStatus(i18n, "multi-session-trace-bundle", result));
+  }
+
+  async function exportVisualCapturePolicy() {
+    const artifact = createVisualCapturePolicyArtifact({
+      activeSession,
+      inspectorData,
+      projectedSessions
+    });
+    const result = await exportCaptureArtifact(
+      artifact,
+      i18n.t("workbench.files.exportVisualCapturePolicy")
+    );
+    setRunnerStatus(formatCaptureExportStatus(i18n, "visual-capture-policy", result));
+  }
+
   return (
     <TabsContent value="files" className="border-0 bg-transparent p-0">
       <div className="file-evidence-hero">
@@ -313,20 +373,25 @@ export function InspectorFilesTab({
         exportEvidenceBundle={() => void exportEvidenceBundle()}
         exportEvidenceManifest={() => void exportEvidenceManifest()}
         exportEvidenceReport={() => void exportEvidenceReport()}
+        exportMultiSessionReport={() => void exportMultiSessionReport()}
         exportWorkspaceReport={() => void exportWorkspaceReport()}
         i18n={i18n}
         queueEvidenceBundle={queueEvidenceBundle}
         queueEvidenceManifest={queueEvidenceManifest}
         queueEvidenceReport={queueEvidenceReport}
+        queueMultiSessionReport={queueMultiSessionReport}
         queueWorkspaceReport={queueWorkspaceReport}
       />
 
       <EvidenceCaptureBoundarySection
         disabled={!activeSession}
+        exportMultiSessionTraceBundle={() => void exportMultiSessionTraceBundle()}
         exportScreenshotManifest={() => void exportScreenshotManifest()}
         exportStructuredTrace={() => void exportStructuredTrace()}
+        exportVisualCapturePolicy={() => void exportVisualCapturePolicy()}
         i18n={i18n}
         items={captureReadiness}
+        traceBundleDisabled={projectedSessions.length === 0}
       />
 
       {favoriteContextItems.length > 0 ? (
@@ -414,16 +479,22 @@ export function InspectorFilesTab({
 
 function EvidenceCaptureBoundarySection({
   disabled,
+  exportMultiSessionTraceBundle,
   exportScreenshotManifest,
   exportStructuredTrace,
+  exportVisualCapturePolicy,
   i18n,
-  items
+  items,
+  traceBundleDisabled
 }: {
   readonly disabled: boolean;
+  readonly exportMultiSessionTraceBundle: () => void;
   readonly exportScreenshotManifest: () => void;
   readonly exportStructuredTrace: () => void;
+  readonly exportVisualCapturePolicy: () => void;
   readonly i18n: UiI18n;
   readonly items: readonly EvidenceCaptureReadiness[];
+  readonly traceBundleDisabled: boolean;
 }) {
   return (
     <EvidenceSection count={items.length} title={i18n.t("workbench.files.captureBoundary")}>
@@ -442,7 +513,59 @@ function EvidenceCaptureBoundarySection({
           />
         ))}
       </div>
+      <div className="mt-3 grid gap-2">
+        <CaptureExportAction
+          disabled={traceBundleDisabled}
+          icon={<FileText size={15} />}
+          label={i18n.t("workbench.files.exportMultiSessionTraceBundle")}
+          metaLabel={i18n.t("workbench.context.metadataOnly")}
+          onExport={exportMultiSessionTraceBundle}
+          title={i18n.t("workbench.files.multiSessionTraceBundle")}
+        />
+        <CaptureExportAction
+          disabled={false}
+          icon={<ShieldCheck size={15} />}
+          label={i18n.t("workbench.files.exportVisualCapturePolicy")}
+          metaLabel={i18n.t("workbench.context.metadataOnly")}
+          onExport={exportVisualCapturePolicy}
+          title={i18n.t("workbench.files.visualCapturePolicy")}
+        />
+      </div>
     </EvidenceSection>
+  );
+}
+
+function CaptureExportAction({
+  disabled,
+  icon,
+  label,
+  metaLabel,
+  onExport,
+  title
+}: {
+  readonly disabled: boolean;
+  readonly icon: ReactNode;
+  readonly label: string;
+  readonly metaLabel: string;
+  readonly onExport: () => void;
+  readonly title: string;
+}) {
+  return (
+    <div className="file-evidence-card">
+      <div className="file-evidence-card-header">
+        <span className="file-evidence-icon">{icon}</span>
+        <div className="min-w-0 flex-1">
+          <p className="muted-meta">{metaLabel}</p>
+          <h4 className="truncate text-sm font-semibold">{title}</h4>
+        </div>
+      </div>
+      <div className="mt-3 flex justify-end">
+        <Button variant="outline" className="gap-2" disabled={disabled} onClick={onExport}>
+          <Download size={14} />
+          {label}
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -532,6 +655,20 @@ function formatCaptureExportStatus(
         ? i18n.t("workbench.files.screenshotManifestExportDownloaded")
         : i18n.t("workbench.files.screenshotManifestExportCancelled");
   }
+  if (kind === "multi-session-trace-bundle") {
+    return result === "saved"
+      ? i18n.t("workbench.files.multiSessionTraceExportSaved")
+      : result === "downloaded"
+        ? i18n.t("workbench.files.multiSessionTraceExportDownloaded")
+        : i18n.t("workbench.files.multiSessionTraceExportCancelled");
+  }
+  if (kind === "visual-capture-policy") {
+    return result === "saved"
+      ? i18n.t("workbench.files.visualCapturePolicyExportSaved")
+      : result === "downloaded"
+        ? i18n.t("workbench.files.visualCapturePolicyExportDownloaded")
+        : i18n.t("workbench.files.visualCapturePolicyExportCancelled");
+  }
 
   return result === "saved"
     ? i18n.t("workbench.files.structuredTraceExportSaved")
@@ -545,26 +682,30 @@ function EvidenceExportSection({
   exportEvidenceBundle,
   exportEvidenceManifest,
   exportEvidenceReport,
+  exportMultiSessionReport,
   exportWorkspaceReport,
   i18n,
   queueEvidenceBundle,
   queueEvidenceManifest,
   queueEvidenceReport,
+  queueMultiSessionReport,
   queueWorkspaceReport
 }: {
   readonly activeSession?: ProjectedActiveSession;
   readonly exportEvidenceBundle: () => void;
   readonly exportEvidenceManifest: () => void;
   readonly exportEvidenceReport: () => void;
+  readonly exportMultiSessionReport: () => void;
   readonly exportWorkspaceReport: () => void;
   readonly i18n: UiI18n;
   readonly queueEvidenceBundle: () => void;
   readonly queueEvidenceManifest: () => void;
   readonly queueEvidenceReport: () => void;
+  readonly queueMultiSessionReport: () => void;
   readonly queueWorkspaceReport: () => void;
 }) {
   return (
-    <EvidenceSection count={4} title={i18n.t("workbench.files.exportPackage")}>
+    <EvidenceSection count={5} title={i18n.t("workbench.files.exportPackage")}>
       <div className="grid gap-2">
         <ExportActionCard
           disabled={!activeSession}
@@ -594,6 +735,15 @@ function EvidenceExportSection({
           primaryLabel={i18n.t("workbench.files.queueWorkspaceReport")}
           secondaryLabel={i18n.t("workbench.files.exportWorkspaceReport")}
           title={i18n.t("workbench.files.workspaceReport")}
+        />
+        <ExportActionCard
+          icon={<FileDiff size={15} />}
+          i18n={i18n}
+          onExport={exportMultiSessionReport}
+          onQueue={queueMultiSessionReport}
+          primaryLabel={i18n.t("workbench.files.queueMultiSessionReport")}
+          secondaryLabel={i18n.t("workbench.files.exportMultiSessionIssueReport")}
+          title={i18n.t("workbench.files.multiSessionIssueReport")}
         />
         <ExportActionCard
           icon={<ShieldCheck size={15} />}
