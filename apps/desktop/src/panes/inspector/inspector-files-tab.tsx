@@ -1311,7 +1311,12 @@ function formatRawVisualCaptureExportStatus(
         .filter(Boolean)
         .join(" ");
     case "unsupported":
-      return [i18n.t("workbench.files.rawVisualCaptureUnsupported"), suffix]
+      return [
+        result.failureKind === "display-capture-unavailable"
+          ? i18n.t("workbench.files.rawVisualCaptureDisplayUnsupported")
+          : i18n.t("workbench.files.rawVisualCaptureUnsupported"),
+        suffix
+      ]
         .filter(Boolean)
         .join(" ");
     case "failed":

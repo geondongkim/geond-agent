@@ -38,7 +38,10 @@ describe("desktop workbench formatting helpers", () => {
 
   it("uses localized not-available labels for missing usage metadata", () => {
     expect(formatUsageNumber(createUiI18n("ko"), undefined)).toBe("해당 없음");
+    expect(formatUsageNumber(createUiI18n("en"), null)).toBe("n/a");
+    expect(formatUsageNumber(createUiI18n("en"), Number.NaN)).toBe("n/a");
     expect(formatUsageCost(createUiI18n("en"), undefined)).toBe("n/a");
+    expect(formatUsageCost(createUiI18n("ko"), null)).toBe("해당 없음");
   });
 
   it("formats run trigger and stream quality labels", () => {

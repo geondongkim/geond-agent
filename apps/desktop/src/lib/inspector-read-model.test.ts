@@ -107,8 +107,11 @@ describe("inspector read model", () => {
             usageId: "usage-1",
             source: "provider",
             model: "glm-5.2",
-            inputTokens: 100
-          }
+            inputTokens: 100,
+            costUsd: null
+          } as unknown as NonNullable<
+            Parameters<typeof createMaterializedInspectorSessionReadModel>[0]["usageMetadata"]
+          >[number]
         ],
         runAttempts: [
           {
@@ -148,6 +151,7 @@ describe("inspector read model", () => {
     expect(model.commandOutputs[0]?.preview).toBe("pnpm verify\nwarning");
     expect(model.diffs[0]?.files[0]?.path).toBe("apps/desktop/src/app.tsx");
     expect(model.usageReports[0]?.model).toBe("glm-5.2");
+    expect(model.usageReports[0]?.costUsd).toBeUndefined();
     expect(model.runAttempts[0]).toMatchObject({
       id: "attempt-sqlite",
       status: "succeeded",

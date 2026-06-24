@@ -11,6 +11,7 @@ import type {
   DesktopWorkbenchLayoutPreference
 } from "./demo-workbench.js";
 import { CommandPalette, type CommandPaletteAction } from "./components/workbench/command-palette.js";
+import { WorkbenchErrorBoundary } from "./components/workbench/workbench-error-boundary.js";
 import { AppBar } from "./panes/app-bar.js";
 import { InspectorPane } from "./panes/inspector.js";
 import { SessionRailPane } from "./panes/session-rail.js";
@@ -514,54 +515,62 @@ export function App({ document }: AppProps) {
           />
 
           {rightPanelOpen ? (
-            <InspectorPane
-              activeExternalSession={activeExternalSession}
-              activeRunMode={activeRunMode}
-              activeSession={activeSession}
-              attachRecentContext={attachRecentContext}
-              attachFileContext={attachFileContext}
-              attachWorkspaceContext={attachWorkspaceContext}
-              agentLanguageOptions={agentLanguageOptions}
-              backendOptions={backendOptions}
-              bridgeCommand={document.bridgeCommand}
-              claudeCliProbe={document.claudeCliProbe}
-              canFollowUpApprovals={canFollowUpApprovals}
-              composerEnterBehaviorOptions={composerEnterBehaviorOptions}
-              drafts={visibleSideChatDrafts}
-              enqueueSideChatDraft={enqueueSideChatDraft}
-              evidenceExportPreferences={evidenceExportPreferences}
-              followUpPolicyOptions={followUpPolicyOptions}
-              ignoredRecordCount={ignoredRecordCount}
-              i18n={i18n}
-              inspectorTab={inspectorTab}
-              inspectorData={inspectorData}
-              projectedSessions={projection.sessions}
-              modelAliasOptions={modelAliasOptions}
-              permissionModeOptions={permissionModeOptions}
-              persistenceNotes={document.persistence.notes}
-              providerRouteOptions={providerRouteOptions}
-              providerSummary={document.providerSummary}
-              recentContextItems={recentContextItems}
-              removeSideChatDraft={removeSideChatDraft}
-              reviewDeliveryOptions={reviewDeliveryOptions}
-              resolveApproval={resolveApproval}
-              routingModeOptions={routingModeOptions}
-              runtimeSnapshot={runtimeSnapshot}
-              runnerBusy={runnerBusy}
-              runnerMode={runnerMode}
-              runnerStatus={runnerStatus}
-              sessionDefaults={sessionDefaults}
-              settingsLabels={settingsLabels}
-              setComposerPrompt={setComposerPrompt}
-              setInspectorTab={setInspectorTab}
-              setRunnerStatus={setRunnerStatus}
-              toggleRecentContextFavorite={toggleRecentContextFavorite}
-              updateEvidenceExportPreferences={updateEvidenceExportPreferences}
-              updateAgentResponseLanguage={updateAgentResponseLanguage}
-              updateRunnerMode={updateRunnerMode}
-              updateSessionDefaults={updateSessionDefaults}
-              updateUiLanguage={updateUiLanguage}
-            />
+            <WorkbenchErrorBoundary
+              detail={i18n.t("workbench.panelError.detail")}
+              resetKey={`${activeSession?.id ?? "no-session"}:${inspectorTab}`}
+              resetLabel={i18n.t("workbench.panelError.closePanel")}
+              title={i18n.t("workbench.panelError.title")}
+              onReset={() => setRightPanelOpen(false)}
+            >
+              <InspectorPane
+                activeExternalSession={activeExternalSession}
+                activeRunMode={activeRunMode}
+                activeSession={activeSession}
+                attachRecentContext={attachRecentContext}
+                attachFileContext={attachFileContext}
+                attachWorkspaceContext={attachWorkspaceContext}
+                agentLanguageOptions={agentLanguageOptions}
+                backendOptions={backendOptions}
+                bridgeCommand={document.bridgeCommand}
+                claudeCliProbe={document.claudeCliProbe}
+                canFollowUpApprovals={canFollowUpApprovals}
+                composerEnterBehaviorOptions={composerEnterBehaviorOptions}
+                drafts={visibleSideChatDrafts}
+                enqueueSideChatDraft={enqueueSideChatDraft}
+                evidenceExportPreferences={evidenceExportPreferences}
+                followUpPolicyOptions={followUpPolicyOptions}
+                ignoredRecordCount={ignoredRecordCount}
+                i18n={i18n}
+                inspectorTab={inspectorTab}
+                inspectorData={inspectorData}
+                projectedSessions={projection.sessions}
+                modelAliasOptions={modelAliasOptions}
+                permissionModeOptions={permissionModeOptions}
+                persistenceNotes={document.persistence.notes}
+                providerRouteOptions={providerRouteOptions}
+                providerSummary={document.providerSummary}
+                recentContextItems={recentContextItems}
+                removeSideChatDraft={removeSideChatDraft}
+                reviewDeliveryOptions={reviewDeliveryOptions}
+                resolveApproval={resolveApproval}
+                routingModeOptions={routingModeOptions}
+                runtimeSnapshot={runtimeSnapshot}
+                runnerBusy={runnerBusy}
+                runnerMode={runnerMode}
+                runnerStatus={runnerStatus}
+                sessionDefaults={sessionDefaults}
+                settingsLabels={settingsLabels}
+                setComposerPrompt={setComposerPrompt}
+                setInspectorTab={setInspectorTab}
+                setRunnerStatus={setRunnerStatus}
+                toggleRecentContextFavorite={toggleRecentContextFavorite}
+                updateEvidenceExportPreferences={updateEvidenceExportPreferences}
+                updateAgentResponseLanguage={updateAgentResponseLanguage}
+                updateRunnerMode={updateRunnerMode}
+                updateSessionDefaults={updateSessionDefaults}
+                updateUiLanguage={updateUiLanguage}
+              />
+            </WorkbenchErrorBoundary>
           ) : null}
         </section>
       </div>

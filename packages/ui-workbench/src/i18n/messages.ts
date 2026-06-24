@@ -328,6 +328,9 @@ export type UiMessageKey =
   | "workbench.workspacePanel.chat"
   | "workbench.workspacePanel.settings"
   | "workbench.workspacePanel.tools"
+  | "workbench.panelError.title"
+  | "workbench.panelError.detail"
+  | "workbench.panelError.closePanel"
   | "workbench.workspacePanel.browserTitle"
   | "workbench.workspacePanel.browserDetail"
   | "workbench.browser.title"
@@ -446,6 +449,7 @@ export type UiMessageKey =
   | "workbench.files.rawVisualCaptureCancelled"
   | "workbench.files.rawVisualCaptureBlocked"
   | "workbench.files.rawVisualCaptureUnsupported"
+  | "workbench.files.rawVisualCaptureDisplayUnsupported"
   | "workbench.files.rawVisualCaptureFailed"
   | "workbench.files.rawVisualCapturePathReference"
   | "workbench.files.rawVisualCaptureReasonMissingSession"
@@ -933,6 +937,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.workspacePanel.chat": "Side chat",
     "workbench.workspacePanel.settings": "Settings",
     "workbench.workspacePanel.tools": "Tools",
+    "workbench.panelError.title": "Panel needs recovery",
+    "workbench.panelError.detail": "The workbench stayed open, but this side panel failed to render. Close the panel and reopen another tab; no provider key or raw transcript is shown here.",
+    "workbench.panelError.closePanel": "Close panel",
     "workbench.workspacePanel.browserTitle": "Browser slot",
     "workbench.workspacePanel.browserDetail": "Reserved for the Tauri webview/browser tool surface. It will stay local-only and session-scoped before live browsing is wired.",
     "workbench.browser.title": "Local browser check",
@@ -1050,8 +1057,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.rawVisualCaptureSaved": "Raw visual PNG saved.",
     "workbench.files.rawVisualCaptureCancelled": "Raw visual capture cancelled.",
     "workbench.files.rawVisualCaptureBlocked": "Raw visual capture blocked by review gate.",
-    "workbench.files.rawVisualCaptureUnsupported": "Raw visual capture requires the native desktop runtime.",
-    "workbench.files.rawVisualCaptureFailed": "Raw visual capture failed or was denied by the OS picker.",
+    "workbench.files.rawVisualCaptureUnsupported": "Raw visual capture is unavailable in this runtime.",
+    "workbench.files.rawVisualCaptureDisplayUnsupported": "Display capture is unavailable in this desktop webview runtime; a native capture bridge is required before the OS picker can open.",
+    "workbench.files.rawVisualCaptureFailed": "Raw visual capture failed.",
     "workbench.files.rawVisualCapturePathReference": "Path reference recorded",
     "workbench.files.rawVisualCaptureReasonMissingSession": "No active session",
     "workbench.files.rawVisualCaptureReasonNativeRuntime": "Native runtime required",
@@ -1535,6 +1543,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.workspacePanel.chat": "사이드 채팅",
     "workbench.workspacePanel.settings": "설정",
     "workbench.workspacePanel.tools": "도구",
+    "workbench.panelError.title": "패널 복구가 필요합니다",
+    "workbench.panelError.detail": "워크벤치는 유지됐지만 이 사이드 패널 렌더링에 실패했습니다. 패널을 닫고 다른 탭을 다시 열어 보세요. provider key나 raw transcript는 여기에 표시하지 않습니다.",
+    "workbench.panelError.closePanel": "패널 닫기",
     "workbench.workspacePanel.browserTitle": "브라우저 슬롯",
     "workbench.workspacePanel.browserDetail": "Tauri webview/browser 도구 표면을 위한 자리입니다. 실제 연결 전까지 로컬 전용, 세션 단위 경계로 유지합니다.",
     "workbench.browser.title": "로컬 브라우저 검증",
@@ -1652,8 +1663,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.rawVisualCaptureSaved": "원본 시각 PNG를 저장했습니다.",
     "workbench.files.rawVisualCaptureCancelled": "원본 시각 캡처를 취소했습니다.",
     "workbench.files.rawVisualCaptureBlocked": "검토 gate가 원본 시각 캡처를 차단했습니다.",
-    "workbench.files.rawVisualCaptureUnsupported": "원본 시각 캡처는 native desktop runtime이 필요합니다.",
-    "workbench.files.rawVisualCaptureFailed": "원본 시각 캡처가 실패했거나 OS 선택기에서 거부되었습니다.",
+    "workbench.files.rawVisualCaptureUnsupported": "이 런타임에서는 원본 시각 캡처를 사용할 수 없습니다.",
+    "workbench.files.rawVisualCaptureDisplayUnsupported": "이 desktop webview runtime에서는 화면 캡처 API를 사용할 수 없습니다. OS 선택기를 열기 전에 native capture bridge가 필요합니다.",
+    "workbench.files.rawVisualCaptureFailed": "원본 시각 캡처가 실패했습니다.",
     "workbench.files.rawVisualCapturePathReference": "경로 참조를 기록했습니다",
     "workbench.files.rawVisualCaptureReasonMissingSession": "활성 세션 없음",
     "workbench.files.rawVisualCaptureReasonNativeRuntime": "native runtime 필요",
