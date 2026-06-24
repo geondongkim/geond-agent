@@ -191,6 +191,26 @@ Follow-up implemented from the route refresh result:
   user-selected storage path readiness, and visible-content review. The checked
   state is recorded in the visual capture policy artifact.
 
+## Product-Level Dogfood Workflow: 2026-06-24
+
+- Route health now offers manual advisory route switching from both runner issue
+  cards and provider route health cards. This changes the next-run default
+  provider route only; geond-agent still does not auto-switch providers.
+- A shared dogfood workflow summary rolls up selected sessions, attention
+  sessions, live run successes/failures/cancellations, retryable issues, route
+  switch candidates, route health counts, and visual policy readiness.
+- The Files inspector shows that dogfood summary next to the multi-session
+  export scope so the user can decide whether to retry/resume, switch route,
+  queue a multi-session report, or complete visual policy review before export.
+- Workspace report, multi-session issue report, export manifest, structured
+  trace, multi-session trace bundle, and visual capture policy artifacts all
+  include the same metadata-only dogfood summary.
+- The visual capture policy now records missing consent/redaction checklist
+  steps explicitly while keeping raw image capture disabled.
+- The local-only evidence boundary is unchanged: raw Claude logs, provider
+  keys, private file contents, local session files, and visual payloads are not
+  persisted into normalized workbench artifacts.
+
 ## Verification Checklist
 
 - `git diff --check`
@@ -204,7 +224,8 @@ Follow-up implemented from the route refresh result:
 
 - Add true raw visual capture only after a dedicated implementation can enforce
   the reviewed consent/redaction checklist and write to a user-selected path.
-- Persist the multi-session export scope and visual review checklist in local
-  app settings if users need those choices to survive reloads.
-- Continue workspace/file picker polish with favorites, recency, and workspace
-  switcher integration.
+- Run more live Claude dogfood sessions with successful route switch, retry,
+  cancel, and resume paths so the workflow summary can be tuned against real
+  operator behavior.
+- Add deeper issue/report export packaging if multi-session reports need to be
+  bundled with multiple per-session structured trace artifacts in one action.

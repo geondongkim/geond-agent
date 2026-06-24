@@ -391,6 +391,21 @@ export type UiMessageKey =
   | "workbench.files.sessionId"
   | "workbench.files.sessionSignals"
   | "workbench.files.attention"
+  | "workbench.files.dogfoodWorkflow"
+  | "workbench.files.dogfoodWorkflowDetail"
+  | "workbench.files.dogfoodSelectedSessions"
+  | "workbench.files.dogfoodAttentionSessions"
+  | "workbench.files.dogfoodRunAttempts"
+  | "workbench.files.dogfoodSuccesses"
+  | "workbench.files.dogfoodFailures"
+  | "workbench.files.dogfoodRouteSwitchCandidates"
+  | "workbench.files.dogfoodVisualReview"
+  | "workbench.files.dogfoodNextActions"
+  | "workbench.files.dogfoodActionRouteSwitch"
+  | "workbench.files.dogfoodActionRetryResume"
+  | "workbench.files.dogfoodActionMultiSessionReport"
+  | "workbench.files.dogfoodActionVisualPolicy"
+  | "workbench.files.dogfoodActionContinue"
   | "workbench.files.exportManifest"
   | "workbench.files.exportEvidenceBundle"
   | "workbench.files.exportIssueReport"
@@ -936,6 +951,21 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.sessionId": "Session ID",
     "workbench.files.sessionSignals": "Signals",
     "workbench.files.attention": "Attention",
+    "workbench.files.dogfoodWorkflow": "Dogfood workflow",
+    "workbench.files.dogfoodWorkflowDetail": "Roll up selected sessions, live run attempts, route health, and visual policy readiness before exporting or filing a report.",
+    "workbench.files.dogfoodSelectedSessions": "Selected sessions",
+    "workbench.files.dogfoodAttentionSessions": "Attention sessions",
+    "workbench.files.dogfoodRunAttempts": "Run attempts",
+    "workbench.files.dogfoodSuccesses": "Successes",
+    "workbench.files.dogfoodFailures": "Failures",
+    "workbench.files.dogfoodRouteSwitchCandidates": "Route switches",
+    "workbench.files.dogfoodVisualReview": "Visual review",
+    "workbench.files.dogfoodNextActions": "Next actions",
+    "workbench.files.dogfoodActionRouteSwitch": "Review manual provider route switching before the next run.",
+    "workbench.files.dogfoodActionRetryResume": "Dogfood retry, cancel, and resume behavior on the affected live session.",
+    "workbench.files.dogfoodActionMultiSessionReport": "Export or queue a multi-session issue report for attention sessions.",
+    "workbench.files.dogfoodActionVisualPolicy": "Complete the visual capture consent/redaction policy before raw capture.",
+    "workbench.files.dogfoodActionContinue": "Continue dogfooding; no immediate recovery action is projected.",
     "workbench.files.exportManifest": "Export manifest",
     "workbench.files.exportEvidenceBundle": "Export evidence bundle",
     "workbench.files.exportIssueReport": "Export report",
@@ -1478,6 +1508,21 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.sessionId": "세션 ID",
     "workbench.files.sessionSignals": "신호",
     "workbench.files.attention": "주의",
+    "workbench.files.dogfoodWorkflow": "Dogfood 워크플로",
+    "workbench.files.dogfoodWorkflowDetail": "내보내기나 리포트 작성 전에 선택된 세션, live 실행 시도, 경로 상태, 시각 정책 준비 상태를 한 번에 요약합니다.",
+    "workbench.files.dogfoodSelectedSessions": "선택 세션",
+    "workbench.files.dogfoodAttentionSessions": "주의 세션",
+    "workbench.files.dogfoodRunAttempts": "실행 시도",
+    "workbench.files.dogfoodSuccesses": "성공",
+    "workbench.files.dogfoodFailures": "실패",
+    "workbench.files.dogfoodRouteSwitchCandidates": "경로 전환",
+    "workbench.files.dogfoodVisualReview": "시각 검토",
+    "workbench.files.dogfoodNextActions": "다음 조치",
+    "workbench.files.dogfoodActionRouteSwitch": "다음 실행 전에 수동 provider route 전환을 검토합니다.",
+    "workbench.files.dogfoodActionRetryResume": "영향받은 live 세션에서 재시도, 취소, 재개 동작을 dogfood합니다.",
+    "workbench.files.dogfoodActionMultiSessionReport": "주의 세션에 대한 멀티세션 이슈 리포트를 내보내거나 초안에 추가합니다.",
+    "workbench.files.dogfoodActionVisualPolicy": "원본 캡처 전에 시각 캡처 동의/가림 정책을 완료합니다.",
+    "workbench.files.dogfoodActionContinue": "즉시 필요한 복구 조치가 없으므로 dogfood를 계속 진행합니다.",
     "workbench.files.exportManifest": "내보내기 매니페스트",
     "workbench.files.exportEvidenceBundle": "증거 묶음 내보내기",
     "workbench.files.exportIssueReport": "리포트 내보내기",

@@ -48,6 +48,7 @@ import {
   createSessionReviewFollowUpDraft
 } from "../../lib/inspector-follow-up.js";
 import {
+  findAlternateProviderRouteOption,
   findAdvisoryProviderRouteFallback,
   findCurrentProviderRouteOption,
   shouldOfferProviderRouteFallback
@@ -403,6 +404,28 @@ export function InspectorReviewTab({
                     <p className="mt-3 text-xs leading-5 text-[color:var(--ink-soft)]">
                       {health.latestIssueMessage}
                     </p>
+                  ) : null}
+                  {shouldOfferHealthRouteFallback(health) ? (
+                    <div className="mt-3 border-t border-white/[0.055] px-1 pt-3">
+                      <p className="text-xs font-semibold uppercase text-[color:var(--ink-soft)]">
+                        {i18n.t("workbench.routeHealth.advisoryFallback")}
+                      </p>
+                      <p className="mt-2 truncate font-mono text-[11px] text-[color:var(--inverse-soft)]">
+                        {formatMessage(i18n.t("workbench.routeHealth.currentDefault"), {
+                          route:
+                            currentProviderRoute?.label ??
+                            sessionDefaults.defaultProviderRouteId
+                        })}
+                      </p>
+                      <RouteHealthFallbackButton
+                        i18n={i18n}
+                        providerRouteId={health.providerRouteId}
+                        providerRouteOptions={providerRouteOptions}
+                        selectedProviderRouteId={sessionDefaults.defaultProviderRouteId}
+                        setInspectorTab={setInspectorTab}
+                        updateSessionDefaults={updateSessionDefaults}
+                      />
+                    </div>
                   ) : null}
                 </div>
               ))}
@@ -858,6 +881,66 @@ function FallbackRouteButton({
             })}
       </Button>
     </div>
+  );
+}
+
+function RouteHealthFallbackButton({
+  i18n,
+  providerRouteId,
+  providerRouteOptions,
+  selectedProviderRouteId,
+  setInspectorTab,
+  updateSessionDefaults
+}: {
+  readonly i18n: UiI18n;
+  readonly providerRouteId: string;
+  readonly providerRouteOptions: readonly WorkbenchCatalogOption[];
+  readonly selectedProviderRouteId: string;
+  readonly setInspectorTab: (tab: string) => void;
+  readonly updateSessionDefaults: (patch: Partial<WorkbenchSessionDefaults>) => void;
+}) {
+  const fallbackRoute = findAlternateProviderRouteOption({
+    providerRouteOptions,
+    unavailableRouteIds: new Set([providerRouteId])
+  });
+
+  if (!fallbackRoute) {
+    return (
+      <p className="mt-3 text-xs leading-5 text-[color:var(--ink-muted)]">
+        {i18n.t("workbench.routeHealth.fallbackUnavailable")}
+      </p>
+    );
+  }
+
+  const fallbackAlreadySelected = fallbackRoute.value === selectedProviderRouteId;
+
+  return (
+    <div className="mt-3 flex justify-end">
+      <Button
+        variant={fallbackAlreadySelected ? "ghost" : "outline"}
+        disabled={fallbackAlreadySelected}
+        onClick={() => {
+          void updateSessionDefaults({ defaultProviderRouteId: fallbackRoute.value });
+          setInspectorTab("settings");
+        }}
+      >
+        {fallbackAlreadySelected
+          ? i18n.t("workbench.routeHealth.fallbackAlreadySelected")
+          : formatMessage(i18n.t("workbench.routeHealth.switchToFallback"), {
+              route: fallbackRoute.label
+            })}
+      </Button>
+    </div>
+  );
+}
+
+function shouldOfferHealthRouteFallback(
+  health: ProjectedActiveSession["providerRouteHealth"][number]
+): boolean {
+  return (
+    health.latestHealth === "degraded" ||
+    health.latestHealth === "unavailable" ||
+    health.suggestedActions.includes("switch_route")
   );
 }
 

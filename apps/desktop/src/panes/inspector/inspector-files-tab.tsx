@@ -23,6 +23,11 @@ import {
   type EvidenceCaptureReadiness
 } from "../../lib/evidence-capture.js";
 import {
+  createDogfoodWorkflowSummary,
+  type DogfoodWorkflowAction,
+  type DogfoodWorkflowSummary
+} from "../../lib/dogfood-workflow-summary.js";
+import {
   createMultiSessionTraceBundleArtifact,
   createScreenshotManifestArtifact,
   createStructuredTraceArtifact,
@@ -132,6 +137,13 @@ export function InspectorFilesTab({
     selectedExportSessionSet.has(session.id)
   );
   const selectedExportSessionCount = selectedExportSessions.length;
+  const dogfoodWorkflowSummary = createDogfoodWorkflowSummary({
+    activeSession,
+    inspectorData,
+    selectedSessions: selectedExportSessions,
+    sessions: projectedSessions,
+    visualReview
+  });
 
   function queueSelectedEvidenceFollowUp() {
     if (!selectedEvidence) {
@@ -438,6 +450,8 @@ export function InspectorFilesTab({
         sessions={projectedSessions}
       />
 
+      <DogfoodWorkflowSection i18n={i18n} summary={dogfoodWorkflowSummary} />
+
       <EvidenceExportSection
         activeSession={activeSession}
         exportEvidenceBundle={() => void exportEvidenceBundle()}
@@ -720,6 +734,71 @@ function MultiSessionExportScopeSection({
   );
 }
 
+function DogfoodWorkflowSection({
+  i18n,
+  summary
+}: {
+  readonly i18n: UiI18n;
+  readonly summary: DogfoodWorkflowSummary;
+}) {
+  return (
+    <EvidenceSection
+      count={summary.recommendedActions.length}
+      title={i18n.t("workbench.files.dogfoodWorkflow")}
+    >
+      <p className="mb-3 px-1 text-xs leading-5 text-[color:var(--ink-soft)]">
+        {i18n.t("workbench.files.dogfoodWorkflowDetail")}
+      </p>
+      <div className="usage-grid">
+        <EvidenceMetric
+          label={i18n.t("workbench.files.dogfoodSelectedSessions")}
+          value={`${summary.selectedSessionCount}/${summary.sessionCount}`}
+        />
+        <EvidenceMetric
+          label={i18n.t("workbench.files.dogfoodAttentionSessions")}
+          value={String(summary.attentionSessionCount)}
+        />
+        <EvidenceMetric
+          label={i18n.t("workbench.files.dogfoodRunAttempts")}
+          value={String(summary.runAttemptCount)}
+        />
+        <EvidenceMetric
+          label={i18n.t("workbench.files.dogfoodSuccesses")}
+          value={String(summary.liveSucceededCount)}
+        />
+        <EvidenceMetric
+          label={i18n.t("workbench.files.dogfoodFailures")}
+          value={String(summary.liveFailedCount + summary.liveCancelledCount)}
+        />
+        <EvidenceMetric
+          label={i18n.t("workbench.files.dogfoodRouteSwitchCandidates")}
+          value={String(summary.routeSwitchCandidateCount)}
+        />
+        <EvidenceMetric
+          label={i18n.t("workbench.files.dogfoodVisualReview")}
+          value={
+            summary.visualReviewReady
+              ? i18n.t("workbench.status.ready")
+              : i18n.t("workbench.files.captureRequired")
+          }
+        />
+        <EvidenceMetric
+          label={i18n.t("workbench.issue.retryable")}
+          value={String(summary.retryableIssueCount)}
+        />
+      </div>
+      <div className="mt-3 file-evidence-card">
+        <p className="muted-meta">{i18n.t("workbench.files.dogfoodNextActions")}</p>
+        <ul className="mt-2 list-disc space-y-1 pl-4 text-xs leading-5 text-[color:var(--ink-soft)]">
+          {summary.recommendedActions.map((action) => (
+            <li key={action}>{formatDogfoodActionLabel(i18n, action)}</li>
+          ))}
+        </ul>
+      </div>
+    </EvidenceSection>
+  );
+}
+
 function VisualCaptureReviewSection({
   i18n,
   onReset,
@@ -801,6 +880,21 @@ function VisualCaptureReviewSection({
       </div>
     </div>
   );
+}
+
+function formatDogfoodActionLabel(i18n: UiI18n, action: DogfoodWorkflowAction): string {
+  switch (action) {
+    case "manual_route_switch_review":
+      return i18n.t("workbench.files.dogfoodActionRouteSwitch");
+    case "retry_resume_review":
+      return i18n.t("workbench.files.dogfoodActionRetryResume");
+    case "multi_session_issue_report":
+      return i18n.t("workbench.files.dogfoodActionMultiSessionReport");
+    case "visual_capture_policy_review":
+      return i18n.t("workbench.files.dogfoodActionVisualPolicy");
+    case "continue_dogfood":
+      return i18n.t("workbench.files.dogfoodActionContinue");
+  }
 }
 
 function CaptureExportAction({

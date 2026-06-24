@@ -27,8 +27,18 @@ export function findAdvisoryProviderRouteFallback(input: {
   const unavailableRouteIds = new Set(
     [input.issue.providerRouteId].filter((value): value is string => Boolean(value))
   );
+  return findAlternateProviderRouteOption({
+    providerRouteOptions: input.providerRouteOptions,
+    unavailableRouteIds
+  });
+}
+
+export function findAlternateProviderRouteOption(input: {
+  readonly providerRouteOptions: readonly WorkbenchCatalogOption[];
+  readonly unavailableRouteIds: ReadonlySet<string>;
+}): WorkbenchCatalogOption | undefined {
   const candidates = input.providerRouteOptions.filter(
-    (route) => !unavailableRouteIds.has(route.value)
+    (route) => !input.unavailableRouteIds.has(route.value)
   );
 
   return (

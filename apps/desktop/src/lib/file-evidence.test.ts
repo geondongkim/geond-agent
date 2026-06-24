@@ -304,6 +304,8 @@ describe("file evidence preview model", () => {
 
     expect(report).toContain("Workbench workspace report (metadata only).");
     expect(report).toContain("Session count: 2");
+    expect(report).toContain("Dogfood workflow summary");
+    expect(report).toContain("attention sessions: 2");
     expect(report).toContain("Claude dogfood (session-1): completed");
     expect(report).toContain("resumable=yes");
     expect(report).toContain("Active session evidence");
@@ -362,6 +364,8 @@ describe("file evidence preview model", () => {
 
     expect(report).toContain("Workbench multi-session issue report (metadata only).");
     expect(report).toContain("Attention session count: 1");
+    expect(report).toContain("Dogfood workflow summary");
+    expect(report).toContain("recommended actions:");
     expect(report).toContain("Trace/export checklist");
     expect(report).toContain("visual consent/redaction policy");
     expect(report).not.toContain(sensitiveValue);
@@ -445,6 +449,8 @@ describe("file evidence preview model", () => {
 
     expect(manifest).toContain("Workbench export manifest (metadata only).");
     expect(manifest).toContain("Favorite context by workspace");
+    expect(manifest).toContain("Dogfood workflow summary");
+    expect(manifest).toContain("route switch candidates:");
     expect(manifest).toContain("geond-agent: path=/workspace/geond-agent");
     expect(manifest).toContain("Capture consent and redaction readiness");
     expect(manifest).toContain("Structured trace bundle: requires-explicit-consent");

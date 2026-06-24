@@ -4,6 +4,10 @@ import {
   createEvidenceCaptureReadiness,
   formatEvidenceCaptureReadinessForManifest
 } from "./evidence-capture.js";
+import {
+  createDogfoodWorkflowSummary,
+  formatDogfoodWorkflowSummaryForReport
+} from "./dogfood-workflow-summary.js";
 import type { InspectorSessionReadModel } from "./inspector-read-model.js";
 import { groupRecentContextByWorkspace, type RecentContextItem } from "./recent-context.js";
 import type { ProjectedActiveSession, ProjectedSessionListItem } from "./workbench-types.js";
@@ -247,6 +251,11 @@ export function createWorkspaceEvidenceReportDraft({
 }): string {
   const activeSessionId = activeSession?.id ?? inspectorData?.sessionId;
   const activeBundle = createEvidenceBundleDraft({ activeSession, inspectorData });
+  const workflowSummary = createDogfoodWorkflowSummary({
+    activeSession,
+    inspectorData,
+    sessions
+  });
 
   return [
     "Workbench workspace report (metadata only).",
@@ -257,6 +266,9 @@ export function createWorkspaceEvidenceReportDraft({
     "",
     "Session index",
     ...formatSessionIndexReportItems(sessions),
+    "",
+    "Dogfood workflow summary",
+    ...formatDogfoodWorkflowSummaryForReport(workflowSummary),
     "",
     "Active session evidence",
     activeBundle,
@@ -286,6 +298,12 @@ export function createMultiSessionIssueReportDraft({
       session.pendingApprovalCount > 0 ||
       session.resumable
   );
+  const workflowSummary = createDogfoodWorkflowSummary({
+    activeSession,
+    inspectorData,
+    selectedSessions: sessions,
+    sessions
+  });
 
   return [
     "Workbench multi-session issue report (metadata only).",
@@ -299,6 +317,9 @@ export function createMultiSessionIssueReportDraft({
     `Session count: ${sessions.length}`,
     `Attention session count: ${attentionSessions.length}`,
     activeSessionId ? `Active session: ${safeText(activeSessionId)}` : "Active session: none",
+    "",
+    "Dogfood workflow summary",
+    ...formatDogfoodWorkflowSummaryForReport(workflowSummary),
     "",
     "Attention sessions",
     ...formatSessionIndexReportItems(attentionSessions),
@@ -345,6 +366,11 @@ export function createEvidenceExportManifestDraft({
   const source = inspectorData?.source ?? "projection";
   const selection = activeSession?.selection;
   const captureReadiness = createEvidenceCaptureReadiness();
+  const workflowSummary = createDogfoodWorkflowSummary({
+    activeSession,
+    inspectorData,
+    sessions
+  });
 
   return [
     "Workbench export manifest (metadata only).",
@@ -385,6 +411,9 @@ export function createEvidenceExportManifestDraft({
     `- command outputs: ${commandOutputs.length}`,
     `- run attempts: ${runAttempts.length}`,
     `- favorite context items: ${favoriteContextItems.length}`,
+    "",
+    "Dogfood workflow summary",
+    ...formatDogfoodWorkflowSummaryForReport(workflowSummary),
     "",
     "Favorite context by workspace",
     ...formatRecentContextWorkspaceGroups(workspaceGroups),

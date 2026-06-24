@@ -3,6 +3,7 @@ import {
   type EvidenceCaptureKind,
   type EvidenceCaptureReadiness
 } from "./evidence-capture.js";
+import { createDogfoodWorkflowSummary } from "./dogfood-workflow-summary.js";
 import type { InspectorSessionReadModel } from "./inspector-read-model.js";
 import type {
   ProjectedActiveSession,
@@ -68,6 +69,12 @@ export function createMultiSessionTraceBundleArtifact(
 ): EvidenceCaptureArtifact {
   const generatedAt = options.generatedAt ?? new Date().toISOString();
   const sessions = options.projectedSessions ?? [];
+  const dogfoodWorkflow = createDogfoodWorkflowSummary({
+    activeSession: options.activeSession,
+    inspectorData: options.inspectorData,
+    selectedSessions: sessions,
+    sessions
+  });
   const readiness = createEvidenceCaptureReadiness({
     consentGranted: true,
     redactionConfigured: true,
@@ -93,6 +100,7 @@ export function createMultiSessionTraceBundleArtifact(
         0
       )
     },
+    dogfoodWorkflow,
     reviewPrompts: [
       "Which sessions need retry, resume, approval follow-up, or route health review?",
       "Which sessions have enough metadata-only evidence for a local issue report?",
@@ -114,6 +122,13 @@ export function createVisualCapturePolicyArtifact(
 ): EvidenceCaptureArtifact {
   const generatedAt = options.generatedAt ?? new Date().toISOString();
   const visualReview = normalizeVisualReview(options.visualReview);
+  const sessions = options.projectedSessions ?? [];
+  const dogfoodWorkflow = createDogfoodWorkflowSummary({
+    activeSession: options.activeSession,
+    inspectorData: options.inspectorData,
+    sessions,
+    visualReview
+  });
   const reviewReady =
     visualReview.explicitConsent &&
     visualReview.redactionReview &&
@@ -133,6 +148,7 @@ export function createVisualCapturePolicyArtifact(
       requiredUserAction: "per-export visual capture consent",
       reviewReady,
       review: visualReview,
+      missingReviewSteps: dogfoodWorkflow.missingVisualReviewSteps,
       redactionRequirements: [
         "review visible workspace paths before capture",
         "hide provider keys, tokens, account state, and local private files",
@@ -147,6 +163,7 @@ export function createVisualCapturePolicyArtifact(
         "unreviewed browser or terminal output"
       ]
     },
+    dogfoodWorkflow,
     note:
       "This policy artifact documents the consent/redaction boundary for future visual capture. It does not include image payload data."
   };
@@ -182,6 +199,13 @@ function createCaptureArtifact(
     screenshotCount: options.captureKind === "screenshot" ? 1 : 0,
     structuredTraceCount: options.captureKind === "structured-trace" ? 1 : 0
   });
+  const sessions = options.projectedSessions ?? [];
+  const dogfoodWorkflow = createDogfoodWorkflowSummary({
+    activeSession: options.activeSession,
+    inspectorData: options.inspectorData,
+    sessions,
+    visualReview: options.visualReview
+  });
   const payload = {
     schemaVersion: 1,
     kind: options.kind,
@@ -191,8 +215,9 @@ function createCaptureArtifact(
     activeSession: serializeSession(options.activeSession, options.inspectorData),
     workspace: {
       activeWorkspacePath: options.activeSession?.workspacePath,
-      indexedSessionCount: options.projectedSessions?.length ?? 0
+      indexedSessionCount: sessions.length
     },
+    dogfoodWorkflow,
     note:
       options.kind === "screenshot-manifest"
         ? "This manifest records a user-approved screenshot capture boundary. It does not include image payload data."
