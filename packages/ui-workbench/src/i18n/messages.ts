@@ -368,6 +368,15 @@ export type UiMessageKey =
   | "workbench.files.multiSessionIssueReport"
   | "workbench.files.multiSessionTraceBundle"
   | "workbench.files.visualCapturePolicy"
+  | "workbench.files.exportScope"
+  | "workbench.files.exportScopeDetail"
+  | "workbench.files.includeSession"
+  | "workbench.files.selectedSessions"
+  | "workbench.files.selectAllSessions"
+  | "workbench.files.selectAttentionSessions"
+  | "workbench.files.sessionId"
+  | "workbench.files.sessionSignals"
+  | "workbench.files.attention"
   | "workbench.files.exportManifest"
   | "workbench.files.exportEvidenceBundle"
   | "workbench.files.exportIssueReport"
@@ -404,6 +413,14 @@ export type UiMessageKey =
   | "workbench.files.visualCapturePolicyExportSaved"
   | "workbench.files.visualCapturePolicyExportDownloaded"
   | "workbench.files.visualCapturePolicyExportCancelled"
+  | "workbench.files.visualCaptureReview"
+  | "workbench.files.visualCaptureReviewDetail"
+  | "workbench.files.visualConsentCheck"
+  | "workbench.files.visualRedactionCheck"
+  | "workbench.files.visualStorageCheck"
+  | "workbench.files.visualVisibleContentCheck"
+  | "workbench.files.visualPolicyReviewed"
+  | "workbench.files.visualPolicyBlocked"
   | "workbench.files.captureBoundary"
   | "workbench.files.captureBoundaryDetail"
   | "workbench.files.screenshotBundle"
@@ -881,6 +898,15 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.multiSessionIssueReport": "Multi-session issue report",
     "workbench.files.multiSessionTraceBundle": "Multi-session trace bundle",
     "workbench.files.visualCapturePolicy": "Visual capture policy",
+    "workbench.files.exportScope": "Export scope",
+    "workbench.files.exportScopeDetail": "Choose which sessions are included in multi-session reports and trace bundles.",
+    "workbench.files.includeSession": "Include session",
+    "workbench.files.selectedSessions": "Selected sessions",
+    "workbench.files.selectAllSessions": "All sessions",
+    "workbench.files.selectAttentionSessions": "Attention sessions",
+    "workbench.files.sessionId": "Session ID",
+    "workbench.files.sessionSignals": "Signals",
+    "workbench.files.attention": "Attention",
     "workbench.files.exportManifest": "Export manifest",
     "workbench.files.exportEvidenceBundle": "Export evidence bundle",
     "workbench.files.exportIssueReport": "Export report",
@@ -917,6 +943,14 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.visualCapturePolicyExportSaved": "Visual capture policy saved.",
     "workbench.files.visualCapturePolicyExportDownloaded": "Visual capture policy downloaded.",
     "workbench.files.visualCapturePolicyExportCancelled": "Visual capture policy export cancelled.",
+    "workbench.files.visualCaptureReview": "Visual capture review",
+    "workbench.files.visualCaptureReviewDetail": "Raw visual capture remains disabled; this checklist is recorded only in the policy artifact.",
+    "workbench.files.visualConsentCheck": "Explicit per-export consent is confirmed.",
+    "workbench.files.visualRedactionCheck": "Visible secrets, account state, and private local files were reviewed.",
+    "workbench.files.visualStorageCheck": "A user-selected storage path is required before raw capture.",
+    "workbench.files.visualVisibleContentCheck": "Terminal, browser, and workspace surfaces were reviewed for private content.",
+    "workbench.files.visualPolicyReviewed": "Policy reviewed",
+    "workbench.files.visualPolicyBlocked": "Review incomplete",
     "workbench.files.captureBoundary": "Capture boundary",
     "workbench.files.captureBoundaryDetail": "Screenshots and structured traces can contain private workspace state. They stay deferred until explicit consent and redaction are both ready.",
     "workbench.files.screenshotBundle": "Screenshot bundle",
@@ -1391,6 +1425,15 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.multiSessionIssueReport": "멀티세션 이슈 리포트",
     "workbench.files.multiSessionTraceBundle": "멀티세션 trace 묶음",
     "workbench.files.visualCapturePolicy": "시각 캡처 정책",
+    "workbench.files.exportScope": "내보내기 범위",
+    "workbench.files.exportScopeDetail": "멀티세션 리포트와 trace 묶음에 포함할 세션을 선택합니다.",
+    "workbench.files.includeSession": "세션 포함",
+    "workbench.files.selectedSessions": "선택된 세션",
+    "workbench.files.selectAllSessions": "전체 세션",
+    "workbench.files.selectAttentionSessions": "주의 세션",
+    "workbench.files.sessionId": "세션 ID",
+    "workbench.files.sessionSignals": "신호",
+    "workbench.files.attention": "주의",
     "workbench.files.exportManifest": "내보내기 매니페스트",
     "workbench.files.exportEvidenceBundle": "증거 묶음 내보내기",
     "workbench.files.exportIssueReport": "리포트 내보내기",
@@ -1427,6 +1470,14 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.visualCapturePolicyExportSaved": "시각 캡처 정책을 저장했습니다.",
     "workbench.files.visualCapturePolicyExportDownloaded": "시각 캡처 정책을 다운로드했습니다.",
     "workbench.files.visualCapturePolicyExportCancelled": "시각 캡처 정책 내보내기를 취소했습니다.",
+    "workbench.files.visualCaptureReview": "시각 캡처 검토",
+    "workbench.files.visualCaptureReviewDetail": "원본 시각 캡처는 여전히 비활성화 상태이며, 이 체크리스트는 정책 artifact에만 기록합니다.",
+    "workbench.files.visualConsentCheck": "내보내기별 명시적 동의를 확인했습니다.",
+    "workbench.files.visualRedactionCheck": "보이는 secret, 계정 상태, private 로컬 파일을 검토했습니다.",
+    "workbench.files.visualStorageCheck": "원본 캡처 전에 사용자 선택 저장 경로가 필요합니다.",
+    "workbench.files.visualVisibleContentCheck": "터미널, 브라우저, 워크스페이스 화면의 private 내용을 검토했습니다.",
+    "workbench.files.visualPolicyReviewed": "정책 검토됨",
+    "workbench.files.visualPolicyBlocked": "검토 미완료",
     "workbench.files.captureBoundary": "캡처 경계",
     "workbench.files.captureBoundaryDetail": "스크린샷과 구조화 trace에는 private 워크스페이스 상태가 들어갈 수 있습니다. 명시적 동의와 가림 처리가 모두 준비될 때까지 보류합니다.",
     "workbench.files.screenshotBundle": "스크린샷 묶음",

@@ -18,6 +18,10 @@ test("file evidence export package and capture boundary stay metadata-only", asy
   await expect(filesPanel.getByRole("button", { name: "Attach workspace" })).toBeVisible();
   await expect(filesPanel.getByRole("button", { name: "Attach file" })).toBeVisible();
   await expect(filesPanel.getByRole("heading", { name: "Export package" })).toBeVisible();
+  await expect(filesPanel.getByRole("heading", { name: "Export scope" })).toBeVisible();
+  await expect(filesPanel.getByRole("button", { name: "Attention sessions" })).toBeVisible();
+  await expect(filesPanel.getByRole("button", { name: "All sessions" })).toBeVisible();
+  await expect(filesPanel.getByLabel(/Include session/).first()).toBeChecked();
   await expect(filesPanel.getByRole("heading", { name: "Capture boundary" })).toBeVisible();
   await expect(filesPanel.getByText("Screenshot bundle")).toBeVisible();
   await expect(filesPanel.getByText("Structured trace bundle")).toBeVisible();
@@ -25,6 +29,15 @@ test("file evidence export package and capture boundary stay metadata-only", asy
   await expect(filesPanel.getByRole("button", { name: "Export structured trace" })).toBeVisible();
   await expect(filesPanel.getByRole("button", { name: "Export multi-session trace bundle" })).toBeVisible();
   await expect(filesPanel.getByRole("button", { name: "Export visual capture policy" })).toBeVisible();
+  await expect(filesPanel.getByText("Visual capture review")).toBeVisible();
+  await expect(filesPanel.getByLabel("Explicit per-export consent is confirmed.")).not.toBeChecked();
+  await filesPanel.getByLabel("Explicit per-export consent is confirmed.").check();
+  await filesPanel.getByLabel("Visible secrets, account state, and private local files were reviewed.").check();
+  await filesPanel.getByLabel("A user-selected storage path is required before raw capture.").check();
+  await filesPanel
+    .getByLabel("Terminal, browser, and workspace surfaces were reviewed for private content.")
+    .check();
+  await expect(filesPanel.getByText("Policy reviewed")).toBeVisible();
   await expect(filesPanel.getByText("Explicit consent required").first()).toBeVisible();
   await expect(filesPanel.getByRole("heading", { name: "Changed files" })).toBeVisible();
   await expect(filesPanel.getByText("Privacy boundary").first()).toBeVisible();
@@ -39,6 +52,9 @@ test("file evidence export package and capture boundary stay metadata-only", asy
   await filesPanel.getByRole("button", { name: "Export workspace report" }).click();
   const workspaceDownload = await workspaceDownloadPromise;
   expect(workspaceDownload.suggestedFilename()).toMatch(/workbench-workspace-report\.md$/);
+
+  await filesPanel.getByRole("button", { name: "Attention sessions" }).click();
+  await expect(filesPanel.getByRole("button", { name: "Export multi-session trace bundle" })).toBeEnabled();
 
   const multiSessionReportDownloadPromise = page.waitForEvent("download");
   await filesPanel.getByRole("button", { name: "Export multi-session report" }).click();

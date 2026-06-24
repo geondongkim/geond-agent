@@ -20,12 +20,20 @@ export interface EvidenceCaptureArtifactOptions {
   readonly generatedAt?: string;
   readonly inspectorData?: InspectorSessionReadModel;
   readonly projectedSessions?: readonly ProjectedSessionListItem[];
+  readonly visualReview?: VisualCaptureReviewState;
 }
 
 export interface EvidenceCaptureArtifact {
   readonly fileName: string;
   readonly kind: EvidenceCaptureArtifactKind;
   readonly text: string;
+}
+
+export interface VisualCaptureReviewState {
+  readonly explicitConsent: boolean;
+  readonly redactionReview: boolean;
+  readonly storagePathSelected: boolean;
+  readonly visibleContentReviewed: boolean;
 }
 
 interface CapturePolicy {
@@ -76,6 +84,7 @@ export function createMultiSessionTraceBundleArtifact(
     traceBundle: {
       metadataOnly: true,
       sessionCount: sessions.length,
+      selectedSessionIds: sessions.map((session) => session.id),
       warningSessionCount: sessions.filter((session) => session.warningCount > 0).length,
       errorSessionCount: sessions.filter((session) => session.errorCount > 0).length,
       resumableSessionCount: sessions.filter((session) => session.resumable).length,
@@ -104,6 +113,12 @@ export function createVisualCapturePolicyArtifact(
   options: EvidenceCaptureArtifactOptions
 ): EvidenceCaptureArtifact {
   const generatedAt = options.generatedAt ?? new Date().toISOString();
+  const visualReview = normalizeVisualReview(options.visualReview);
+  const reviewReady =
+    visualReview.explicitConsent &&
+    visualReview.redactionReview &&
+    visualReview.storagePathSelected &&
+    visualReview.visibleContentReviewed;
   const payload = {
     schemaVersion: 1,
     kind: "visual-capture-policy",
@@ -111,9 +126,13 @@ export function createVisualCapturePolicyArtifact(
     capturePolicy: createCapturePolicy(),
     activeSession: serializeSession(options.activeSession, options.inspectorData),
     visualCapture: {
-      status: "deferred-until-explicit-consent-and-redaction",
+      status: reviewReady
+        ? "policy-reviewed-raw-capture-still-disabled"
+        : "deferred-until-explicit-consent-and-redaction",
       rawImageStorageDefault: "disabled",
       requiredUserAction: "per-export visual capture consent",
+      reviewReady,
+      review: visualReview,
       redactionRequirements: [
         "review visible workspace paths before capture",
         "hide provider keys, tokens, account state, and local private files",
@@ -136,6 +155,17 @@ export function createVisualCapturePolicyArtifact(
     fileName: createEvidenceCaptureArtifactFileName("visual-capture-policy"),
     kind: "visual-capture-policy",
     text: `${JSON.stringify(payload, null, 2)}\n`
+  };
+}
+
+function normalizeVisualReview(
+  value: VisualCaptureReviewState | undefined
+): VisualCaptureReviewState {
+  return {
+    explicitConsent: value?.explicitConsent ?? false,
+    redactionReview: value?.redactionReview ?? false,
+    storagePathSelected: value?.storagePathSelected ?? false,
+    visibleContentReviewed: value?.visibleContentReviewed ?? false
   };
 }
 
