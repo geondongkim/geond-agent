@@ -44,8 +44,6 @@ const CLAUDE_ENV_KEYS: &[&str] = &[
     "ZAI_API_KEY",
 ];
 const CLAUDE_PROCESS_ENV_KEYS: &[&str] = &[
-    "ANTHROPIC_API_KEY",
-    "ANTHROPIC_AUTH_TOKEN",
     "ANTHROPIC_BASE_URL",
     "ANTHROPIC_DEFAULT_HAIKU_MODEL",
     "ANTHROPIC_DEFAULT_SONNET_MODEL",
@@ -268,6 +266,7 @@ type ProcessHandle = Arc<Mutex<Child>>;
 struct BuiltClaudeCommand {
     command: Command,
     settings_path: Option<PathBuf>,
+    temp_paths: Vec<PathBuf>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -616,15 +615,16 @@ fn run_claude_code_stream_json(
     let timeout_ms = normalize_timeout_ms(request.timeout_ms)?;
     let BuiltClaudeCommand {
         mut command,
-        settings_path,
+        settings_path: _settings_path,
+        temp_paths,
     } = build_claude_command(&request)?;
 
     if let Some(channel_id) = stream_channel_id {
-        return run_streaming_claude_command(app, command, channel_id, timeout_ms, settings_path);
+        return run_streaming_claude_command(app, command, channel_id, timeout_ms, temp_paths);
     }
 
     let output = command.output().map_err(to_string);
-    cleanup_temp_file(settings_path);
+    cleanup_temp_files(temp_paths);
     let output = output?;
     Ok(ClaudeCodeCommandResponse {
         stdout: String::from_utf8_lossy(&output.stdout).to_string(),
@@ -658,9 +658,9 @@ fn build_claude_command(request: &ClaudeCodeCommandRequest) -> Result<BuiltClaud
 
     let cwd = request.cwd.as_deref().map(PathBuf::from);
     let local_env = allowed_local_env(cwd.as_deref())?;
-    let settings_path = write_claude_settings_file(&local_env)?;
+    let settings_files = write_claude_settings_files(&local_env)?;
     let mut command = Command::new(&request.executable);
-    if let Some(settings_path) = &settings_path {
+    if let Some(settings_path) = &settings_files.settings_path {
         command.arg("--settings").arg(settings_path);
     }
     command.args(&request.args);
@@ -674,7 +674,8 @@ fn build_claude_command(request: &ClaudeCodeCommandRequest) -> Result<BuiltClaud
 
     Ok(BuiltClaudeCommand {
         command,
-        settings_path,
+        settings_path: settings_files.settings_path,
+        temp_paths: settings_files.temp_paths,
     })
 }
 
@@ -699,28 +700,30 @@ fn run_streaming_claude_command(
     mut command: Command,
     channel_id: String,
     timeout_ms: u64,
-    settings_path: Option<PathBuf>,
+    temp_paths: Vec<PathBuf>,
 ) -> Result<ClaudeCodeCommandResponse, String> {
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
+
+    let cleanup = || cleanup_temp_files(temp_paths.clone());
 
     let mut child = match command.spawn() {
         Ok(child) => child,
         Err(error) => {
-            cleanup_temp_file(settings_path);
+            cleanup();
             return Err(error.to_string());
         }
     };
     let stdout = match child.stdout.take() {
         Some(stdout) => stdout,
         None => {
-            cleanup_temp_file(settings_path);
+            cleanup();
             return Err("Unable to capture Claude Code stdout.".to_string());
         }
     };
     let stderr = match child.stderr.take() {
         Some(stderr) => stderr,
         None => {
-            cleanup_temp_file(settings_path);
+            cleanup();
             return Err("Unable to capture Claude Code stderr.".to_string());
         }
     };
@@ -740,7 +743,7 @@ fn run_streaming_claude_command(
     let (exit_code, timed_out) = match wait_result {
         Ok(value) => value,
         Err(error) => {
-            cleanup_temp_file(settings_path);
+            cleanup();
             return Err(error);
         }
     };
@@ -750,7 +753,7 @@ fn run_streaming_claude_command(
     {
         Ok(value) => value,
         Err(error) => {
-            cleanup_temp_file(settings_path);
+            cleanup();
             return Err(error);
         }
     };
@@ -760,7 +763,7 @@ fn run_streaming_claude_command(
     {
         Ok(value) => value,
         Err(error) => {
-            cleanup_temp_file(settings_path);
+            cleanup();
             return Err(error);
         }
     };
@@ -771,7 +774,7 @@ fn run_streaming_claude_command(
             &format!("Claude Code runner timed out after {timeout_ms}ms."),
         );
     }
-    cleanup_temp_file(settings_path);
+    cleanup();
 
     Ok(ClaudeCodeCommandResponse {
         stdout: stdout.text,
@@ -977,18 +980,50 @@ fn ensure_evidence_capture_kind(kind: &str) -> Result<(), String> {
     }
 }
 
-fn write_claude_settings_file(
+struct ClaudeSettingsFiles {
+    settings_path: Option<PathBuf>,
+    temp_paths: Vec<PathBuf>,
+}
+
+fn write_claude_settings_files(
     local_env: &BTreeMap<String, String>,
-) -> Result<Option<PathBuf>, String> {
+) -> Result<ClaudeSettingsFiles, String> {
     let settings_env = claude_settings_env(local_env);
-    if settings_env.is_empty() {
-        return Ok(None);
+    let api_key = claude_api_key(local_env);
+    if settings_env.is_empty() && api_key.is_none() {
+        return Ok(ClaudeSettingsFiles {
+            settings_path: None,
+            temp_paths: Vec::new(),
+        });
     }
 
+    let mut temp_paths = Vec::new();
+    let api_key_helper_path = match api_key {
+        Some(api_key) => {
+            let secret_path = claude_temp_path("claude-api-key", "txt")?;
+            fs::write(&secret_path, api_key).map_err(to_string)?;
+            set_private_file_mode(&secret_path, 0o600)?;
+            temp_paths.push(secret_path.clone());
+
+            let helper_path = claude_temp_path("claude-api-key-helper", "sh")?;
+            let helper_text = format!("#!/bin/sh\ncat {}\n", shell_quote_path(&secret_path));
+            fs::write(&helper_path, helper_text).map_err(to_string)?;
+            set_private_file_mode(&helper_path, 0o700)?;
+            temp_paths.push(helper_path.clone());
+            Some(helper_path)
+        }
+        None => None,
+    };
+
     let path = claude_settings_temp_path()?;
-    let text = claude_settings_json(&settings_env)?;
+    let text = claude_settings_json(&settings_env, api_key_helper_path.as_deref())?;
     fs::write(&path, text).map_err(to_string)?;
-    Ok(Some(path))
+    set_private_file_mode(&path, 0o600)?;
+    temp_paths.push(path.clone());
+    Ok(ClaudeSettingsFiles {
+        settings_path: Some(path),
+        temp_paths,
+    })
 }
 
 fn claude_settings_env(local_env: &BTreeMap<String, String>) -> BTreeMap<String, String> {
@@ -1004,12 +1039,6 @@ fn claude_settings_env(local_env: &BTreeMap<String, String>) -> BTreeMap<String,
         if let Some(value) = local_env.get(*key) {
             values.insert((*key).to_string(), value.clone());
         }
-    }
-
-    if let Some(zai_key) = local_env.get("ZAI_API_KEY") {
-        values
-            .entry("ANTHROPIC_AUTH_TOKEN".to_string())
-            .or_insert_with(|| zai_key.clone());
     }
 
     if use_zai_defaults {
@@ -1030,13 +1059,24 @@ fn claude_settings_env(local_env: &BTreeMap<String, String>) -> BTreeMap<String,
     values
 }
 
+fn claude_api_key(local_env: &BTreeMap<String, String>) -> Option<String> {
+    local_env
+        .get("ZAI_API_KEY")
+        .or_else(|| local_env.get("ANTHROPIC_AUTH_TOKEN"))
+        .or_else(|| local_env.get("ANTHROPIC_API_KEY"))
+        .cloned()
+}
+
 fn claude_process_env(
     local_env: &BTreeMap<String, String>,
 ) -> impl Iterator<Item = (String, String)> + '_ {
     claude_settings_env(local_env).into_iter()
 }
 
-fn claude_settings_json(values: &BTreeMap<String, String>) -> Result<String, String> {
+fn claude_settings_json(
+    values: &BTreeMap<String, String>,
+    api_key_helper_path: Option<&Path>,
+) -> Result<String, String> {
     let mut env_map = Map::new();
     for (key, value) in values {
         env_map.insert(key.clone(), Value::String(value.clone()));
@@ -1044,22 +1084,51 @@ fn claude_settings_json(values: &BTreeMap<String, String>) -> Result<String, Str
 
     let mut root = Map::new();
     root.insert("env".to_string(), Value::Object(env_map));
+    if let Some(api_key_helper_path) = api_key_helper_path {
+        root.insert(
+            "apiKeyHelper".to_string(),
+            Value::String(api_key_helper_path.display().to_string()),
+        );
+    }
     serde_json::to_string_pretty(&Value::Object(root)).map_err(to_string)
 }
 
 fn claude_settings_temp_path() -> Result<PathBuf, String> {
+    claude_temp_path("claude-settings", "json")
+}
+
+fn claude_temp_path(kind: &str, extension: &str) -> Result<PathBuf, String> {
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(to_string)?
         .as_nanos();
     Ok(env::temp_dir().join(format!(
-        "geond-agent-claude-settings-{}-{timestamp}.json",
-        std::process::id()
+        "geond-agent-{kind}-{}-{timestamp}.{extension}",
+        std::process::id(),
     )))
 }
 
-fn cleanup_temp_file(path: Option<PathBuf>) {
-    if let Some(path) = path {
+#[cfg(unix)]
+fn set_private_file_mode(path: &Path, mode: u32) -> Result<(), String> {
+    use std::os::unix::fs::PermissionsExt;
+
+    let mut permissions = fs::metadata(path).map_err(to_string)?.permissions();
+    permissions.set_mode(mode);
+    fs::set_permissions(path, permissions).map_err(to_string)
+}
+
+#[cfg(not(unix))]
+fn set_private_file_mode(_path: &Path, _mode: u32) -> Result<(), String> {
+    Ok(())
+}
+
+fn shell_quote_path(path: &Path) -> String {
+    let value = path.display().to_string();
+    format!("'{}'", value.replace('\'', "'\\''"))
+}
+
+fn cleanup_temp_files(paths: Vec<PathBuf>) {
+    for path in paths {
         let _ = fs::remove_file(path);
     }
 }
@@ -3944,13 +4013,13 @@ mod tests {
         ]);
 
         let settings_env = claude_settings_env(&values);
-        let settings_json = claude_settings_json(&settings_env).expect("settings json");
+        let api_key = claude_api_key(&values);
+        let api_key_helper_path = PathBuf::from("/tmp/geond-agent-zai-helper-test.sh");
+        let settings_json =
+            claude_settings_json(&settings_env, Some(&api_key_helper_path)).expect("settings json");
         let process_env: BTreeMap<String, String> = claude_process_env(&values).collect();
 
-        assert_eq!(
-            settings_env.get("ANTHROPIC_AUTH_TOKEN").map(String::as_str),
-            Some("local-zai-key")
-        );
+        assert_eq!(api_key.as_deref(), Some("local-zai-key"));
         assert_eq!(
             settings_env.get("ANTHROPIC_BASE_URL").map(String::as_str),
             Some(ZAI_ANTHROPIC_BASE_URL)
@@ -3962,9 +4031,56 @@ mod tests {
             Some("1000000")
         );
         assert!(!settings_env.contains_key("ZAI_API_KEY"));
+        assert!(!settings_env.contains_key("ANTHROPIC_AUTH_TOKEN"));
+        assert!(!settings_env.contains_key("ANTHROPIC_API_KEY"));
         assert!(!process_env.contains_key("ZAI_API_KEY"));
+        assert!(!process_env.contains_key("ANTHROPIC_AUTH_TOKEN"));
+        assert!(!process_env.contains_key("ANTHROPIC_API_KEY"));
         assert!(!settings_json.contains("ZAI_API_KEY"));
-        assert!(settings_json.contains("ANTHROPIC_AUTH_TOKEN"));
+        assert!(!settings_json.contains("ANTHROPIC_AUTH_TOKEN"));
+        assert!(!settings_json.contains("ANTHROPIC_API_KEY"));
+        assert!(!settings_json.contains("local-zai-key"));
+        assert!(settings_json.contains("apiKeyHelper"));
+        assert!(settings_json.contains("geond-agent-zai-helper-test.sh"));
+    }
+
+    #[test]
+    fn writes_ephemeral_claude_api_key_helper_files() {
+        let values = BTreeMap::from([
+            ("ZAI_API_KEY".to_string(), "local-zai-key".to_string()),
+            (
+                "ANTHROPIC_DEFAULT_OPUS_MODEL".to_string(),
+                "glm-5.2".to_string(),
+            ),
+        ]);
+
+        let files = write_claude_settings_files(&values).expect("settings files");
+        let settings_path = files.settings_path.as_ref().expect("settings path");
+        let settings_json = fs::read_to_string(settings_path).expect("settings json");
+        let helper_path = files
+            .temp_paths
+            .iter()
+            .find(|path| path.to_string_lossy().contains("claude-api-key-helper"))
+            .expect("helper path");
+        let secret_path = files
+            .temp_paths
+            .iter()
+            .find(|path| path.to_string_lossy().contains("claude-api-key"))
+            .expect("secret path");
+        let helper_text = fs::read_to_string(helper_path).expect("helper text");
+        let secret_text = fs::read_to_string(secret_path).expect("secret text");
+
+        assert!(settings_json.contains("apiKeyHelper"));
+        assert!(settings_json.contains("ANTHROPIC_BASE_URL"));
+        assert!(!settings_json.contains("local-zai-key"));
+        assert!(!helper_text.contains("local-zai-key"));
+        assert_eq!(secret_text, "local-zai-key");
+
+        let temp_paths = files.temp_paths.clone();
+        cleanup_temp_files(files.temp_paths);
+        for path in temp_paths {
+            assert!(!path.exists());
+        }
     }
 
     #[test]
