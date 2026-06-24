@@ -48,8 +48,9 @@ preference that bridge/provider packages may pass to model prompts later.
 
 ## Event Replay Boundary
 
-The package exposes normalized workbench events and deterministic replay helpers
-for pre-UI evaluation skeletons:
+The package re-exports normalized workbench events from
+`@geond-agent/backend-adapter-sdk` and exposes deterministic replay helpers for
+pre-UI evaluation skeletons:
 
 ```ts
 import {
@@ -102,12 +103,14 @@ default route first; OpenCode remains a later horizontal-expansion route.
 
 ## Future Direction
 
-The UI workbench now exposes a neutral selection catalog boundary for backend
-picker and model picker surfaces. These controls must come from
-adapter/provider capability metadata, so the UI can show choices such as Claude
-Code adapter, ACP-compatible backend, external CLI/process backend, local model
-backend, Z.ai model profiles, and `auto` routing without storing provider
-secrets or account state.
+The UI workbench now renders a neutral selection catalog boundary for backend
+picker and model picker surfaces. Backend adapter metadata, capability helpers,
+selection snapshots, and normalized event types are sourced from
+`@geond-agent/backend-adapter-sdk` and re-exported here for compatibility. These
+controls must come from adapter/provider capability metadata, so the UI can show
+choices such as Claude Code adapter, ACP-compatible backend, external
+CLI/process backend, local model backend, Z.ai model profiles, and `auto`
+routing without storing provider secrets or account state.
 
 UI language, agent response language, backend selection, provider route, model
 profile, routing mode, permission mode, follow-up policy, composer Enter

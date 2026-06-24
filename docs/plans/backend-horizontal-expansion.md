@@ -25,6 +25,29 @@ Adapters should translate backend behavior into that surface.
 
 ## Adapter Expansion Strategy
 
+### Backend Adapter SDK
+
+`packages/backend-adapter-sdk` is the monorepo-local source of truth for
+adapter-facing contracts. It owns backend adapter metadata, capability status
+helpers, selection catalog helpers, and normalized workbench event types. This
+keeps concrete adapters from depending on `packages/ui-workbench` while still
+letting the UI render a stable contract.
+
+The SDK is not a protocol implementation and does not absorb
+`geond-agent-protocol`. It is the local workbench authoring contract that a
+Claude Code adapter, a future OpenCode/Cline adapter, a local-model adapter, or
+an IDE/plugin-mediated adapter can share before any optional protocol
+export/import step.
+
+Future adapter authoring path:
+
+1. export SDK-shaped `BackendAdapterMetadata`,
+2. report capability states without pretending unsupported features exist,
+3. emit SDK-shaped `WorkbenchEvent` streams,
+4. keep process IO, credentials, raw logs, and tool-private state inside the
+   adapter package or ignored local runtime,
+5. add protocol/export mapping only after the local event boundary is stable.
+
 ### ACP-Compatible Backend
 
 Use when a backend exposes ACP or a similar documented protocol.
@@ -110,12 +133,14 @@ worth keeping.
 Start with `packages/claude-code-bridge` because it gives the project a concrete
 adapter prototype and the deepest evidence for session/resume, event streams,
 permissions, model aliases, and usage metadata. Keep `apps/desktop` and
-`packages/ui-workbench` adapter-neutral while the first bridge is built.
+`packages/ui-workbench` adapter-neutral while the first bridge is built, and keep
+the bridge pointed at `packages/backend-adapter-sdk` for shared contracts.
 
-As soon as the first Claude Code slice can report useful backend metadata, add a
-small adapter capability model before adding the second adapter. That capability
-model should describe what the UI can expect instead of forcing all backends to
-pretend they support the same features.
+The first adapter capability model now lives in
+`packages/backend-adapter-sdk`. It describes what the UI can expect instead of
+forcing all backends to pretend they support the same features. New adapter
+examples should start from `examples/adapters/mock-backend/` before adding
+runtime code.
 
 OpenCode is the next horizontal-expansion route after Claude Code stabilizes.
 Do not start by spreading implementation effort across both routes.
@@ -147,3 +172,6 @@ Do not start by spreading implementation effort across both routes.
 - Which evaluation tasks best distinguish provider weakness from tool weakness?
 - Which metadata should be required before a backend/model picker choice is
   safe to show as available?
+- Which SDK contracts should eventually be published as a standalone package,
+  and whether any files should use a different license when external adapter
+  authorship becomes a real distribution goal?

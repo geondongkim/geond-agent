@@ -10,7 +10,7 @@ import type {
   WorkbenchSelectionSnapshot,
   WorkbenchToolCallStatus,
   WorkbenchSelectionCatalog
-} from "@geond-agent/ui-workbench";
+} from "@geond-agent/backend-adapter-sdk";
 import {
   createMissingProviderKeyWarning,
   createSelectionReadiness,
@@ -18,7 +18,7 @@ import {
   describeBackendAdapter,
   describeProviderRoute,
   resolveModelProfile
-} from "@geond-agent/ui-workbench";
+} from "@geond-agent/backend-adapter-sdk";
 
 import { createClaudeCodeSelectionCatalog } from "./catalog.js";
 

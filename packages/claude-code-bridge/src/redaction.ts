@@ -1,5 +1,5 @@
 import type { ClaudeCodeAcpBoundary, ExternalCliBoundary } from "./boundary.js";
-import type { WorkbenchEvent } from "@geond-agent/ui-workbench";
+import type { WorkbenchEvent } from "@geond-agent/backend-adapter-sdk";
 
 const REDACTED_ENV_VALUE = "[redacted]";
 const REDACTED_CONTENT_VALUE = "[redacted]";

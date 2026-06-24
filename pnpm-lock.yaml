@@ -79,22 +79,34 @@ importers:
         specifier: ^7.1.10
         version: 7.3.5(@types/node@24.13.2)(jiti@1.21.7)
 
+  examples/adapters/mock-backend:
+    dependencies:
+      '@geond-agent/backend-adapter-sdk':
+        specifier: workspace:*
+        version: link:../../../packages/backend-adapter-sdk
+
+  packages/backend-adapter-sdk: {}
+
   packages/claude-code-bridge:
     dependencies:
-      '@geond-agent/ui-workbench':
+      '@geond-agent/backend-adapter-sdk':
         specifier: workspace:*
-        version: link:../ui-workbench
+        version: link:../backend-adapter-sdk
       '@geond-agent/zai-provider':
         specifier: workspace:*
         version: link:../zai-provider
 
-  packages/ui-workbench: {}
+  packages/ui-workbench:
+    dependencies:
+      '@geond-agent/backend-adapter-sdk':
+        specifier: workspace:*
+        version: link:../backend-adapter-sdk
 
   packages/zai-provider:
     dependencies:
-      '@geond-agent/ui-workbench':
+      '@geond-agent/backend-adapter-sdk':
         specifier: workspace:*
-        version: link:../ui-workbench
+        version: link:../backend-adapter-sdk
 
 packages:
 

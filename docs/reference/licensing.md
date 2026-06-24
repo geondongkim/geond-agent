@@ -132,6 +132,19 @@ vendoring, or forking third-party UI/runtime source instead of consuming the
 published package/crate, that change must go back through the repository
 license-review rules above before merge.
 
+## Backend Adapter SDK and Examples
+
+`packages/backend-adapter-sdk` and `examples/adapters/mock-backend` are original
+repository code and currently inherit the repository MPL-2.0 license. The SDK is
+designed as a neutral adapter authoring contract inside this monorepo; it is not
+`geond-agent-protocol`, and it does not include third-party adapter source.
+
+Future distribution may choose to publish adapter SDK/types/examples under a
+separate license or package boundary if external adapter authorship becomes a
+primary ecosystem goal. Until such a decision is recorded, new SDK and example
+files should follow the repository MPL-2.0 license and must not copy Claude
+Code, Cline, OpenCode, Goose, or other third-party implementation code.
+
 ## Claude Code Boundary
 
 Claude Code should be treated as an external user-installed dependency. The

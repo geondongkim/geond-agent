@@ -1,12 +1,9 @@
 {
-  "name": "@geond-agent/zai-provider",
+  "name": "@geond-agent/mock-backend-adapter-example",
   "version": "0.0.0",
   "private": true,
-  "description": "Z.ai GLM Coding Plan provider helpers for geond-agent.",
+  "description": "Metadata-only mock backend adapter example for geond-agent.",
   "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  },
   "dependencies": {
     "@geond-agent/backend-adapter-sdk": "workspace:*"
   },

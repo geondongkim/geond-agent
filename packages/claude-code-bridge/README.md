@@ -22,6 +22,11 @@ Claude Code-specific. Future adapter packages may target other ACP-compatible
 backends, external CLI tools, IDE/plugin-mediated surfaces, or provider-routing
 flows.
 
+Backend adapter metadata, capabilities, selection snapshots, and normalized
+workbench event types are imported from `@geond-agent/backend-adapter-sdk`. This
+keeps the bridge pointed at the neutral adapter contract instead of depending on
+`@geond-agent/ui-workbench`.
+
 For the next implementation slices, Claude Code is the default route. That means
 new adapter/event/session work should pave the Claude Code path first while
 keeping the public workbench state adapter-neutral. OpenCode remains the next

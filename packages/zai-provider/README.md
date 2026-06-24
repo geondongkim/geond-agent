@@ -65,3 +65,7 @@ Route metadata includes both the Anthropic-compatible endpoint for Claude
 Code/Goose-style paths and the OpenAI-compatible coding endpoint for tools such
 as Cline/OpenCode. Choose the endpoint expected by the target tool before a paid
 evaluation run.
+
+Provider route and model profile metadata uses
+`@geond-agent/backend-adapter-sdk` selection shapes. This keeps provider/model
+routing separate from UI rendering and concrete backend execution.

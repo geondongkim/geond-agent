@@ -1,15 +1,11 @@
 {
-  "name": "@geond-agent/claude-code-bridge",
+  "name": "@geond-agent/backend-adapter-sdk",
   "version": "0.0.0",
   "private": true,
-  "description": "Claude Code ACP bridge experiments for geond-agent.",
+  "description": "Backend adapter contracts, capabilities, and normalized event types for geond-agent.",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
-  },
-  "dependencies": {
-    "@geond-agent/backend-adapter-sdk": "workspace:*",
-    "@geond-agent/zai-provider": "workspace:*"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",
