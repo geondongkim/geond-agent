@@ -148,8 +148,15 @@ backend metadata, capability status, execution policy ids, and artifact
 references can be described outside the Claude Code bridge before a real runner
 exists.
 
-OpenCode is the next horizontal-expansion route after Claude Code stabilizes.
-Do not start by spreading implementation effort across both routes.
+`packages/opencode-bridge` is the next metadata-only consumer. It records the
+OpenCode-specific questions that matter before a real runner exists: selected
+provider/model/mode metadata, host-mediated authentication, permission diff
+prompt correlation, and execution-policy mapping. It does not launch OpenCode
+or copy OpenCode source.
+
+OpenCode is still deferred as a full runtime path until the Claude Code live
+loop is stable. The metadata-only package is a contract pressure test, not a
+parallel implementation effort.
 
 ## Adapter Capability Matrix Draft
 

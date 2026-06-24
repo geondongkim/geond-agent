@@ -42,6 +42,18 @@ export type ProviderRouteKind =
   | "native-provider"
   | "local";
 
+export type ProviderRouteAuthKind =
+  | "api-key"
+  | "external-auth"
+  | "none"
+  | "unknown";
+export type ProviderRouteAuthState =
+  | "present"
+  | "missing"
+  | "external-required"
+  | "not-required"
+  | "unknown";
+
 export interface ProviderRouteMetadata {
   readonly id: string;
   readonly providerId: string;
@@ -50,6 +62,8 @@ export interface ProviderRouteMetadata {
   readonly endpoint?: string;
   readonly hasApiKey: boolean;
   readonly apiKeyState: "present" | "missing";
+  readonly authKind?: ProviderRouteAuthKind;
+  readonly authState?: ProviderRouteAuthState;
   readonly notes?: readonly string[];
 }
 
@@ -61,11 +75,35 @@ export type ModelProfileCapability =
   | "streaming"
   | "coding";
 
+export type ModelProfileRoutingMode =
+  | "chat"
+  | "agent"
+  | "plan"
+  | "build"
+  | "review";
+export type ModelProfileReasoningMode =
+  | "off"
+  | "low"
+  | "medium"
+  | "high"
+  | "auto"
+  | "provider-default";
+
+export interface ModelProfileVariantMetadata {
+  readonly id: string;
+  readonly label: string;
+  readonly mode?: ModelProfileRoutingMode;
+  readonly reasoningMode?: ModelProfileReasoningMode;
+  readonly notes?: readonly string[];
+}
+
 export interface ModelProfileMetadata {
   readonly id: string;
   readonly label: string;
   readonly providerRouteId: string;
   readonly aliases?: readonly string[];
+  readonly variants?: readonly ModelProfileVariantMetadata[];
+  readonly defaultVariantId?: string;
   readonly capabilities: readonly ModelProfileCapability[];
   readonly contextWindowTokens?: number;
   readonly availability: CapabilityStatus;
@@ -96,6 +134,9 @@ export interface WorkbenchSelectionSnapshot {
   readonly backendAdapterId: string;
   readonly providerRouteId?: string;
   readonly modelProfileId?: string;
+  readonly modelVariantId?: string;
+  readonly modeProfileId?: string;
+  readonly reasoningMode?: ModelProfileReasoningMode;
   readonly routingMode: RoutingMode;
   readonly backendAdapter?: BackendAdapterMetadata;
   readonly providerRoute?: ProviderRouteMetadata;
@@ -214,7 +255,57 @@ function createProviderRouteReadinessItem(
     };
   }
 
-  if (route.apiKeyState === "missing") {
+  if (route.authKind === "none" || route.authState === "not-required") {
+    return {
+      id: "provider-route",
+      label: route.label,
+      level: "ready",
+      reason: "This provider route does not require geond-agent to store a key."
+    };
+  }
+
+  if (route.authState === "external-required") {
+    return {
+      id: "provider-route",
+      label: route.label,
+      level: "attention",
+      reason: "Authentication is mediated by the external backend or host tool."
+    };
+  }
+
+  if (route.authState === "unknown") {
+    return {
+      id: "provider-route",
+      label: route.label,
+      level: "attention",
+      reason: "Provider authentication state has not been evaluated yet."
+    };
+  }
+
+  if (route.authKind === "external-auth") {
+    return {
+      id: "provider-route",
+      label: route.label,
+      level: route.authState === "present" ? "ready" : "attention",
+      reason: route.authState === "present"
+        ? "External backend or host-tool authentication is available."
+        : "Authentication is mediated by the external backend or host tool."
+    };
+  }
+
+  if (route.authKind === "unknown") {
+    return {
+      id: "provider-route",
+      label: route.label,
+      level: "attention",
+      reason: "Provider authentication method has not been evaluated yet."
+    };
+  }
+
+  if (
+    (route.authKind === undefined || route.authKind === "api-key") &&
+    route.apiKeyState === "missing"
+  ) {
     return {
       id: "provider-route",
       label: route.label,

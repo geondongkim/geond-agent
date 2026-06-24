@@ -179,6 +179,11 @@ normalized event contract. Concrete adapters such as
 `packages/claude-code-bridge` import SDK types and helpers; UI packages re-export
 them only for compatibility and rendering convenience.
 
+Metadata-only adapter packages can consume the same SDK before a real runner is
+implemented. `packages/codex-cli-bridge` and `packages/opencode-bridge` are
+research boundaries that describe candidate capability, execution-policy, and
+fixture-event shapes without launching those tools or copying upstream source.
+
 Execution policy is also adapter-neutral metadata. The SDK exposes shared
 policy ids such as `plan`, `ask-first`, `accept-edits`, and `bypass`; concrete
 bridges map those ids to tool-specific permission flags. Claude Code maps them
@@ -233,7 +238,10 @@ Concepts:
   routing metadata. Examples include a Z.ai Anthropic-compatible route, a local
   OpenAI-compatible route, or a future provider registry entry.
 - Model profile: names a concrete model or alias such as `glm-4.7`, `glm-5.2`,
-  `auto`, or another provider-specific profile.
+  `auto`, a host-selected model placeholder, or another provider-specific
+  profile. Optional model variants can describe mode/reasoning choices such as
+  agent, plan, or review mode without making the backend own the provider
+  catalog.
 - Routing mode: records whether the user selected a model manually or whether
   the workbench selected one automatically.
 - Per-session selection snapshot: captures the selected backend adapter,
