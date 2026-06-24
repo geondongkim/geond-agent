@@ -13,6 +13,7 @@ import {
   createLiveDogfoodRunbook,
   formatLiveDogfoodRunbookForReport
 } from "./live-dogfood-runbook.js";
+import type { RawVisualCaptureArtifactReference } from "./raw-visual-capture-export.js";
 import { groupRecentContextByWorkspace, type RecentContextItem } from "./recent-context.js";
 import type { ProjectedActiveSession, ProjectedSessionListItem } from "./workbench-types.js";
 
@@ -217,13 +218,16 @@ export function createEvidenceBundleDraft({
 
 export function createEvidenceReportDraft({
   activeSession,
-  inspectorData
+  inspectorData,
+  rawVisualCaptureReferences = []
 }: {
   readonly activeSession?: ProjectedActiveSession;
   readonly inspectorData?: InspectorSessionReadModel;
+  readonly rawVisualCaptureReferences?: readonly RawVisualCaptureArtifactReference[];
 }): string {
   const sessionTitle = safeText(activeSession?.title ?? inspectorData?.sessionId ?? "current session");
   const bundle = createEvidenceBundleDraft({ activeSession, inspectorData });
+  const activeSessionId = activeSession?.id ?? inspectorData?.sessionId;
 
   return [
     `Workbench dogfood report for ${sessionTitle}`,
@@ -239,6 +243,11 @@ export function createEvidenceReportDraft({
     "",
     bundle,
     "",
+    "Raw visual artifact references",
+    ...formatRawVisualArtifactReferencesForReport(
+      filterRawVisualArtifactReferences(rawVisualCaptureReferences, activeSessionId ? [activeSessionId] : [])
+    ),
+    "",
     "Next action",
     "- Decide whether to file an issue, queue a follow-up prompt, or export this report for local debugging."
   ].join("\n");
@@ -247,10 +256,12 @@ export function createEvidenceReportDraft({
 export function createWorkspaceEvidenceReportDraft({
   activeSession,
   inspectorData,
+  rawVisualCaptureReferences = [],
   sessions
 }: {
   readonly activeSession?: ProjectedActiveSession;
   readonly inspectorData?: InspectorSessionReadModel;
+  readonly rawVisualCaptureReferences?: readonly RawVisualCaptureArtifactReference[];
   readonly sessions: readonly ProjectedSessionListItem[];
 }): string {
   const activeSessionId = activeSession?.id ?? inspectorData?.sessionId;
@@ -286,6 +297,9 @@ export function createWorkspaceEvidenceReportDraft({
     "Active session evidence",
     activeBundle,
     "",
+    "Raw visual artifact references",
+    ...formatRawVisualArtifactReferencesForReport(rawVisualCaptureReferences),
+    "",
     "Dogfood review prompts",
     "- Which sessions need retry, resume, or a route switch?",
     "- Which sessions produced enough evidence for a follow-up issue/report?",
@@ -296,10 +310,12 @@ export function createWorkspaceEvidenceReportDraft({
 export function createMultiSessionIssueReportDraft({
   activeSession,
   inspectorData,
+  rawVisualCaptureReferences = [],
   sessions
 }: {
   readonly activeSession?: ProjectedActiveSession;
   readonly inspectorData?: InspectorSessionReadModel;
+  readonly rawVisualCaptureReferences?: readonly RawVisualCaptureArtifactReference[];
   readonly sessions: readonly ProjectedSessionListItem[];
 }): string {
   const activeSessionId = activeSession?.id ?? inspectorData?.sessionId;
@@ -323,6 +339,7 @@ export function createMultiSessionIssueReportDraft({
     projectedSessions: sessions,
     selectedSessions: sessions
   });
+  const sessionIds = sessions.map((session) => session.id);
 
   return [
     "Workbench multi-session issue report (metadata only).",
@@ -352,6 +369,11 @@ export function createMultiSessionIssueReportDraft({
     "Active session evidence",
     activeBundle,
     "",
+    "Raw visual artifact references",
+    ...formatRawVisualArtifactReferencesForReport(
+      filterRawVisualArtifactReferences(rawVisualCaptureReferences, sessionIds)
+    ),
+    "",
     "Trace/export checklist",
     "- Export the multi-session trace bundle for session index and route metadata.",
     "- Export per-session structured traces for sessions that need deeper replay evidence.",
@@ -367,11 +389,13 @@ export function createMultiSessionIssueReportDraft({
 export function createEvidenceExportManifestDraft({
   activeSession,
   inspectorData,
+  rawVisualCaptureReferences = [],
   recentContextItems = [],
   sessions
 }: {
   readonly activeSession?: ProjectedActiveSession;
   readonly inspectorData?: InspectorSessionReadModel;
+  readonly rawVisualCaptureReferences?: readonly RawVisualCaptureArtifactReference[];
   readonly recentContextItems?: readonly RecentContextItem[];
   readonly sessions: readonly ProjectedSessionListItem[];
 }): string {
@@ -450,6 +474,9 @@ export function createEvidenceExportManifestDraft({
     "",
     "Capture consent and redaction readiness",
     ...formatEvidenceCaptureReadinessForManifest(captureReadiness),
+    "",
+    "Raw visual artifact references",
+    ...formatRawVisualArtifactReferencesForReport(rawVisualCaptureReferences),
     "",
     "Export-ready documents",
     "- active session evidence bundle: ready",
@@ -636,6 +663,40 @@ function formatRunAttemptBundleItems(
       .filter((part): part is string => Boolean(part))
       .join(" | ")
   );
+}
+
+function filterRawVisualArtifactReferences(
+  references: readonly RawVisualCaptureArtifactReference[],
+  sessionIds: readonly string[]
+): readonly RawVisualCaptureArtifactReference[] {
+  if (!sessionIds.length) {
+    return references;
+  }
+
+  const sessionIdSet = new Set(sessionIds);
+  return references.filter((reference) => sessionIdSet.has(reference.sessionId));
+}
+
+function formatRawVisualArtifactReferencesForReport(
+  references: readonly RawVisualCaptureArtifactReference[]
+): readonly string[] {
+  if (!references.length) {
+    return ["- none"];
+  }
+
+  return [
+    "- Raw PNG payloads are not stored in workbench state, events, reports, manifests, or traces.",
+    ...references.map((reference) =>
+      [
+        `- ${safeText(reference.fileName)}`,
+        `session=${safeText(reference.sessionId)}`,
+        `path=${safeText(reference.path)}`,
+        `captured=${safeText(reference.capturedAt)}`,
+        `payloadPersistedInWorkbench=${reference.payloadPersistedInWorkbench ? "yes" : "no"}`,
+        `storage=${safeText(reference.storagePolicy)}`
+      ].join(" | ")
+    )
+  ];
 }
 
 function formatSessionIndexReportItems(

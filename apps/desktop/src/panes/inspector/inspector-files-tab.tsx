@@ -71,6 +71,7 @@ import {
   createRawVisualCaptureFileName,
   createRawVisualCaptureReadiness,
   exportRawVisualCapturePng,
+  type RawVisualCaptureArtifactReference,
   type RawVisualCaptureExportResult
 } from "../../lib/raw-visual-capture-export.js";
 import {
@@ -119,6 +120,9 @@ export function InspectorFilesTab({
   ) => void;
 }) {
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | undefined>();
+  const [rawVisualCaptureReferences, setRawVisualCaptureReferences] = useState<
+    readonly RawVisualCaptureArtifactReference[]
+  >([]);
   const visualReview = evidenceExportPreferences.visualReview;
   const model = createFileEvidencePreviewModel({ activeSession, inspectorData });
   const hasEvidence = model.contextCount > 0 || model.changedFileCount > 0;
@@ -200,7 +204,11 @@ export function InspectorFilesTab({
     }
 
     enqueueSideChatDraft(
-      createEvidenceReportDraft({ activeSession, inspectorData }),
+      createEvidenceReportDraft({
+        activeSession,
+        inspectorData,
+        rawVisualCaptureReferences
+      }),
       i18n.t("workbench.files.issueReport")
     );
   }
@@ -212,7 +220,11 @@ export function InspectorFilesTab({
 
     const result = await exportMarkdownFile({
       fileName: createEvidenceReportFileName({ activeSession }),
-      text: createEvidenceReportDraft({ activeSession, inspectorData }),
+      text: createEvidenceReportDraft({
+        activeSession,
+        inspectorData,
+        rawVisualCaptureReferences
+      }),
       title: i18n.t("workbench.files.exportIssueReport")
     });
     setRunnerStatus(
@@ -229,6 +241,7 @@ export function InspectorFilesTab({
       createWorkspaceEvidenceReportDraft({
         activeSession,
         inspectorData,
+        rawVisualCaptureReferences,
         sessions: projectedSessions
       }),
       i18n.t("workbench.files.workspaceReport")
@@ -240,6 +253,7 @@ export function InspectorFilesTab({
       createMultiSessionIssueReportDraft({
         activeSession,
         inspectorData,
+        rawVisualCaptureReferences,
         sessions: selectedExportSessions
       }),
       i18n.t("workbench.files.multiSessionIssueReport")
@@ -252,6 +266,7 @@ export function InspectorFilesTab({
       text: createMultiSessionIssueReportDraft({
         activeSession,
         inspectorData,
+        rawVisualCaptureReferences,
         sessions: selectedExportSessions
       }),
       title: i18n.t("workbench.files.exportMultiSessionIssueReport")
@@ -271,6 +286,7 @@ export function InspectorFilesTab({
         activeSession,
         inspectorData,
         recentContextItems,
+        rawVisualCaptureReferences,
         sessions: projectedSessions
       }),
       i18n.t("workbench.files.exportManifest")
@@ -314,6 +330,7 @@ export function InspectorFilesTab({
         activeSession,
         inspectorData,
         recentContextItems,
+        rawVisualCaptureReferences,
         sessions: projectedSessions
       }),
       title: i18n.t("workbench.files.exportManifest")
@@ -333,6 +350,7 @@ export function InspectorFilesTab({
       text: createWorkspaceEvidenceReportDraft({
         activeSession,
         inspectorData,
+        rawVisualCaptureReferences,
         sessions: projectedSessions
       }),
       title: i18n.t("workbench.files.exportWorkspaceReport")
@@ -425,6 +443,12 @@ export function InspectorFilesTab({
       title: i18n.t("workbench.files.exportRawVisualCapturePng"),
       visualReview
     });
+    const artifactRef = result.artifactRef;
+    if (artifactRef) {
+      setRawVisualCaptureReferences((previous) =>
+        upsertRawVisualCaptureReference(previous, artifactRef)
+      );
+    }
     setRunnerStatus(formatRawVisualCaptureExportStatus(i18n, result));
   }
 
@@ -1261,18 +1285,86 @@ function formatRawVisualCaptureExportStatus(
   i18n: UiI18n,
   result: RawVisualCaptureExportResult
 ): string {
-  switch (result) {
+  const detail = result.failureKind
+    ? `${formatRawVisualCaptureFailureKind(i18n, result.failureKind)}${
+        result.detail ? `: ${result.detail}` : ""
+      }`
+    : undefined;
+  const artifact = result.artifactRef
+    ? `${i18n.t("workbench.files.rawVisualCapturePathReference")}: ${
+        result.artifactRef.fileName
+      }`
+    : undefined;
+  const suffix = [detail, artifact].filter(Boolean).join(" ");
+
+  switch (result.status) {
     case "saved":
-      return i18n.t("workbench.files.rawVisualCaptureSaved");
+      return [i18n.t("workbench.files.rawVisualCaptureSaved"), suffix]
+        .filter(Boolean)
+        .join(" ");
     case "cancelled":
-      return i18n.t("workbench.files.rawVisualCaptureCancelled");
+      return [i18n.t("workbench.files.rawVisualCaptureCancelled"), suffix]
+        .filter(Boolean)
+        .join(" ");
     case "blocked":
-      return i18n.t("workbench.files.rawVisualCaptureBlocked");
+      return [i18n.t("workbench.files.rawVisualCaptureBlocked"), suffix]
+        .filter(Boolean)
+        .join(" ");
     case "unsupported":
-      return i18n.t("workbench.files.rawVisualCaptureUnsupported");
+      return [i18n.t("workbench.files.rawVisualCaptureUnsupported"), suffix]
+        .filter(Boolean)
+        .join(" ");
     case "failed":
-      return i18n.t("workbench.files.rawVisualCaptureFailed");
+      return [i18n.t("workbench.files.rawVisualCaptureFailed"), suffix]
+        .filter(Boolean)
+        .join(" ");
   }
+}
+
+function formatRawVisualCaptureFailureKind(
+  i18n: UiI18n,
+  failureKind: NonNullable<RawVisualCaptureExportResult["failureKind"]>
+): string {
+  switch (failureKind) {
+    case "missing-session":
+      return i18n.t("workbench.files.rawVisualCaptureReasonMissingSession");
+    case "native-runtime-required":
+      return i18n.t("workbench.files.rawVisualCaptureReasonNativeRuntime");
+    case "save-dialog-cancelled":
+      return i18n.t("workbench.files.rawVisualCaptureReasonSaveCancelled");
+    case "save-dialog-failed":
+      return i18n.t("workbench.files.rawVisualCaptureReasonSaveFailed");
+    case "review-gate-blocked":
+      return i18n.t("workbench.files.rawVisualCaptureReasonReviewGate");
+    case "display-capture-unavailable":
+      return i18n.t("workbench.files.rawVisualCaptureReasonDisplayUnavailable");
+    case "os-picker-denied-or-cancelled":
+      return i18n.t("workbench.files.rawVisualCaptureReasonPickerDenied");
+    case "display-frame-timeout":
+      return i18n.t("workbench.files.rawVisualCaptureReasonFrameTimeout");
+    case "canvas-unavailable":
+      return i18n.t("workbench.files.rawVisualCaptureReasonCanvas");
+    case "png-encoding-failed":
+      return i18n.t("workbench.files.rawVisualCaptureReasonPngEncoding");
+    case "native-write-failed":
+      return i18n.t("workbench.files.rawVisualCaptureReasonNativeWrite");
+    case "unknown":
+      return i18n.t("workbench.files.rawVisualCaptureReasonUnknown");
+  }
+}
+
+function upsertRawVisualCaptureReference(
+  previous: readonly RawVisualCaptureArtifactReference[],
+  next: RawVisualCaptureArtifactReference
+): readonly RawVisualCaptureArtifactReference[] {
+  return [
+    next,
+    ...previous.filter(
+      (reference) =>
+        reference.id !== next.id &&
+        !(reference.sessionId === next.sessionId && reference.path === next.path)
+    )
+  ].slice(0, 20);
 }
 
 function EvidenceExportSection({

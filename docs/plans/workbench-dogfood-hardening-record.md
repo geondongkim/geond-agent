@@ -179,17 +179,18 @@ Follow-up implemented from the route refresh result:
   visual capture policy artifact. The trace bundle groups session index,
   attention counts, route metadata, and active-session trace metadata without
   raw logs. The visual policy records the explicit consent/redaction
-  requirements that must be satisfied before any future raw visual artifact is
+  requirements that must be satisfied before any raw visual artifact is
   captured.
 - A multi-session issue report can be queued as a side-chat draft or exported as
   markdown when several sessions need one local review bundle.
 - Multi-session report and trace exports now use a visible session export scope
   checklist. The default includes all projected sessions, and the user can
   switch to attention sessions or toggle individual sessions before exporting.
-- Raw visual capture remains disabled, but the Files inspector now has a
-  visual capture review checklist for explicit consent, redaction review,
-  user-selected storage path readiness, and visible-content review. The checked
-  state is recorded in the visual capture policy artifact.
+- Raw visual capture is available only through the native desktop export path.
+  The Files inspector keeps a visual capture review checklist for explicit
+  consent, redaction review, user-selected storage path readiness, and
+  visible-content review. The checked state is recorded in the visual capture
+  policy artifact.
 
 ## Product-Level Dogfood Workflow: 2026-06-24
 
@@ -245,6 +246,36 @@ Follow-up implemented from the route refresh result:
 - Raw visual payloads are not persisted into SQLite, normalized workbench
   events, reports, manifests, structured traces, or tracked docs.
 
+## Raw Visual Capture Dogfood Polish: 2026-06-24
+
+- Raw visual PNG export now returns a structured status with a specific failure
+  kind instead of a generic failure string. The current failure kinds separate
+  missing active session, missing native runtime, save dialog cancellation,
+  save dialog failure, review-gate block, display capture unavailability, OS
+  picker denial/cancellation, frame timeout, canvas failure, PNG encoding
+  failure, native write failure, and unknown failures.
+- The Files inspector surfaces that failure kind in the runner status so macOS
+  permission or OS picker behavior is visible to the operator without exposing
+  raw screenshots.
+- Successful raw visual capture records only an ephemeral path reference in the
+  current UI session: session id, file name, user-selected path, capture time,
+  and the fact that the payload was not persisted in the workbench. It does not
+  write bitmap/base64 data into React state, SQLite, normalized events, reports,
+  manifests, structured traces, or tracked docs.
+- Workspace reports, active-session reports, multi-session issue reports, and
+  export manifests can include those path-only references. Multi-session
+  reports filter the references to the selected session ids.
+- Packaged Tauri dogfood should verify the following without committing the
+  captured image: the save dialog appears first, the OS display picker appears
+  second, macOS screen recording permission failure is reported as a picker or
+  display-capture failure kind, successful capture writes a PNG only to the
+  chosen path, and exported reports contain only the path reference.
+- Packaging check: `pnpm --filter @geond-agent/desktop tauri:build` completed
+  successfully and produced the release binary at
+  `apps/desktop/src-tauri/target/release/geond-agent-desktop`. This confirms
+  the native command and frontend can be packaged; it does not replace the
+  manual macOS screen-recording permission/picker dogfood step.
+
 ## Live Claude Runbook Gate Dogfood: 2026-06-24
 
 Raw run output is local-only under
@@ -280,7 +311,8 @@ tracked. This tracked record keeps only safe operational findings.
 ## Remaining TODO
 
 - Dogfood raw visual PNG capture in the packaged Tauri app on macOS and record
-  the OS permission behavior without committing captured images.
+  the actual OS permission/picker behavior now that failure kinds and path-only
+  report references are implemented.
 - Run more live Claude dogfood sessions with successful route switch, retry,
   cancel, and resume paths so the runbook statuses can be tuned against real
   operator behavior.
