@@ -9,7 +9,7 @@ use std::{
     process::{Child, Command, Stdio},
     sync::{Arc, Mutex, OnceLock},
     thread,
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -27,15 +27,32 @@ const CLAUDE_DEFAULT_TIMEOUT_MS: u64 = 10 * 60 * 1000;
 const CLAUDE_MAX_TIMEOUT_MS: u64 = 60 * 60 * 1000;
 const PROCESS_OUTPUT_CAP_BYTES: usize = 1024 * 1024;
 const TEXT_EXPORT_CAP_BYTES: usize = 2 * 1024 * 1024;
+const CAPTURE_ARTIFACT_CAP_BYTES: usize = 1024 * 1024;
 const PROCESS_OUTPUT_TRUNCATED_MARKER: &str = "\n... [truncated]\n";
 const EVENT_STORE_SCHEMA_VERSION: i64 = 7;
+const ZAI_ANTHROPIC_BASE_URL: &str = "https://api.z.ai/api/anthropic";
 const CLAUDE_ENV_KEYS: &[&str] = &[
     "ANTHROPIC_API_KEY",
+    "ANTHROPIC_AUTH_TOKEN",
     "ANTHROPIC_BASE_URL",
     "ANTHROPIC_DEFAULT_HAIKU_MODEL",
     "ANTHROPIC_DEFAULT_SONNET_MODEL",
     "ANTHROPIC_DEFAULT_OPUS_MODEL",
+    "API_TIMEOUT_MS",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC",
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW",
     "ZAI_API_KEY",
+];
+const CLAUDE_PROCESS_ENV_KEYS: &[&str] = &[
+    "ANTHROPIC_API_KEY",
+    "ANTHROPIC_AUTH_TOKEN",
+    "ANTHROPIC_BASE_URL",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL",
+    "API_TIMEOUT_MS",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC",
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW",
 ];
 const MATERIALIZED_EVENT_TABLES: &[&str] = &[
     "workbench_context_attachments",
@@ -248,6 +265,11 @@ pub struct WorkbenchRunAttemptRecord {
 
 type ProcessHandle = Arc<Mutex<Child>>;
 
+struct BuiltClaudeCommand {
+    command: Command,
+    settings_path: Option<PathBuf>,
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -269,6 +291,7 @@ pub fn run() {
             delete_workbench_session_events,
             list_workspaces,
             write_text_file,
+            write_evidence_capture_artifact,
             probe_claude_code_executable,
             run_claude_code_stream_json,
             cancel_claude_code_stream
@@ -529,6 +552,26 @@ fn write_text_file(path: String, contents: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn write_evidence_capture_artifact(
+    path: String,
+    kind: String,
+    contents: String,
+) -> Result<(), String> {
+    let path = path.trim();
+    if path.is_empty() {
+        return Err("Evidence capture artifact path is required.".to_string());
+    }
+    ensure_evidence_capture_kind(&kind)?;
+    if contents.len() > CAPTURE_ARTIFACT_CAP_BYTES {
+        return Err(format!(
+            "Evidence capture artifact exceeds the {CAPTURE_ARTIFACT_CAP_BYTES} byte metadata cap."
+        ));
+    }
+
+    write_text_export_file(PathBuf::from(path), &contents)
+}
+
+#[tauri::command]
 fn probe_claude_code_executable(
     request: Option<ClaudeCodeProbeRequest>,
 ) -> Result<ClaudeCodeProbeResponse, String> {
@@ -571,13 +614,18 @@ fn run_claude_code_stream_json(
 ) -> Result<ClaudeCodeCommandResponse, String> {
     let stream_channel_id = request.stream_channel_id.clone();
     let timeout_ms = normalize_timeout_ms(request.timeout_ms)?;
-    let mut command = build_claude_command(&request)?;
+    let BuiltClaudeCommand {
+        mut command,
+        settings_path,
+    } = build_claude_command(&request)?;
 
     if let Some(channel_id) = stream_channel_id {
-        return run_streaming_claude_command(app, command, channel_id, timeout_ms);
+        return run_streaming_claude_command(app, command, channel_id, timeout_ms, settings_path);
     }
 
-    let output = command.output().map_err(to_string)?;
+    let output = command.output().map_err(to_string);
+    cleanup_temp_file(settings_path);
+    let output = output?;
     Ok(ClaudeCodeCommandResponse {
         stdout: String::from_utf8_lossy(&output.stdout).to_string(),
         stderr: String::from_utf8_lossy(&output.stderr).to_string(),
@@ -604,22 +652,30 @@ fn cancel_claude_code_stream(channel_id: String) -> Result<bool, String> {
     Ok(true)
 }
 
-fn build_claude_command(request: &ClaudeCodeCommandRequest) -> Result<Command, String> {
+fn build_claude_command(request: &ClaudeCodeCommandRequest) -> Result<BuiltClaudeCommand, String> {
     normalize_claude_executable(&request.executable)?;
     ensure_stream_json_args(&request.args)?;
 
+    let cwd = request.cwd.as_deref().map(PathBuf::from);
+    let local_env = allowed_local_env(cwd.as_deref())?;
+    let settings_path = write_claude_settings_file(&local_env)?;
     let mut command = Command::new(&request.executable);
+    if let Some(settings_path) = &settings_path {
+        command.arg("--settings").arg(settings_path);
+    }
     command.args(&request.args);
 
-    let cwd = request.cwd.as_deref().map(PathBuf::from);
     if let Some(cwd) = &cwd {
         command.current_dir(cwd);
     }
-    for (key, value) in allowed_local_env(cwd.as_deref())? {
+    for (key, value) in claude_process_env(&local_env) {
         command.env(key, value);
     }
 
-    Ok(command)
+    Ok(BuiltClaudeCommand {
+        command,
+        settings_path,
+    })
 }
 
 fn normalize_claude_executable(value: &str) -> Result<String, String> {
@@ -643,18 +699,31 @@ fn run_streaming_claude_command(
     mut command: Command,
     channel_id: String,
     timeout_ms: u64,
+    settings_path: Option<PathBuf>,
 ) -> Result<ClaudeCodeCommandResponse, String> {
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
 
-    let mut child = command.spawn().map_err(to_string)?;
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| "Unable to capture Claude Code stdout.".to_string())?;
-    let stderr = child
-        .stderr
-        .take()
-        .ok_or_else(|| "Unable to capture Claude Code stderr.".to_string())?;
+    let mut child = match command.spawn() {
+        Ok(child) => child,
+        Err(error) => {
+            cleanup_temp_file(settings_path);
+            return Err(error.to_string());
+        }
+    };
+    let stdout = match child.stdout.take() {
+        Some(stdout) => stdout,
+        None => {
+            cleanup_temp_file(settings_path);
+            return Err("Unable to capture Claude Code stdout.".to_string());
+        }
+    };
+    let stderr = match child.stderr.take() {
+        Some(stderr) => stderr,
+        None => {
+            cleanup_temp_file(settings_path);
+            return Err("Unable to capture Claude Code stderr.".to_string());
+        }
+    };
     let child_handle = register_process(&channel_id, child)?;
 
     let stdout_app = app.clone();
@@ -668,13 +737,33 @@ fn run_streaming_claude_command(
 
     let wait_result = wait_for_process(&child_handle, timeout_ms);
     remove_process(&channel_id)?;
-    let (exit_code, timed_out) = wait_result?;
-    let stdout = stdout_reader
+    let (exit_code, timed_out) = match wait_result {
+        Ok(value) => value,
+        Err(error) => {
+            cleanup_temp_file(settings_path);
+            return Err(error);
+        }
+    };
+    let stdout = match stdout_reader
         .join()
-        .map_err(|_| "Claude Code stdout reader panicked.".to_string())?;
-    let mut stderr = stderr_reader
+        .map_err(|_| "Claude Code stdout reader panicked.".to_string())
+    {
+        Ok(value) => value,
+        Err(error) => {
+            cleanup_temp_file(settings_path);
+            return Err(error);
+        }
+    };
+    let mut stderr = match stderr_reader
         .join()
-        .map_err(|_| "Claude Code stderr reader panicked.".to_string())?;
+        .map_err(|_| "Claude Code stderr reader panicked.".to_string())
+    {
+        Ok(value) => value,
+        Err(error) => {
+            cleanup_temp_file(settings_path);
+            return Err(error);
+        }
+    };
 
     if timed_out {
         stderr.text = append_status_line(
@@ -682,6 +771,7 @@ fn run_streaming_claude_command(
             &format!("Claude Code runner timed out after {timeout_ms}ms."),
         );
     }
+    cleanup_temp_file(settings_path);
 
     Ok(ClaudeCodeCommandResponse {
         stdout: stdout.text,
@@ -877,6 +967,100 @@ fn write_text_export_file(path: PathBuf, contents: &str) -> Result<(), String> {
     fs::write(path, contents).map_err(to_string)
 }
 
+fn ensure_evidence_capture_kind(kind: &str) -> Result<(), String> {
+    match kind {
+        "screenshot-manifest" | "structured-trace" => Ok(()),
+        _ => Err("Unsupported evidence capture artifact kind.".to_string()),
+    }
+}
+
+fn write_claude_settings_file(
+    local_env: &BTreeMap<String, String>,
+) -> Result<Option<PathBuf>, String> {
+    let settings_env = claude_settings_env(local_env);
+    if settings_env.is_empty() {
+        return Ok(None);
+    }
+
+    let path = claude_settings_temp_path()?;
+    let text = claude_settings_json(&settings_env)?;
+    fs::write(&path, text).map_err(to_string)?;
+    Ok(Some(path))
+}
+
+fn claude_settings_env(local_env: &BTreeMap<String, String>) -> BTreeMap<String, String> {
+    let mut values = BTreeMap::new();
+    let has_zai_key = local_env.contains_key("ZAI_API_KEY");
+    let has_zai_base_url = local_env
+        .get("ANTHROPIC_BASE_URL")
+        .is_some_and(|value| value.trim() == ZAI_ANTHROPIC_BASE_URL);
+    let use_zai_defaults =
+        has_zai_key || has_zai_base_url || local_env.contains_key("ANTHROPIC_AUTH_TOKEN");
+
+    for key in CLAUDE_PROCESS_ENV_KEYS {
+        if let Some(value) = local_env.get(*key) {
+            values.insert((*key).to_string(), value.clone());
+        }
+    }
+
+    if let Some(zai_key) = local_env.get("ZAI_API_KEY") {
+        values
+            .entry("ANTHROPIC_AUTH_TOKEN".to_string())
+            .or_insert_with(|| zai_key.clone());
+    }
+
+    if use_zai_defaults {
+        values
+            .entry("ANTHROPIC_BASE_URL".to_string())
+            .or_insert_with(|| ZAI_ANTHROPIC_BASE_URL.to_string());
+        values
+            .entry("API_TIMEOUT_MS".to_string())
+            .or_insert_with(|| "3000000".to_string());
+        values
+            .entry("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC".to_string())
+            .or_insert_with(|| "1".to_string());
+        values
+            .entry("CLAUDE_CODE_AUTO_COMPACT_WINDOW".to_string())
+            .or_insert_with(|| "1000000".to_string());
+    }
+
+    values
+}
+
+fn claude_process_env(
+    local_env: &BTreeMap<String, String>,
+) -> impl Iterator<Item = (String, String)> + '_ {
+    claude_settings_env(local_env).into_iter()
+}
+
+fn claude_settings_json(values: &BTreeMap<String, String>) -> Result<String, String> {
+    let mut env_map = Map::new();
+    for (key, value) in values {
+        env_map.insert(key.clone(), Value::String(value.clone()));
+    }
+
+    let mut root = Map::new();
+    root.insert("env".to_string(), Value::Object(env_map));
+    serde_json::to_string_pretty(&Value::Object(root)).map_err(to_string)
+}
+
+fn claude_settings_temp_path() -> Result<PathBuf, String> {
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(to_string)?
+        .as_nanos();
+    Ok(env::temp_dir().join(format!(
+        "geond-agent-claude-settings-{}-{timestamp}.json",
+        std::process::id()
+    )))
+}
+
+fn cleanup_temp_file(path: Option<PathBuf>) {
+    if let Some(path) = path {
+        let _ = fs::remove_file(path);
+    }
+}
+
 fn ensure_stream_json_args(args: &[String]) -> Result<(), String> {
     let has_bare = args.iter().any(|arg| arg == "--bare");
     let has_print = args.iter().any(|arg| arg == "-p" || arg == "--print");
@@ -987,7 +1171,7 @@ fn allowed_local_env(cwd: Option<&Path>) -> Result<BTreeMap<String, String>, Str
 
     if let Some(zai_key) = values.get("ZAI_API_KEY").cloned() {
         values
-            .entry("ANTHROPIC_API_KEY".to_string())
+            .entry("ANTHROPIC_AUTH_TOKEN".to_string())
             .or_insert(zai_key);
     }
 
@@ -2997,6 +3181,40 @@ mod tests {
     }
 
     #[test]
+    fn writes_metadata_only_capture_artifacts() {
+        let root = env::temp_dir().join(format!(
+            "geond-agent-capture-artifact-test-{}",
+            std::process::id()
+        ));
+        let path = root.join("structured-trace.json");
+
+        write_evidence_capture_artifact(
+            path.to_string_lossy().to_string(),
+            "structured-trace".to_string(),
+            "{\"metadataOnly\":true}".to_string(),
+        )
+        .expect("write structured trace artifact");
+
+        assert_eq!(
+            fs::read_to_string(&path).expect("read structured trace artifact"),
+            "{\"metadataOnly\":true}"
+        );
+        assert!(write_evidence_capture_artifact(
+            root.join("bad.json").to_string_lossy().to_string(),
+            "raw-screenshot".to_string(),
+            "{}".to_string()
+        )
+        .is_err());
+        assert!(write_evidence_capture_artifact(
+            root.join("huge.json").to_string_lossy().to_string(),
+            "structured-trace".to_string(),
+            "x".repeat(CAPTURE_ARTIFACT_CAP_BYTES + 1)
+        )
+        .is_err());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn deletes_events_for_one_session_only() {
         let mut connection = Connection::open_in_memory().expect("open in-memory sqlite");
         create_event_store_schema(&mut connection).expect("create event store schema");
@@ -3686,9 +3904,10 @@ mod tests {
             Some("local-zai-key")
         );
         assert_eq!(
-            values.get("ANTHROPIC_API_KEY").map(String::as_str),
+            values.get("ANTHROPIC_AUTH_TOKEN").map(String::as_str),
             Some("local-zai-key")
         );
+        assert!(!values.contains_key("ANTHROPIC_API_KEY"));
         assert_eq!(
             values
                 .get("ANTHROPIC_DEFAULT_SONNET_MODEL")
@@ -3697,6 +3916,40 @@ mod tests {
         );
         assert!(!values.contains_key("IGNORED_ENV"));
         assert!(!values.contains_key("ANTHROPIC_DEFAULT_OPUS_MODEL"));
+    }
+
+    #[test]
+    fn creates_claude_settings_without_zai_key_name() {
+        let values = BTreeMap::from([
+            ("ZAI_API_KEY".to_string(), "local-zai-key".to_string()),
+            (
+                "ANTHROPIC_DEFAULT_SONNET_MODEL".to_string(),
+                "glm-5.2".to_string(),
+            ),
+        ]);
+
+        let settings_env = claude_settings_env(&values);
+        let settings_json = claude_settings_json(&settings_env).expect("settings json");
+        let process_env: BTreeMap<String, String> = claude_process_env(&values).collect();
+
+        assert_eq!(
+            settings_env.get("ANTHROPIC_AUTH_TOKEN").map(String::as_str),
+            Some("local-zai-key")
+        );
+        assert_eq!(
+            settings_env.get("ANTHROPIC_BASE_URL").map(String::as_str),
+            Some(ZAI_ANTHROPIC_BASE_URL)
+        );
+        assert_eq!(
+            settings_env
+                .get("CLAUDE_CODE_AUTO_COMPACT_WINDOW")
+                .map(String::as_str),
+            Some("1000000")
+        );
+        assert!(!settings_env.contains_key("ZAI_API_KEY"));
+        assert!(!process_env.contains_key("ZAI_API_KEY"));
+        assert!(!settings_json.contains("ZAI_API_KEY"));
+        assert!(settings_json.contains("ANTHROPIC_AUTH_TOKEN"));
     }
 
     #[test]

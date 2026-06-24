@@ -29,6 +29,8 @@ describe("desktop workbench catalog", () => {
 
     expect(serialized).toContain('"hasApiKey":true');
     expect(serialized).toContain('"apiKeyState":"present"');
-    expect(serialized).not.toMatch(/ZAI_API_KEY|ANTHROPIC_API_KEY|sk-[A-Za-z0-9_-]{20,}/);
+    expect(serialized).not.toMatch(
+      /ZAI_API_KEY|ANTHROPIC_API_KEY|ANTHROPIC_AUTH_TOKEN|sk-[A-Za-z0-9_-]{20,}/
+    );
   });
 });

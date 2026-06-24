@@ -25,6 +25,7 @@ void _redactedValueContract;
 export const SECRET_ENV_NAME_FIXTURES = [
   "API_KEY",
   "ANTHROPIC_API_KEY",
+  "ANTHROPIC_AUTH_TOKEN",
   "ZAI_API_KEY",
   "OPENAI_API_KEY",
   "CLAUDE_CODE_API_KEY",

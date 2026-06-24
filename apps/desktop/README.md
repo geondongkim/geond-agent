@@ -53,9 +53,12 @@ The desktop shell is Tauri v2 with a React + Vite renderer. Native commands own:
 
 The Claude Code process runner may read a local `.env.local` file from the
 selected workspace and pass only the allowed Claude/Z.ai routing variables to
-the child process. It maps `ZAI_API_KEY` to process-local
-`ANTHROPIC_API_KEY` when needed, but the key value is never returned to the
-renderer, written to the SQLite event store, or committed to the repository.
+the child process. For the Z.ai Anthropic-compatible Claude Code route it maps
+`ZAI_API_KEY` to process-local `ANTHROPIC_AUTH_TOKEN` and injects an ephemeral
+Claude `--settings` file immediately before launch. The key value is never
+returned to the renderer, written to the SQLite event store, exported in
+evidence bundles, or committed to the repository; the temporary settings file is
+deleted after the process exits.
 
 Each Claude run attempt is tracked as redacted metadata: runner mode, backend
 selection, model alias/profile, command preview, prompt summary, external
