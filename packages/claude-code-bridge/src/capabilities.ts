@@ -3,7 +3,7 @@ import {
   unavailableCapability,
   unknownCapability,
   type BackendAdapterMetadata
-} from "@geond-agent/ui-workbench";
+} from "@geond-agent/backend-adapter-sdk";
 
 export type ClaudeCodeBridgeCapabilityState =
   | "supported"

@@ -8,7 +8,7 @@ import {
   type ModelProfileCapability,
   type ModelProfileMetadata,
   type ProviderRouteMetadata
-} from "@geond-agent/ui-workbench";
+} from "@geond-agent/backend-adapter-sdk";
 
 export type ZaiReasoningCapability = "standard" | "thinking" | "reasoning" | "auto";
 

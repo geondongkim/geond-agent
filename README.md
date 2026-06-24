@@ -38,9 +38,12 @@ vendor or fork third-party application code.
 apps/
   desktop/                  Native desktop app and Goose UI integration.
 packages/
+  backend-adapter-sdk/      Neutral backend adapter contracts and event types.
   claude-code-bridge/       ACP bridge, Claude Code process/session mapping.
   zai-provider/             Z.ai endpoint/model-routing helpers.
   ui-workbench/             Shared workbench UI components.
+examples/
+  adapters/mock-backend/    Metadata-only adapter authoring example.
 docs/
   adr/                      Architecture decision records.
   guides/                   Setup and operating guides.
@@ -72,6 +75,11 @@ Goose-style desktop frontend
 
 The code should keep this bridge modular so that other ACP agents and providers
 can be added without rewriting the desktop UI.
+
+Backend adapter metadata, capabilities, selection snapshots, registry helpers,
+and normalized event types live in `packages/backend-adapter-sdk`. UI packages
+render those contracts; concrete adapter packages implement or emit them without
+depending on UI code.
 
 Claude Code is the first bridge target, not the only backend direction. The
 workbench should stay adapter-neutral so future ACP-compatible backends,

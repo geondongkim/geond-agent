@@ -60,6 +60,31 @@ The first implementation exposes a framework-neutral workbench runtime that can
 load, update, and persist language settings through a local settings store
 interface.
 
+The UI package re-exports backend adapter metadata, selection snapshots, and
+normalized event types for compatibility, but it is not the source of truth for
+those contracts. New adapter-facing code should import those shapes from
+`packages/backend-adapter-sdk`.
+
+### `packages/backend-adapter-sdk`
+
+Neutral SDK package for backend adapter contracts:
+
+- backend adapter identity and kind,
+- capability status metadata,
+- backend/provider/model selection snapshots,
+- picker/registry helper shapes,
+- normalized workbench event types emitted by adapters and replayed by the
+  desktop/UI layers.
+
+This package sits between concrete adapter packages and UI/rendering packages.
+Adapters should depend on this SDK instead of depending on
+`packages/ui-workbench`, and the UI should render SDK-shaped metadata/events
+through projections and replay reducers.
+
+This SDK is not `geond-agent-protocol`. It is the local workbench adapter
+contract inside this monorepo. `geond-agent-protocol` remains a separate
+repository and may later receive redacted evidence exports or protocol mappings.
+
 ### `packages/claude-code-bridge`
 
 Bridge package for Claude Code and ACP-related behavior:
@@ -149,6 +174,11 @@ Adapter implementations may have different capabilities. The UI should depend on
 capability metadata and normalized events instead of importing tool-specific
 state from a concrete adapter package.
 
+`packages/backend-adapter-sdk` is the source of truth for this metadata and the
+normalized event contract. Concrete adapters such as
+`packages/claude-code-bridge` import SDK types and helpers; UI packages re-export
+them only for compatibility and rendering convenience.
+
 The first implementation can prove this boundary with
 `packages/claude-code-bridge`, but workbench concepts such as session lists,
 resume/fork actions, tool-call cards, terminal output, diff events, approval
@@ -208,13 +238,13 @@ metadata. It should not store provider API keys, tokens, local user session
 state, or provider account state. Secret values stay in local shell/keychain or
 ignored tool-specific settings managed outside the tracked repository.
 
-The first implementation uses a neutral workbench selection catalog as the
-single source of truth for picker labels and capability metadata. Concrete
-packages can expose catalog-shaped entries, such as the Claude Code backend
-adapter entry and Z.ai provider route/model entries, but the desktop app
-composes them through its own catalog boundary. The same catalog lookup behavior
-is used by settings picker options, live-run selection snapshots, and Claude
-Code stream-json selection normalization.
+The first implementation uses SDK-shaped selection catalogs as the source of
+truth for picker labels and capability metadata. Concrete packages can expose
+catalog-shaped entries, such as the Claude Code backend adapter entry and Z.ai
+provider route/model entries, but the desktop app composes them through its own
+catalog boundary. The same catalog lookup behavior is used by settings picker
+options, live-run selection snapshots, and Claude Code stream-json selection
+normalization.
 
 These are separate settings:
 

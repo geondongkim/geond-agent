@@ -2,7 +2,7 @@ import type {
   ApprovalDecision,
   WorkbenchApprovalSnapshot,
   WorkbenchEvent
-} from "@geond-agent/ui-workbench";
+} from "@geond-agent/backend-adapter-sdk";
 
 import type { ExternalCliBoundary } from "./boundary.js";
 import { CLAUDE_CODE_SANITIZED_STREAM_JSON_FIXTURE } from "./stream-json.fixtures.js";

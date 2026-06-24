@@ -11,6 +11,9 @@
     "./settings": "./src/settings/index.ts",
     "./workbench": "./src/workbench/index.ts"
   },
+  "dependencies": {
+    "@geond-agent/backend-adapter-sdk": "workspace:*"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",
     "typecheck": "tsc -p tsconfig.json --noEmit",

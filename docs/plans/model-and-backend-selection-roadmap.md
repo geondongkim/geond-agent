@@ -66,6 +66,11 @@ Candidate backends:
 - local model backend,
 - provider/model routing backend when the route itself owns execution.
 
+Backend picker metadata should come from
+`@geond-agent/backend-adapter-sdk` `BackendAdapterMetadata` records. UI packages
+may re-export these records for compatibility, but concrete adapters should
+publish SDK-shaped metadata rather than importing UI types.
+
 ### Model Picker
 
 The model picker chooses a model profile from the selected provider route or
@@ -133,6 +138,10 @@ Every session should capture:
 
 This snapshot helps review, reproduce, and compare sessions even when provider
 catalogs change later.
+
+The snapshot type lives in the backend adapter SDK so adapters, provider route
+helpers, the desktop runner, and UI replay/projection code can share one
+contract without making UI the source of truth.
 
 ### Usage, Quota, and Cost Metadata
 

@@ -1,7 +1,7 @@
 import {
   createWorkbenchSelectionCatalog,
   type WorkbenchSelectionCatalog
-} from "@geond-agent/ui-workbench";
+} from "@geond-agent/backend-adapter-sdk";
 import { createZaiCatalogEntries } from "@geond-agent/zai-provider";
 
 import { createClaudeCodeBackendRegistryEntry } from "./capabilities.js";
