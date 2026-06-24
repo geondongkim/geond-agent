@@ -162,7 +162,9 @@ export function useWorkbenchRunner({
         ? i18n.t("workbench.runner.resumingClaude")
         : mode === "claude-live"
           ? i18n.t("workbench.runner.startingClaude")
-          : i18n.t("workbench.runner.startingFixture")
+          : mode === "codex-live"
+            ? i18n.t("workbench.runner.startingCodex")
+            : i18n.t("workbench.runner.startingFixture")
     );
 
     let unlistenStream: (() => void) | undefined;

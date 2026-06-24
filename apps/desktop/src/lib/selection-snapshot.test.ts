@@ -4,6 +4,7 @@ import { createUiI18n } from "@geond-agent/ui-workbench";
 
 import {
   createSelectionSnapshotFromRequest,
+  describeCodexCommandPreview,
   describeLiveCommandPreview
 } from "./selection-snapshot.js";
 import { createDesktopWorkbenchCatalog } from "./workbench-catalog.js";
@@ -77,6 +78,20 @@ describe("desktop selection snapshot helpers", () => {
         })
       )
     ).toContain("resume: stored external session");
+  });
+
+  it("describes Codex command previews without logging prompt text as argv", () => {
+    const preview = describeCodexCommandPreview(
+      createRunnerRequest({
+        backendAdapterId: "codex.cli.metadata",
+        providerRouteId: undefined,
+        modelAlias: "gpt-5.1-codex"
+      })
+    );
+
+    expect(preview).toContain("codex exec --json");
+    expect(preview).toContain("prompt: provided");
+    expect(preview).not.toContain("Inspect the workspace.");
   });
 });
 

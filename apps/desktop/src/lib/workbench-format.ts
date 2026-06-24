@@ -9,6 +9,8 @@ import type {
   WorkbenchStreamQuality
 } from "@geond-agent/ui-workbench";
 
+import type { DesktopRunnerMode } from "../demo-workbench.js";
+
 export const lifecycleTone = {
   started: "status-ok",
   resumed: "status-ok",
@@ -58,6 +60,17 @@ export function formatRoutingModeLabel(
       return i18n.t("workbench.selection.auto");
     default:
       return mode ?? i18n.t("workbench.status.unknown");
+  }
+}
+
+export function formatRunnerModeLabel(i18n: UiI18n, mode: DesktopRunnerMode): string {
+  switch (mode) {
+    case "claude-live":
+      return i18n.t("workbench.runner.claudeLive");
+    case "codex-live":
+      return i18n.t("workbench.runner.codexLive");
+    case "fixture":
+      return i18n.t("workbench.runner.fixture");
   }
 }
 

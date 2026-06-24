@@ -72,7 +72,7 @@ authorize source import.
 | Cline | `ee59f81706981e0a64c8b32f8f0415c9d39561fa` | Apache-2.0 | Design-pattern notes only |
 | OpenCode | `009f3799cd6d28cad5a3e1b3902a80f60f93122e` | MIT | Design-pattern notes only |
 | OpenHands | `7b228db6ae143598b4caf65c6f7ed759b511f922` | MIT outside `enterprise/`; PolyForm Free Trial under `enterprise/` | Only non-enterprise design patterns; no `enterprise/` reuse |
-| OpenAI Codex | `d66708232299bdbf373ec55b0d6b938c246cfa60` | Apache-2.0 | Design-pattern notes only |
+| OpenAI Codex | `98845e484070a1f93fa24842db0e429c7cec9f81` | Apache-2.0 | Design-pattern and event-shape notes only; no source copied |
 
 ## Rules for Adding Third-Party Code
 
@@ -140,10 +140,13 @@ repository code and currently inherit the repository MPL-2.0 license. The SDK
 is designed as a neutral adapter authoring contract inside this monorepo; it is
 not `geond-agent-protocol`, and it does not include third-party adapter source.
 
-`packages/codex-cli-bridge` is metadata-only. It does not import, vendor, or
-copy OpenAI Codex source, app assets, VS Code extension bundles, screenshots,
-fonts, fixtures, or local session state. If a future PR imports code from
-`openai/codex`, preserve Apache-2.0 license text and notices before merging.
+`packages/codex-cli-bridge` is upstream-informed but not vendored. It does not
+import, vendor, or copy OpenAI Codex source, app assets, VS Code extension
+bundles, screenshots, fonts, raw fixtures, or local session state. The current
+bridge uses the public Apache-2.0 TypeScript SDK event/exec shape as a reference
+for original JSONL normalizer, command-boundary, and sanitized synthetic fixture
+code. If a future PR imports code from `openai/codex`, preserve Apache-2.0
+license text and notices before merging.
 
 `packages/opencode-bridge` is metadata-only. It does not import, vendor, or
 copy OpenCode source, generated assets, credentials, raw logs, fixtures, or

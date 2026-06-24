@@ -6,6 +6,7 @@ import type {
 } from "@geond-agent/ui-workbench";
 
 import type { ClaudeCodeCliProbe } from "../claude-runner.js";
+import type { DesktopRunnerMode } from "../demo-workbench.js";
 
 export type FirstRunChecklistLevel = "ready" | "attention" | "blocked";
 
@@ -40,7 +41,7 @@ export function createClaudeFirstRunChecklist({
   readonly modelAliasOptions: readonly WorkbenchCatalogOption[];
   readonly persistenceNotes: readonly string[];
   readonly providerRouteOptions: readonly WorkbenchCatalogOption[];
-  readonly runnerMode: "claude-live" | "fixture";
+  readonly runnerMode: DesktopRunnerMode;
   readonly selectionReadiness?: WorkbenchSelectionReadiness;
   readonly sessionDefaults: WorkbenchSessionDefaults;
 }): FirstRunChecklist {
@@ -54,10 +55,7 @@ export function createClaudeFirstRunChecklist({
       id: "runner-mode",
       label: i18n.t("workbench.firstRun.runnerMode"),
       level: runnerMode === "claude-live" ? "ready" : "attention",
-      value:
-        runnerMode === "claude-live"
-          ? i18n.t("workbench.runner.claudeLive")
-          : i18n.t("workbench.runner.fixture"),
+      value: formatRunnerMode(i18n, runnerMode),
       detail:
         runnerMode === "claude-live"
           ? i18n.t("workbench.firstRun.runnerModeLive")
@@ -157,7 +155,7 @@ export function createClaudeFirstRunChecklist({
 
 function createCliProbeLevel(
   probe: ClaudeCodeCliProbe | undefined,
-  runnerMode: "claude-live" | "fixture"
+  runnerMode: DesktopRunnerMode
 ): FirstRunChecklistLevel {
   if (probe?.state === "available") {
     return "ready";
@@ -166,6 +164,17 @@ function createCliProbeLevel(
     return "blocked";
   }
   return "attention";
+}
+
+function formatRunnerMode(i18n: UiI18n, runnerMode: DesktopRunnerMode): string {
+  switch (runnerMode) {
+    case "claude-live":
+      return i18n.t("workbench.runner.claudeLive");
+    case "codex-live":
+      return i18n.t("workbench.runner.codexLive");
+    case "fixture":
+      return i18n.t("workbench.runner.fixture");
+  }
 }
 
 function formatCliProbeValue(

@@ -20,22 +20,22 @@ export function createCodexCliBackendRegistryEntry(): BackendAdapterMetadata {
     label: "Codex CLI metadata candidate",
     kind: "external-cli",
     capabilities: {
-      sessions: unknownCapability("Session behavior needs live Codex CLI adapter validation."),
-      resume: unknownCapability("Resume semantics must be probed before implementation."),
+      sessions: supportedCapability(),
+      resume: unknownCapability("Codex exec resume is available, but live continuity needs validation."),
       fork: unknownCapability("Fork behavior is not evaluated."),
-      toolCalls: unknownCapability("Tool call event shape is not normalized yet."),
+      toolCalls: unknownCapability("Tool call JSONL shape needs live validation."),
       terminalOutput: supportedCapability(),
-      diffEvents: unknownCapability("Diff event shape is not normalized yet."),
-      approvals: unknownCapability("Approval queue semantics need adapter mapping."),
+      diffEvents: unknownCapability("Diff JSONL shape is modeled by sanitized fixtures only."),
+      approvals: unknownCapability("Approval queue semantics need live adapter mapping."),
       modelRouting: unknownCapability("Provider/model routing depends on the installed Codex setup."),
-      modelPicker: unknownCapability("Model picker support needs product/API research."),
+      modelPicker: supportedCapability(),
       autoRouting: unavailableCapability("Auto routing policy is deferred."),
       usageQuotaReporting: unknownCapability("Usage/quota metadata needs live validation.")
     },
     notes: [
-      "Metadata-only research boundary; no Codex process is launched.",
+      "Runner boundary and sanitized JSONL fixture replay exist; desktop native process launch is not wired yet.",
       "No Codex source, app assets, VS Code extension bundles, credentials, or local session files are copied.",
-      "Use SDK ExecutionPolicy metadata before adding a real runner."
+      "Use SDK ExecutionPolicy metadata and Codex exec JSONL before adding a native process bridge."
     ]
   };
 }

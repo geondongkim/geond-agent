@@ -20,7 +20,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs.js";
 import type { ProjectedActiveSession } from "../lib/workbench-types.js";
 import type { ProjectedSessionListItem } from "../lib/workbench-types.js";
-import { formatProviderSummary } from "../lib/workbench-format.js";
+import { formatProviderSummary, formatRunnerModeLabel } from "../lib/workbench-format.js";
 import { InspectorBrowserTab } from "./inspector/inspector-browser-tab.js";
 import { InspectorFilesTab } from "./inspector/inspector-files-tab.js";
 import { InspectorSettingsTab } from "./inspector/inspector-settings-tab.js";
@@ -171,9 +171,7 @@ export function InspectorPane({
             <span className={runnerBusy ? "status-pill status-warn" : "status-pill status-neutral"}>
               {runnerBusy
                 ? i18n.t("workbench.runner.running")
-                : runnerMode === "claude-live"
-                  ? i18n.t("workbench.runner.claudeLive")
-                  : i18n.t("workbench.runner.fixture")}
+                : formatRunnerModeLabel(i18n, runnerMode)}
             </span>
           </div>
           <p className="mt-2 truncate font-mono text-[11px] leading-5 text-[color:var(--ink-soft)]">

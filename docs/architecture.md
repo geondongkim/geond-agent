@@ -179,13 +179,14 @@ normalized event contract. Concrete adapters such as
 `packages/claude-code-bridge` import SDK types and helpers; UI packages re-export
 them only for compatibility and rendering convenience.
 
-Metadata-only adapter packages can consume the same SDK before a real runner is
-implemented. `packages/codex-cli-bridge` and `packages/opencode-bridge` are
-research boundaries that describe candidate capability, execution-policy, and
-fixture-event shapes without launching those tools or copying upstream source.
-The desktop backend picker may expose these candidates for catalog/readiness
-review, but concrete live runners must block launch when the selected backend is
-metadata-only.
+Adapter packages can consume the same SDK before a real live process bridge is
+implemented. `packages/codex-cli-bridge` now uses the upstream Apache-2.0 Codex
+TypeScript SDK event/exec shape as a reference for an original JSONL normalizer,
+sanitized fixture replay, stdin prompt command boundary, and execution-policy
+mapping. `packages/opencode-bridge` remains metadata-only. The desktop backend
+picker may expose these candidates for catalog/readiness review, while concrete
+live runners must still block launch until native process wiring and validation
+exist for that backend.
 
 Execution policy is also adapter-neutral metadata. The SDK exposes shared
 policy ids such as `plan`, `ask-first`, `accept-edits`, and `bypass`; concrete

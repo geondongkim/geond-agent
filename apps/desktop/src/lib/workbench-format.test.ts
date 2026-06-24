@@ -8,6 +8,7 @@ import {
   formatLiveRunGuidanceLabel,
   formatLiveRunNextActionLabel,
   formatMessage,
+  formatRunnerModeLabel,
   formatRunAttemptTriggerLabel,
   formatSelectionReadinessDetail,
   formatSelectionReadinessLevelLabel,
@@ -23,6 +24,12 @@ describe("desktop workbench formatting helpers", () => {
     expect(formatStatusLabel(createUiI18n("en"), "completed")).toBe("completed");
     expect(formatStatusLabel(createUiI18n("ko"), "completed")).toBe("완료");
     expect(formatStatusLabel(createUiI18n("ko"), "custom-status")).toBe("custom-status");
+  });
+
+  it("formats every runner mode without falling back to fixture labels", () => {
+    expect(formatRunnerModeLabel(createUiI18n("en"), "fixture")).toBe("Local fixture");
+    expect(formatRunnerModeLabel(createUiI18n("en"), "claude-live")).toBe("Claude Code live");
+    expect(formatRunnerModeLabel(createUiI18n("ko"), "codex-live")).toBe("Codex CLI JSONL");
   });
 
   it("interpolates message placeholders with primitive values", () => {

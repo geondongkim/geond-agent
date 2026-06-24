@@ -14,6 +14,7 @@ import { redactSensitiveTextContent } from "@geond-agent/claude-code-bridge";
 import { createSelectionSnapshotFromRequest, describeLiveCommandPreview } from "../lib/selection-snapshot.js";
 import type { DesktopRunnerMode } from "../demo-workbench.js";
 import type { RunnerRequest, RunnerResult } from "./types.js";
+import { describeCodexCommandPreview } from "../lib/selection-snapshot.js";
 
 export function createRunAttemptStartedEvent(
   request: RunnerRequest,
@@ -49,7 +50,9 @@ export function createRunAttemptStartedEvent(
       commandPreview:
         mode === "claude-live"
           ? describeLiveCommandPreview(request)
-          : "sanitized Claude Code fixture replay",
+          : mode === "codex-live"
+            ? describeCodexCommandPreview(request)
+            : "sanitized Claude Code fixture replay",
       promptSummary: summarizePrompt(request.prompt),
       trigger,
       sourceApprovalId: options.sourceApprovalId,

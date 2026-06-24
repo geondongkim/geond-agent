@@ -117,7 +117,9 @@ export function InspectorSettingsTab({
             value={runnerMode}
             options={runnerModeOptions(i18n)}
             onChange={(value) =>
-              void updateRunnerMode(value === "claude-live" ? "claude-live" : "fixture")
+              void updateRunnerMode(
+                value === "claude-live" || value === "codex-live" ? value : "fixture"
+              )
             }
           />
           <SettingsSelect
@@ -231,6 +233,7 @@ const uiLanguageOptions = [
 function runnerModeOptions(i18n: UiI18n) {
   return [
     { value: "claude-live", label: i18n.t("workbench.runner.claudeLive") },
+    { value: "codex-live", label: i18n.t("workbench.runner.codexLive") },
     { value: "fixture", label: i18n.t("workbench.runner.fixture") }
   ] as const;
 }

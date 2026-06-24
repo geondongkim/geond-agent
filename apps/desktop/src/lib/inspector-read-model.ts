@@ -212,7 +212,12 @@ export function createMaterializedInspectorSessionReadModel(
   }));
   const runAttempts: ProjectedActiveSession["runAttempts"] = (records.runAttempts ?? []).map((record) => ({
     id: record.attemptId,
-    mode: record.mode === "fixture" ? "fixture" as const : "claude-live" as const,
+    mode:
+      record.mode === "fixture"
+        ? "fixture" as const
+        : record.mode === "codex-live"
+          ? "codex-live" as const
+          : "claude-live" as const,
     status: normalizeRunAttemptStatus(record.status),
     backendAdapterId: record.backendAdapterId,
     providerRouteId: record.providerRouteId,

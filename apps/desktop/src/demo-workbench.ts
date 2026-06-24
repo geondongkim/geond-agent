@@ -8,6 +8,11 @@ import {
   type ClaudeCodeRunnerResult
 } from "@geond-agent/claude-code-bridge";
 import {
+  createCodexCliFixtureReplayRunner,
+  type CodexCliFixtureReplayRunner,
+  type CodexCliRunnerResult
+} from "@geond-agent/codex-cli-bridge";
+import {
   createWorkbenchSettingsLabels,
   createWorkbenchSessionController,
   buildWorkbenchSessionIndex,
@@ -71,7 +76,7 @@ import {
   createDesktopWorkspaceResolver
 } from "./workspace.js";
 
-export type DesktopRunnerMode = "fixture" | "claude-live";
+export type DesktopRunnerMode = "fixture" | "claude-live" | "codex-live";
 
 export interface DesktopWorkbenchLayoutPreference {
   readonly leftPanelOpen: boolean;
@@ -84,6 +89,7 @@ export interface DesktopDemoDocument {
   readonly controller: WorkbenchSessionController;
   readonly runner: ClaudeCodeFixtureReplayRunner;
   readonly liveRunner: ClaudeCodeProcessRunner;
+  readonly codexRunner: CodexCliFixtureReplayRunner;
   readonly eventStore: DesktopWorkbenchEventStore;
   readonly materializedEventStore: DesktopMaterializedEventStore;
   readonly sessionIndexStore: DesktopWorkbenchSessionIndexStore;
@@ -111,7 +117,7 @@ export interface DesktopDemoDocument {
   readonly runSession: (
     mode: DesktopRunnerMode,
     request: ClaudeCodeRunnerRequest
-  ) => Promise<ClaudeCodeRunnerResult | ClaudeCodeProcessRunnerResult>;
+  ) => Promise<ClaudeCodeRunnerResult | ClaudeCodeProcessRunnerResult | CodexCliRunnerResult>;
   readonly chooseWorkspace: (
     defaultPath?: string
   ) => Promise<DesktopWorkspaceDescriptor | undefined>;
@@ -177,6 +183,7 @@ export async function createDesktopDemoDocument(
   const savedEvidenceExportPreferences = await loadEvidenceExportPreferences(settingsStore);
   const runner = createClaudeCodeFixtureReplayRunner();
   const liveRunner = createClaudeCodeProcessRunner(createTauriClaudeCodeExecutor());
+  const codexRunner = createCodexCliFixtureReplayRunner();
   const claudeCliProbe = await probeTauriClaudeCodeExecutable();
   const eventStore = createDesktopWorkbenchEventStore();
   const materializedEventStore = createDesktopMaterializedEventStore();
@@ -218,6 +225,7 @@ export async function createDesktopDemoDocument(
     controller,
     runner,
     liveRunner,
+    codexRunner,
     eventStore,
     materializedEventStore,
     sessionIndexStore,
@@ -245,7 +253,11 @@ export async function createDesktopDemoDocument(
     initialControllerSnapshot: controller.getSnapshot(),
     createRunnerRequest,
     runSession: (mode, request) =>
-      mode === "claude-live" ? liveRunner.run(request) : runner.run(request),
+      mode === "claude-live"
+        ? liveRunner.run(request)
+        : mode === "codex-live"
+          ? codexRunner.run(request)
+          : runner.run(request),
     chooseWorkspace: (defaultPath) => workspaceResolver.chooseWorkspace({ defaultPath }),
     chooseFile: (defaultPath) => workspaceResolver.chooseFile({ defaultPath }),
     saveWorkspace: async (workspace) => {
@@ -307,7 +319,7 @@ async function loadSavedRunnerMode(
   settingsStore: LocalSettingsStore
 ): Promise<DesktopRunnerMode> {
   const saved = await settingsStore.getItem(RUNNER_MODE_SETTINGS_KEY);
-  return saved === "fixture" || saved === "claude-live"
+  return saved === "fixture" || saved === "claude-live" || saved === "codex-live"
     ? saved
     : defaultDesktopRunnerMode();
 }
@@ -321,7 +333,7 @@ function isTauriRuntime(): boolean {
 }
 
 function validateRunnerMode(mode: DesktopRunnerMode): DesktopRunnerMode {
-  return mode === "claude-live" ? "claude-live" : "fixture";
+  return mode === "claude-live" || mode === "codex-live" ? mode : "fixture";
 }
 
 function validateLayoutPreference(

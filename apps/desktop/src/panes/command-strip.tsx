@@ -72,6 +72,7 @@ export function CommandStrip({
           >
             <option value="fixture">{i18n.t("workbench.runner.fixture")}</option>
             <option value="claude-live">{i18n.t("workbench.runner.claudeLive")}</option>
+            <option value="codex-live">{i18n.t("workbench.runner.codexLive")}</option>
           </select>
         </label>
         <Button onClick={startSelectedRunner} disabled={runnerBusy}>
@@ -79,6 +80,8 @@ export function CommandStrip({
             ? i18n.t("workbench.runner.running")
             : runnerMode === "claude-live"
               ? i18n.t("workbench.actions.runClaudeSession")
+              : runnerMode === "codex-live"
+                ? i18n.t("workbench.actions.runCodexSession")
               : i18n.t("workbench.actions.newDemoSession")}
         </Button>
         <Button

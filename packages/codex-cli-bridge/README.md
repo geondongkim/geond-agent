@@ -1,23 +1,30 @@
 # Codex CLI Bridge
 
-Metadata-only research boundary for a future Codex CLI adapter.
+Codex CLI adapter boundary for upstream-informed JSONL event replay.
 
-This package does not run Codex, bundle Codex, import Codex source, copy Codex
-App or VS Code extension assets, or read provider credentials. It exists to
-prove that `@geond-agent/backend-adapter-sdk` can describe a second backend
-surface without making the UI package the contract owner.
+This package describes Codex as a backend adapter through
+`@geond-agent/backend-adapter-sdk` and normalizes sanitized Codex-style JSONL
+events into `WorkbenchEvent` streams. It is based on source inspection of the
+Apache-2.0 `openai/codex` TypeScript SDK event and exec boundary at commit
+`98845e484070a1f93fa24842db0e429c7cec9f81`.
 
-Use this package as a future adapter checklist:
+Implemented boundary:
 
-- express capability metadata through the backend adapter SDK,
-- model execution policy support without Claude-specific permission names,
-- keep artifacts as metadata-only references until a safe export path exists,
-- avoid coupling to Codex internal storage or private session state.
+- backend metadata and capability reporting through the adapter SDK,
+- adapter-neutral execution policy ids mapped to Codex sandbox/approval policy,
+- Codex `thread/turn/item` JSONL normalizer,
+- sanitized synthetic fixture replay,
+- command boundary that sends prompts through stdin instead of visible argv,
+- stable `--json` command output by default with an experimental JSON flag
+  option for upstream SDK probes,
+- external thread id resume metadata.
 
-`apps/desktop` may list this backend in the backend picker as a candidate, but
-the Claude Code live runner must not launch it. Until a real Codex runner exists,
-selecting this backend is for catalog/readiness review and fixture-mode
-experiments only.
+This package still does not bundle Codex, copy Codex App or VS Code extension
+assets, read provider credentials, commit raw local Codex logs, or wire native
+desktop process launching. The desktop app can use the sanitized fixture runner
+to exercise multi-backend UI paths while live Codex process execution remains a
+separate bridge step.
 
-If source from `openai/codex` is ever imported, follow
-`docs/reference/licensing.md` first and preserve Apache-2.0 notices.
+If source from `openai/codex` is copied in a future PR, follow
+`docs/reference/licensing.md` first and preserve Apache-2.0 license and NOTICE
+requirements.
