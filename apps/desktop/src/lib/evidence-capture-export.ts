@@ -5,6 +5,8 @@ import {
 } from "./evidence-capture.js";
 import { createDogfoodWorkflowSummary } from "./dogfood-workflow-summary.js";
 import type { InspectorSessionReadModel } from "./inspector-read-model.js";
+import { createLiveDogfoodRunbook } from "./live-dogfood-runbook.js";
+import { createRawVisualCaptureGate } from "./raw-visual-capture-gate.js";
 import type {
   ProjectedActiveSession,
   ProjectedSessionListItem
@@ -75,6 +77,13 @@ export function createMultiSessionTraceBundleArtifact(
     selectedSessions: sessions,
     sessions
   });
+  const liveDogfoodRunbook = createLiveDogfoodRunbook({
+    activeSession: options.activeSession,
+    generatedAt,
+    inspectorData: options.inspectorData,
+    projectedSessions: sessions,
+    selectedSessions: sessions
+  });
   const readiness = createEvidenceCaptureReadiness({
     consentGranted: true,
     redactionConfigured: true,
@@ -101,6 +110,7 @@ export function createMultiSessionTraceBundleArtifact(
       )
     },
     dogfoodWorkflow,
+    liveDogfoodRunbook: serializeLiveDogfoodRunbook(liveDogfoodRunbook),
     reviewPrompts: [
       "Which sessions need retry, resume, approval follow-up, or route health review?",
       "Which sessions have enough metadata-only evidence for a local issue report?",
@@ -129,6 +139,17 @@ export function createVisualCapturePolicyArtifact(
     sessions,
     visualReview
   });
+  const rawVisualCaptureGate = createRawVisualCaptureGate({
+    activeSession: options.activeSession,
+    visualReview
+  });
+  const liveDogfoodRunbook = createLiveDogfoodRunbook({
+    activeSession: options.activeSession,
+    generatedAt,
+    inspectorData: options.inspectorData,
+    projectedSessions: sessions,
+    visualReview
+  });
   const reviewReady =
     visualReview.explicitConsent &&
     visualReview.redactionReview &&
@@ -148,6 +169,7 @@ export function createVisualCapturePolicyArtifact(
       requiredUserAction: "per-export visual capture consent",
       reviewReady,
       review: visualReview,
+      gate: rawVisualCaptureGate,
       missingReviewSteps: dogfoodWorkflow.missingVisualReviewSteps,
       redactionRequirements: [
         "review visible workspace paths before capture",
@@ -164,6 +186,7 @@ export function createVisualCapturePolicyArtifact(
       ]
     },
     dogfoodWorkflow,
+    liveDogfoodRunbook: serializeLiveDogfoodRunbook(liveDogfoodRunbook),
     note:
       "This policy artifact documents the consent/redaction boundary for future visual capture. It does not include image payload data."
   };
@@ -206,6 +229,13 @@ function createCaptureArtifact(
     sessions,
     visualReview: options.visualReview
   });
+  const liveDogfoodRunbook = createLiveDogfoodRunbook({
+    activeSession: options.activeSession,
+    generatedAt,
+    inspectorData: options.inspectorData,
+    projectedSessions: sessions,
+    visualReview: options.visualReview
+  });
   const payload = {
     schemaVersion: 1,
     kind: options.kind,
@@ -218,6 +248,7 @@ function createCaptureArtifact(
       indexedSessionCount: sessions.length
     },
     dogfoodWorkflow,
+    liveDogfoodRunbook: serializeLiveDogfoodRunbook(liveDogfoodRunbook),
     note:
       options.kind === "screenshot-manifest"
         ? "This manifest records a user-approved screenshot capture boundary. It does not include image payload data."
@@ -372,6 +403,22 @@ function serializeSessionIndexItem(session: ProjectedSessionListItem) {
     errorCount: session.errorCount,
     resumable: session.resumable,
     updatedAt: session.updatedAt
+  };
+}
+
+function serializeLiveDogfoodRunbook(runbook: ReturnType<typeof createLiveDogfoodRunbook>) {
+  return {
+    generatedAt: runbook.generatedAt,
+    sessionId: runbook.sessionId,
+    workspacePath: runbook.workspacePath,
+    steps: runbook.steps.map((step) => ({
+      id: step.id,
+      status: step.status,
+      title: step.title,
+      detail: step.detail,
+      evidenceHint: step.evidenceHint
+    })),
+    rawVisualCaptureGate: runbook.rawVisualCaptureGate
   };
 }
 

@@ -9,6 +9,10 @@ import {
   formatDogfoodWorkflowSummaryForReport
 } from "./dogfood-workflow-summary.js";
 import type { InspectorSessionReadModel } from "./inspector-read-model.js";
+import {
+  createLiveDogfoodRunbook,
+  formatLiveDogfoodRunbookForReport
+} from "./live-dogfood-runbook.js";
 import { groupRecentContextByWorkspace, type RecentContextItem } from "./recent-context.js";
 import type { ProjectedActiveSession, ProjectedSessionListItem } from "./workbench-types.js";
 
@@ -270,6 +274,15 @@ export function createWorkspaceEvidenceReportDraft({
     "Dogfood workflow summary",
     ...formatDogfoodWorkflowSummaryForReport(workflowSummary),
     "",
+    "Live Claude dogfood runbook",
+    ...formatLiveDogfoodRunbookForReport(
+      createLiveDogfoodRunbook({
+        activeSession,
+        inspectorData,
+        projectedSessions: sessions
+      })
+    ),
+    "",
     "Active session evidence",
     activeBundle,
     "",
@@ -304,6 +317,12 @@ export function createMultiSessionIssueReportDraft({
     selectedSessions: sessions,
     sessions
   });
+  const liveDogfoodRunbook = createLiveDogfoodRunbook({
+    activeSession,
+    inspectorData,
+    projectedSessions: sessions,
+    selectedSessions: sessions
+  });
 
   return [
     "Workbench multi-session issue report (metadata only).",
@@ -320,6 +339,9 @@ export function createMultiSessionIssueReportDraft({
     "",
     "Dogfood workflow summary",
     ...formatDogfoodWorkflowSummaryForReport(workflowSummary),
+    "",
+    "Live Claude dogfood runbook",
+    ...formatLiveDogfoodRunbookForReport(liveDogfoodRunbook),
     "",
     "Attention sessions",
     ...formatSessionIndexReportItems(attentionSessions),
@@ -371,6 +393,11 @@ export function createEvidenceExportManifestDraft({
     inspectorData,
     sessions
   });
+  const liveDogfoodRunbook = createLiveDogfoodRunbook({
+    activeSession,
+    inspectorData,
+    projectedSessions: sessions
+  });
 
   return [
     "Workbench export manifest (metadata only).",
@@ -415,6 +442,9 @@ export function createEvidenceExportManifestDraft({
     "Dogfood workflow summary",
     ...formatDogfoodWorkflowSummaryForReport(workflowSummary),
     "",
+    "Live Claude dogfood runbook",
+    ...formatLiveDogfoodRunbookForReport(liveDogfoodRunbook),
+    "",
     "Favorite context by workspace",
     ...formatRecentContextWorkspaceGroups(workspaceGroups),
     "",
@@ -434,6 +464,36 @@ export function createEvidenceExportManifestDraft({
     "- Is the active session evidence enough to reproduce the concern without raw logs?",
     "- Does a failed run need retry, resume, route health review, or a manual provider switch?",
     "- Should screenshots or structured traces be captured in a later explicit-consent export?"
+  ].join("\n");
+}
+
+export function createLiveDogfoodRunbookDraft({
+  activeSession,
+  inspectorData,
+  sessions
+}: {
+  readonly activeSession?: ProjectedActiveSession;
+  readonly inspectorData?: InspectorSessionReadModel;
+  readonly sessions: readonly ProjectedSessionListItem[];
+}): string {
+  const runbook = createLiveDogfoodRunbook({
+    activeSession,
+    inspectorData,
+    projectedSessions: sessions
+  });
+
+  return [
+    "Live Claude dogfood runbook (metadata only).",
+    "Use this before and after real route switching, retry, cancel, and resume checks. Do not attach raw Claude logs, provider keys, private file contents, local session files, or raw visual payloads.",
+    "",
+    ...formatLiveDogfoodRunbookForReport(runbook),
+    "",
+    "Operator notes",
+    "- Route switch: record only provider route id, model alias, run attempt status, and issue kind.",
+    "- Retry: compare parent attempt id, follow-up attempt id, trigger, route, and final status.",
+    "- Cancel: confirm the UI labels cancellation as local/user initiated rather than provider failure.",
+    "- Resume: confirm external session continuity without exporting raw Claude session files.",
+    "- Raw visual capture: keep blocked until the dedicated consent/redaction/storage implementation is enabled."
   ].join("\n");
 }
 
@@ -493,6 +553,14 @@ export function createEvidenceExportManifestFileName({
   readonly now?: Date;
 } = {}): string {
   return `${now.toISOString().slice(0, 10)}-workbench-export-manifest.md`;
+}
+
+export function createLiveDogfoodRunbookFileName({
+  now = new Date()
+}: {
+  readonly now?: Date;
+} = {}): string {
+  return `${now.toISOString().slice(0, 10)}-live-claude-dogfood-runbook.md`;
 }
 
 function formatContextBundleItems(
