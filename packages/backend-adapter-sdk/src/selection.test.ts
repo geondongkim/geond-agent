@@ -34,6 +34,29 @@ describe("backend adapter selection readiness", () => {
     expect(readiness.level).toBe("blocked");
     expect(readiness.summary).toContain("blocker");
   });
+
+  it("marks external-auth provider routes as attention instead of asking geond-agent to store a key", () => {
+    const readiness = createSelectionReadiness(
+      createSelection({
+        providerRoute: {
+          id: "opencode.host-auth",
+          providerId: "opencode",
+          label: "OpenCode host auth",
+          kind: "native-provider",
+          hasApiKey: false,
+          apiKeyState: "missing",
+          authKind: "external-auth",
+          authState: "external-required"
+        }
+      })
+    );
+
+    expect(readiness.level).toBe("attention");
+    expect(readiness.items.find((item) => item.id === "provider-route")).toMatchObject({
+      level: "attention",
+      reason: "Authentication is mediated by the external backend or host tool."
+    });
+  });
 });
 
 function createSelection(

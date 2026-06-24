@@ -102,6 +102,12 @@ importers:
         specifier: workspace:*
         version: link:../backend-adapter-sdk
 
+  packages/opencode-bridge:
+    dependencies:
+      '@geond-agent/backend-adapter-sdk':
+        specifier: workspace:*
+        version: link:../backend-adapter-sdk
+
   packages/ui-workbench:
     dependencies:
       '@geond-agent/backend-adapter-sdk':
