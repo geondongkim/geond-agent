@@ -380,6 +380,16 @@ export type UiMessageKey =
   | "workbench.files.exportManifestSaved"
   | "workbench.files.exportManifestDownloaded"
   | "workbench.files.exportManifestCancelled"
+  | "workbench.files.captureBoundary"
+  | "workbench.files.captureBoundaryDetail"
+  | "workbench.files.screenshotBundle"
+  | "workbench.files.structuredTraceBundle"
+  | "workbench.files.captureConsentRequired"
+  | "workbench.files.captureRedactionRequired"
+  | "workbench.files.captureRawPolicy"
+  | "workbench.files.captureDeferred"
+  | "workbench.files.captureRequired"
+  | "workbench.files.captureReady"
   | "workbench.files.recentContext"
   | "workbench.files.favoriteContext"
   | "workbench.files.favorite"
@@ -859,6 +869,16 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.exportManifestSaved": "Export manifest saved.",
     "workbench.files.exportManifestDownloaded": "Export manifest downloaded.",
     "workbench.files.exportManifestCancelled": "Export manifest export cancelled.",
+    "workbench.files.captureBoundary": "Capture boundary",
+    "workbench.files.captureBoundaryDetail": "Screenshots and structured traces can contain private workspace state. They stay deferred until explicit consent and redaction are both ready.",
+    "workbench.files.screenshotBundle": "Screenshot bundle",
+    "workbench.files.structuredTraceBundle": "Structured trace bundle",
+    "workbench.files.captureConsentRequired": "Explicit consent required",
+    "workbench.files.captureRedactionRequired": "Redaction required",
+    "workbench.files.captureRawPolicy": "Raw storage policy",
+    "workbench.files.captureDeferred": "Deferred",
+    "workbench.files.captureRequired": "Required",
+    "workbench.files.captureReady": "Capture ready",
     "workbench.files.recentContext": "Recent context",
     "workbench.files.favoriteContext": "Favorite context",
     "workbench.files.favorite": "Favorite",
@@ -1335,6 +1355,16 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.exportManifestSaved": "내보내기 매니페스트를 저장했습니다.",
     "workbench.files.exportManifestDownloaded": "내보내기 매니페스트를 다운로드했습니다.",
     "workbench.files.exportManifestCancelled": "내보내기 매니페스트 내보내기를 취소했습니다.",
+    "workbench.files.captureBoundary": "캡처 경계",
+    "workbench.files.captureBoundaryDetail": "스크린샷과 구조화 trace에는 private 워크스페이스 상태가 들어갈 수 있습니다. 명시적 동의와 가림 처리가 모두 준비될 때까지 보류합니다.",
+    "workbench.files.screenshotBundle": "스크린샷 묶음",
+    "workbench.files.structuredTraceBundle": "구조화 trace 묶음",
+    "workbench.files.captureConsentRequired": "명시적 동의 필요",
+    "workbench.files.captureRedactionRequired": "가림 처리 필요",
+    "workbench.files.captureRawPolicy": "원본 저장 정책",
+    "workbench.files.captureDeferred": "보류됨",
+    "workbench.files.captureRequired": "필수",
+    "workbench.files.captureReady": "캡처 준비됨",
     "workbench.files.recentContext": "최근 컨텍스트",
     "workbench.files.favoriteContext": "즐겨찾는 컨텍스트",
     "workbench.files.favorite": "즐겨찾기",

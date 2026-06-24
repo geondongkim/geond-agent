@@ -387,7 +387,9 @@ describe("file evidence preview model", () => {
     expect(manifest).toContain("Workbench export manifest (metadata only).");
     expect(manifest).toContain("Favorite context by workspace");
     expect(manifest).toContain("geond-agent: path=/workspace/geond-agent");
-    expect(manifest).toContain("structured trace bundle: not collected in this slice");
+    expect(manifest).toContain("Capture consent and redaction readiness");
+    expect(manifest).toContain("Structured trace bundle: requires-explicit-consent");
+    expect(manifest).toContain("structured trace bundle: requires explicit consent");
     expect(manifest).toContain("sessions with errors: 1");
     expect(manifest).not.toContain(sensitiveValue);
   });
