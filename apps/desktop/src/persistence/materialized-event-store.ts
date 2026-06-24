@@ -90,6 +90,8 @@ export interface WorkbenchRunAttemptRecord {
   readonly permissionMode?: string;
   readonly externalSessionId?: string;
   readonly resumedFromExternalSessionId?: string;
+  readonly parentRunAttemptId?: string;
+  readonly followUpReason?: string;
   readonly commandPreview?: string;
   readonly promptSummary?: string;
   readonly startedAt?: string;

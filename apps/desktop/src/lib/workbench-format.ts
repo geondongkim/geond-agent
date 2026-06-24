@@ -149,8 +149,16 @@ export function formatStatusLabel(i18n: UiI18n, status: string): string {
       return i18n.t("workbench.issue.kind.providerQuota");
     case "provider_timeout":
       return i18n.t("workbench.issue.kind.providerTimeout");
+    case "retry_exhausted":
+      return i18n.t("workbench.issue.kind.retryExhausted");
     case "readiness_blocked":
       return i18n.t("workbench.issue.kind.readinessBlocked");
+    case "route_reached":
+      return i18n.t("workbench.issue.kind.routeReached");
+    case "runner_timeout":
+      return i18n.t("workbench.issue.kind.runnerTimeout");
+    case "runner_cancelled":
+      return i18n.t("workbench.issue.kind.runnerCancelled");
     case "runner_process":
       return i18n.t("workbench.issue.kind.runnerProcess");
     case "workspace":

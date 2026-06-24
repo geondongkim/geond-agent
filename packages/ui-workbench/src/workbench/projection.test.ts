@@ -66,6 +66,8 @@ describe("projectWorkbenchEvents", () => {
           routingMode: "manual",
           externalSessionId: "claude-session-1",
           resumedFromExternalSessionId: "claude-session-1",
+          parentRunAttemptId: "attempt-parent",
+          followUpReason: "approval_follow_up",
           commandPreview: "claude --bare -p --verbose --output-format stream-json",
           promptSummary: "Implement the run attempt ledger",
           trigger: "approval_follow_up",
@@ -139,6 +141,8 @@ describe("projectWorkbenchEvents", () => {
       parseWarningCount: 0,
       failureKind: "provider_overloaded",
       trigger: "approval_follow_up",
+      parentRunAttemptId: "attempt-parent",
+      followUpReason: "approval_follow_up",
       sourceApprovalId: "approval-1"
     });
     expect(projection.activeSession?.liveRunContinuity).toMatchObject({
@@ -173,6 +177,7 @@ describe("projectWorkbenchEvents", () => {
       latestHealth: "degraded",
       latestIssueKind: "provider_overloaded",
       issueCount: 2,
+      successfulAttemptCount: 0,
       retryableIssueCount: 2,
       modelProfileIds: ["opus", "sonnet"],
       suggestedActions: ["retry_later"]
@@ -199,6 +204,8 @@ describe("projectWorkbenchEvents", () => {
           id: "attempt-clean",
           mode: "claude-live",
           status: "running",
+          providerRouteId: "zai.anthropic-compatible",
+          modelProfileId: "opus",
           externalSessionId: "claude-session-clean",
           startedAt: "2026-06-21T03:00:01.000Z"
         },
@@ -252,6 +259,16 @@ describe("projectWorkbenchEvents", () => {
       severity: "success",
       streamQuality: "clean",
       nextActions: ["review_evidence"]
+    });
+    expect(healthyProjection.activeSession?.providerRouteHealth[0]).toMatchObject({
+      providerRouteId: "zai.anthropic-compatible",
+      latestHealth: "healthy",
+      latestIssueKind: "route_reached",
+      latestAttemptStatus: "succeeded",
+      issueCount: 0,
+      successfulAttemptCount: 1,
+      retryableIssueCount: 0,
+      modelProfileIds: ["opus"]
     });
     expect(warningProjection.activeSession?.liveRunGuidance).toMatchObject({
       kind: "stream_warning",

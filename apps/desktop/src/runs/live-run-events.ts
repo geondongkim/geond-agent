@@ -23,6 +23,8 @@ export function createRunAttemptStartedEvent(
   options: {
     readonly trigger?: WorkbenchRunAttemptTrigger;
     readonly sourceApprovalId?: string;
+    readonly parentRunAttemptId?: string;
+    readonly followUpReason?: string;
   } = {}
 ): WorkbenchEvent {
   const at = new Date().toISOString();
@@ -42,6 +44,8 @@ export function createRunAttemptStartedEvent(
       permissionMode: request.permissionMode,
       externalSessionId: request.externalSessionId,
       resumedFromExternalSessionId: isResumeRun ? request.externalSessionId : undefined,
+      parentRunAttemptId: options.parentRunAttemptId,
+      followUpReason: options.followUpReason,
       commandPreview:
         mode === "claude-live"
           ? describeLiveCommandPreview(request)

@@ -128,6 +128,8 @@ export function createInspectorEvidenceSignature(
         attempt.mode,
         attempt.status,
         attempt.externalSessionId,
+        attempt.parentRunAttemptId,
+        attempt.followUpReason,
         attempt.eventCount ?? 0,
         attempt.ignoredRecordCount ?? 0,
         attempt.parseWarningCount ?? 0,
@@ -219,6 +221,8 @@ export function createMaterializedInspectorSessionReadModel(
     permissionMode: record.permissionMode,
     externalSessionId: record.externalSessionId,
     resumedFromExternalSessionId: record.resumedFromExternalSessionId,
+    parentRunAttemptId: record.parentRunAttemptId,
+    followUpReason: record.followUpReason,
     commandPreview: record.commandPreview,
     promptSummary: record.promptSummary,
     startedAt: record.startedAt,
@@ -343,12 +347,16 @@ function normalizeRunnerIssueKind(
   }
 
   return isOneOf(value, [
+    "route_reached",
     "provider_overloaded",
     "provider_auth",
     "provider_quota",
     "provider_timeout",
+    "retry_exhausted",
     "readiness_blocked",
     "runner_process",
+    "runner_timeout",
+    "runner_cancelled",
     "unknown"
   ])
     ? value

@@ -105,4 +105,42 @@ describe("createWorkspaceSessionGroups", () => {
     expect(groups[0]?.path).toBe("/workspace/side-route");
     expect(groups[0]?.sessions.map((session) => session.id)).toEqual(["opencode-session"]);
   });
+
+  it("keeps favorite and recent workspaces visible before idle workspace options", () => {
+    const groups = createWorkspaceSessionGroups({
+      pinnedSessionIds: [],
+      selectedWorkspacePath: "/workspace/selected",
+      sessionQuery: "",
+      unknownWorkspaceLabel: "Unknown",
+      workspaceOptions: [
+        {
+          label: "selected",
+          path: "/workspace/selected"
+        },
+        {
+          label: "idle",
+          path: "/workspace/idle"
+        },
+        {
+          label: "favorite",
+          path: "/workspace/favorite",
+          favorite: true,
+          updatedAt: "2026-06-23T00:00:00.000Z"
+        },
+        {
+          label: "recent",
+          path: "/workspace/recent",
+          updatedAt: "2026-06-24T00:00:00.000Z"
+        }
+      ],
+      sessions: []
+    });
+
+    expect(groups.map((group) => group.path)).toEqual([
+      "/workspace/selected",
+      "/workspace/favorite",
+      "/workspace/recent"
+    ]);
+    expect(groups[1]).toMatchObject({ favorite: true, sessions: [] });
+  });
 });

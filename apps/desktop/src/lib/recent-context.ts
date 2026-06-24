@@ -116,6 +116,40 @@ export function toggleRecentContextItemFavorite(
   );
 }
 
+export function toggleRecentContextPathFavorite(
+  current: readonly RecentContextItem[],
+  options: {
+    readonly kind: RecentContextKind;
+    readonly label?: string;
+    readonly path: string;
+    readonly updatedAt?: string;
+  }
+): readonly RecentContextItem[] {
+  const normalizedPath = normalizeText(options.path, 1024);
+  if (!normalizedPath) {
+    return normalizeRecentContextItems(current);
+  }
+
+  const existing = current.find(
+    (item) => item.kind === options.kind && item.path === normalizedPath
+  );
+  if (existing) {
+    return toggleRecentContextItemFavorite(current, existing.id);
+  }
+
+  const item = createRecentContextItem({
+    kind: options.kind,
+    label: options.label,
+    path: normalizedPath,
+    updatedAt: options.updatedAt
+  });
+
+  return normalizeRecentContextItems([
+    ...(item ? [{ ...item, favorite: true }] : []),
+    ...current
+  ]);
+}
+
 export function groupRecentContextByWorkspace(
   items: readonly RecentContextItem[],
   workspaceHints: readonly RecentContextItem[] = items

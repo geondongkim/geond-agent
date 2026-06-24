@@ -213,8 +213,12 @@ body {
     @apply border-transparent;
   }
 
+  .workspace-session-header-row {
+    @apply grid grid-cols-[minmax(0,1fr)_28px] items-center gap-1;
+  }
+
   .workspace-session-header {
-    @apply grid w-full grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-2 rounded-md px-1.5 py-1.5 text-left text-[color:var(--inverse)] transition-colors hover:bg-white/5;
+    @apply grid min-w-0 grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-2 rounded-md px-1.5 py-1.5 text-left text-[color:var(--inverse)] transition-colors hover:bg-white/5;
   }
 
   .workspace-session-folder {
@@ -227,6 +231,14 @@ body {
 
   .workspace-session-count {
     @apply inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-md bg-black/20 px-1.5 font-mono text-[11px] text-[color:var(--inverse-soft)];
+  }
+
+  .workspace-favorite-button {
+    @apply grid h-7 w-7 place-items-center rounded-md text-[color:var(--ink-muted)] transition-colors hover:bg-white/[0.055] hover:text-[color:var(--ink-soft)];
+  }
+
+  .workspace-favorite-button-active {
+    @apply text-[color:var(--ink-soft)];
   }
 
   .workspace-session-card-list {

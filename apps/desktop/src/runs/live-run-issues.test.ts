@@ -35,7 +35,11 @@ describe("Claude live run issue classification", () => {
     const cases = [
       ["401 invalid API key", "provider_auth", "check_key", false, "unavailable"],
       ["429 rate limit quota exceeded", "provider_quota", "retry_later", true, "degraded"],
-      ["request timed out with ETIMEDOUT", "provider_timeout", "retry_later", true, "unavailable"]
+      ["request timed out with ETIMEDOUT", "provider_timeout", "retry_later", true, "unavailable"],
+      ["all retries failed because provider stayed busy", "retry_exhausted", "retry_later", true, "degraded"],
+      ["runner process timed out before result", "runner_timeout", "inspect_terminal", true, "unavailable"],
+      ["spawn claude ENOENT", "runner_process", "inspect_terminal", true, "unknown"],
+      ["run cancelled by user", "runner_cancelled", "inspect_terminal", false, "unknown"]
     ] as const;
 
     cases.forEach(([message, kind, suggestedAction, retryable, routeHealth]) => {

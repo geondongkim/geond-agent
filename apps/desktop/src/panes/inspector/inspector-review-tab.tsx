@@ -357,7 +357,7 @@ export function InspectorReviewTab({
                         {health.latestIssueTitle ?? i18n.t("workbench.status.unknown")}
                       </p>
                     </div>
-                    <span className="status-pill status-warn">
+                    <span className={cn("status-pill", routeHealthTone(health.latestHealth))}>
                       {formatRouteHealthLabel(i18n, health.latestHealth)}
                     </span>
                   </div>
@@ -365,6 +365,10 @@ export function InspectorReviewTab({
                     <UsageMetric
                       label={i18n.t("workbench.routeHealth.issues")}
                       value={formatUsageNumber(i18n, health.issueCount)}
+                    />
+                    <UsageMetric
+                      label={i18n.t("workbench.routeHealth.successful")}
+                      value={formatUsageNumber(i18n, health.successfulAttemptCount)}
                     />
                     <UsageMetric
                       label={i18n.t("workbench.issue.retryable")}
@@ -376,6 +380,14 @@ export function InspectorReviewTab({
                         health.latestIssueKind
                           ? formatStatusLabel(i18n, health.latestIssueKind)
                           : i18n.t("workbench.status.unknown")
+                      }
+                    />
+                    <UsageMetric
+                      label={i18n.t("workbench.routeHealth.latestAttempt")}
+                      value={
+                        health.latestAttemptStatus
+                          ? formatStatusLabel(i18n, health.latestAttemptStatus)
+                          : i18n.t("workbench.status.notAvailable")
                       }
                     />
                     <UsageMetric
@@ -470,6 +482,18 @@ export function InspectorReviewTab({
                           ? formatShortId(attempt.sourceApprovalId)
                           : i18n.t("workbench.status.notAvailable")
                       }
+                    />
+                    <UsageMetric
+                      label={i18n.t("workbench.runAttempts.parentAttempt")}
+                      value={
+                        attempt.parentRunAttemptId
+                          ? formatShortId(attempt.parentRunAttemptId)
+                          : i18n.t("workbench.status.notAvailable")
+                      }
+                    />
+                    <UsageMetric
+                      label={i18n.t("workbench.runAttempts.followUpReason")}
+                      value={attempt.followUpReason ?? i18n.t("workbench.status.notAvailable")}
                     />
                   </div>
                   <div className="mt-3 space-y-2 text-xs leading-5 text-[color:var(--ink-soft)]">
@@ -863,6 +887,19 @@ function streamQualityTone(quality: string): string {
       return "status-danger";
     case "cancelled":
       return "status-neutral";
+    default:
+      return "status-neutral";
+  }
+}
+
+function routeHealthTone(health: string): string {
+  switch (health) {
+    case "healthy":
+      return "status-ok";
+    case "degraded":
+      return "status-warn";
+    case "unavailable":
+      return "status-danger";
     default:
       return "status-neutral";
   }

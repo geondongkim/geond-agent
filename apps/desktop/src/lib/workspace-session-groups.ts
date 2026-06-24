@@ -5,6 +5,7 @@ export interface WorkspaceSessionGroup {
   readonly label: string;
   readonly sessions: readonly ProjectedSessionListItem[];
   readonly pinnedCount: number;
+  readonly favorite: boolean;
   readonly updatedAt?: string;
   readonly selected: boolean;
 }
@@ -12,10 +13,17 @@ export interface WorkspaceSessionGroup {
 export interface WorkspaceSessionGroupInput {
   readonly sessions: readonly ProjectedSessionListItem[];
   readonly pinnedSessionIds: readonly string[];
-  readonly workspaceOptions: readonly { readonly label: string; readonly path: string }[];
+  readonly workspaceOptions: readonly WorkspaceSessionOption[];
   readonly selectedWorkspacePath: string;
   readonly sessionQuery: string;
   readonly unknownWorkspaceLabel: string;
+}
+
+export interface WorkspaceSessionOption {
+  readonly label: string;
+  readonly path: string;
+  readonly favorite?: boolean;
+  readonly updatedAt?: string;
 }
 
 interface MutableWorkspaceSessionGroup {
@@ -23,6 +31,7 @@ interface MutableWorkspaceSessionGroup {
   label: string;
   sessions: ProjectedSessionListItem[];
   pinnedCount: number;
+  favorite: boolean;
   updatedAt?: string;
   selected: boolean;
 }
@@ -45,6 +54,8 @@ export function createWorkspaceSessionGroups({
       label: workspace.label,
       sessions: [],
       pinnedCount: 0,
+      favorite: workspace.favorite === true,
+      updatedAt: workspace.updatedAt,
       selected: workspace.path === selectedWorkspacePath
     });
   });
@@ -103,6 +114,7 @@ function createWorkspaceGroup(
     label,
     sessions: [],
     pinnedCount: 0,
+    favorite: false,
     selected: options.selected
   };
 }
@@ -115,7 +127,7 @@ function shouldShowWorkspaceGroup(
     return group.sessions.length > 0;
   }
 
-  return group.sessions.length > 0 || group.selected;
+  return group.sessions.length > 0 || group.selected || group.favorite || Boolean(group.updatedAt);
 }
 
 function matchesSessionQuery(
@@ -155,6 +167,9 @@ function compareWorkspaceGroups(
 ): number {
   if (left.selected !== right.selected) {
     return left.selected ? -1 : 1;
+  }
+  if (left.favorite !== right.favorite) {
+    return left.favorite ? -1 : 1;
   }
 
   return (

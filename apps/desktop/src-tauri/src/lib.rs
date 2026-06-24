@@ -29,7 +29,7 @@ const PROCESS_OUTPUT_CAP_BYTES: usize = 1024 * 1024;
 const TEXT_EXPORT_CAP_BYTES: usize = 2 * 1024 * 1024;
 const CAPTURE_ARTIFACT_CAP_BYTES: usize = 1024 * 1024;
 const PROCESS_OUTPUT_TRUNCATED_MARKER: &str = "\n... [truncated]\n";
-const EVENT_STORE_SCHEMA_VERSION: i64 = 7;
+const EVENT_STORE_SCHEMA_VERSION: i64 = 8;
 const ZAI_ANTHROPIC_BASE_URL: &str = "https://api.z.ai/api/anthropic";
 const CLAUDE_ENV_KEYS: &[&str] = &[
     "ANTHROPIC_API_KEY",
@@ -245,6 +245,8 @@ pub struct WorkbenchRunAttemptRecord {
     permission_mode: Option<String>,
     external_session_id: Option<String>,
     resumed_from_external_session_id: Option<String>,
+    parent_run_attempt_id: Option<String>,
+    follow_up_reason: Option<String>,
     command_preview: Option<String>,
     prompt_summary: Option<String>,
     started_at: Option<String>,
@@ -1595,6 +1597,28 @@ fn migrate_event_store(connection: &mut Connection) -> Result<(), String> {
         transaction.commit().map_err(to_string)?;
     }
 
+    if version < 8 {
+        let transaction = connection.transaction().map_err(to_string)?;
+        if !column_exists(&transaction, "workbench_run_attempts", "parent_run_attempt_id")? {
+            transaction
+                .execute_batch(
+                    "alter table workbench_run_attempts add column parent_run_attempt_id text;",
+                )
+                .map_err(to_string)?;
+        }
+        if !column_exists(&transaction, "workbench_run_attempts", "follow_up_reason")? {
+            transaction
+                .execute_batch(
+                    "alter table workbench_run_attempts add column follow_up_reason text;",
+                )
+                .map_err(to_string)?;
+        }
+        transaction
+            .execute_batch("pragma user_version = 8;")
+            .map_err(to_string)?;
+        transaction.commit().map_err(to_string)?;
+    }
+
     Ok(())
 }
 
@@ -2079,12 +2103,13 @@ fn materialize_event_views_for_event(
                     "insert into workbench_run_attempts (
                         session_id, attempt_id, mode, status, backend_adapter_id,
                         provider_route_id, model_profile_id, routing_mode, permission_mode,
-                        external_session_id, resumed_from_external_session_id, command_preview,
+                        external_session_id, resumed_from_external_session_id,
+                        parent_run_attempt_id, follow_up_reason, command_preview,
                         prompt_summary, started_at, finished_at, exit_code, event_count,
                         ignored_record_count, parse_warning_count, error_message, failure_kind,
                         trigger, source_approval_id, source_event_id, updated_at
-                     ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14,
-                               null, null, null, null, null, null, ?15, ?16, ?17, ?18, ?19)
+                     ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
+                               null, null, null, null, null, null, ?17, ?18, ?19, ?20, ?21)
                      on conflict(session_id, attempt_id) do update set
                         mode = excluded.mode,
                         status = excluded.status,
@@ -2095,6 +2120,14 @@ fn materialize_event_views_for_event(
                         permission_mode = excluded.permission_mode,
                         external_session_id = excluded.external_session_id,
                         resumed_from_external_session_id = excluded.resumed_from_external_session_id,
+                        parent_run_attempt_id = coalesce(
+                            excluded.parent_run_attempt_id,
+                            workbench_run_attempts.parent_run_attempt_id
+                        ),
+                        follow_up_reason = coalesce(
+                            excluded.follow_up_reason,
+                            workbench_run_attempts.follow_up_reason
+                        ),
                         command_preview = excluded.command_preview,
                         prompt_summary = excluded.prompt_summary,
                         started_at = coalesce(excluded.started_at, workbench_run_attempts.started_at),
@@ -2118,6 +2151,8 @@ fn materialize_event_views_for_event(
                         read_string(attempt, "permissionMode"),
                         read_string(attempt, "externalSessionId"),
                         read_string(attempt, "resumedFromExternalSessionId"),
+                        read_string(attempt, "parentRunAttemptId"),
+                        read_string(attempt, "followUpReason"),
                         read_string(attempt, "commandPreview"),
                         read_string(attempt, "promptSummary"),
                         started_at,
@@ -2141,12 +2176,13 @@ fn materialize_event_views_for_event(
                     "insert into workbench_run_attempts (
                         session_id, attempt_id, mode, status, backend_adapter_id,
                         provider_route_id, model_profile_id, routing_mode, permission_mode,
-                        external_session_id, resumed_from_external_session_id, command_preview,
+                        external_session_id, resumed_from_external_session_id,
+                        parent_run_attempt_id, follow_up_reason, command_preview,
                         prompt_summary, started_at, finished_at, exit_code, event_count,
                         ignored_record_count, parse_warning_count, error_message, failure_kind,
                         source_event_id, updated_at
                      ) values (?1, ?2, 'claude-live', ?3, null, null, null, null, null, null,
-                               null, null, null, null, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+                               null, null, null, null, null, null, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
                      on conflict(session_id, attempt_id) do update set
                         status = excluded.status,
                         finished_at = excluded.finished_at,
@@ -2411,7 +2447,8 @@ fn list_run_attempt_records(
         .prepare(
             "select session_id, attempt_id, mode, status, backend_adapter_id, provider_route_id,
                     model_profile_id, routing_mode, permission_mode, external_session_id,
-                    resumed_from_external_session_id, command_preview, prompt_summary,
+                    resumed_from_external_session_id, parent_run_attempt_id, follow_up_reason,
+                    command_preview, prompt_summary,
                     started_at, finished_at, exit_code, event_count, ignored_record_count,
                     parse_warning_count, error_message, failure_kind, trigger, source_approval_id,
                     source_event_id, updated_at
@@ -2435,20 +2472,22 @@ fn list_run_attempt_records(
                 permission_mode: row.get(8)?,
                 external_session_id: row.get(9)?,
                 resumed_from_external_session_id: row.get(10)?,
-                command_preview: row.get(11)?,
-                prompt_summary: row.get(12)?,
-                started_at: row.get(13)?,
-                finished_at: row.get(14)?,
-                exit_code: row.get(15)?,
-                event_count: row.get(16)?,
-                ignored_record_count: row.get(17)?,
-                parse_warning_count: row.get(18)?,
-                error_message: row.get(19)?,
-                failure_kind: row.get(20)?,
-                trigger: row.get(21)?,
-                source_approval_id: row.get(22)?,
-                source_event_id: row.get(23)?,
-                updated_at: row.get(24)?,
+                parent_run_attempt_id: row.get(11)?,
+                follow_up_reason: row.get(12)?,
+                command_preview: row.get(13)?,
+                prompt_summary: row.get(14)?,
+                started_at: row.get(15)?,
+                finished_at: row.get(16)?,
+                exit_code: row.get(17)?,
+                event_count: row.get(18)?,
+                ignored_record_count: row.get(19)?,
+                parse_warning_count: row.get(20)?,
+                error_message: row.get(21)?,
+                failure_kind: row.get(22)?,
+                trigger: row.get(23)?,
+                source_approval_id: row.get(24)?,
+                source_event_id: row.get(25)?,
+                updated_at: row.get(26)?,
             })
         })
         .map_err(to_string)?;

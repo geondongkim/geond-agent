@@ -18,6 +18,7 @@ export function SessionRailPane({
   sessionQuery,
   setSessionQuery,
   setWorkspacePath,
+  toggleWorkspaceFavorite,
   workspaceSessionGroups
 }: {
   readonly activeSessionId?: string;
@@ -29,6 +30,7 @@ export function SessionRailPane({
   readonly sessionQuery: string;
   readonly setSessionQuery: (query: string) => void;
   readonly setWorkspacePath: (path: string) => void;
+  readonly toggleWorkspaceFavorite: (path: string, label: string) => void;
   readonly workspaceSessionGroups: readonly WorkspaceSessionGroup[];
 }) {
   return (
@@ -60,6 +62,7 @@ export function SessionRailPane({
         i18n={i18n}
         onSelect={selectSession}
         onSelectWorkspace={setWorkspacePath}
+        onToggleWorkspaceFavorite={toggleWorkspaceFavorite}
       />
 
       <section className="backend-status-section">

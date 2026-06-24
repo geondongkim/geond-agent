@@ -96,6 +96,7 @@ export function useWorkbenchRunner({
     const nextIndex = controllerSnapshot.events.length + 1;
     const sessionId = options.resumeSessionId ?? `local-session-${Date.now()}`;
     const existingSession = projectionSessions.find((session) => session.id === sessionId);
+    const activeProjectedSession = controllerSnapshot.projection.activeSession;
     const title =
       existingSession?.title ??
       formatMessage(i18n.t("workbench.session.defaultTitle"), {
@@ -169,7 +170,17 @@ export function useWorkbenchRunner({
       await appendEvents([
         createRunAttemptStartedEvent(request, mode, attemptId, isResumeRun, {
           trigger: options.trigger,
-          sourceApprovalId: options.sourceApprovalId
+          sourceApprovalId: options.sourceApprovalId,
+          parentRunAttemptId:
+            isResumeRun && activeProjectedSession?.id === sessionId
+              ? activeProjectedSession.liveRunContinuity.latestAttemptId
+              : undefined,
+          followUpReason:
+            options.trigger === "approval_follow_up"
+              ? "approval_follow_up"
+              : isResumeRun
+                ? "manual_resume"
+                : undefined
         })
       ]);
 

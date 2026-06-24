@@ -57,6 +57,8 @@ export function createRunAttemptFollowUpDraft(
       : undefined,
     attempt.trigger ? `Trigger: ${attempt.trigger}.` : undefined,
     attempt.sourceApprovalId ? `Source approval: ${attempt.sourceApprovalId}.` : undefined,
+    attempt.parentRunAttemptId ? `Parent run attempt: ${attempt.parentRunAttemptId}.` : undefined,
+    attempt.followUpReason ? `Follow-up reason: ${attempt.followUpReason}.` : undefined,
     `Stream quality: ${deriveRunAttemptStreamQuality(attempt)}.`,
     attempt.exitCode !== undefined ? `Exit code: ${attempt.exitCode}.` : undefined,
     attempt.eventCount !== undefined ? `Normalized events: ${attempt.eventCount}.` : undefined,

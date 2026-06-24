@@ -32,9 +32,14 @@ import {
   type SideChatDraft
 } from "./lib/side-chat-drafts.js";
 import {
+  toggleRecentContextPathFavorite,
   toggleRecentContextItemFavorite,
   type RecentContextItem
 } from "./lib/recent-context.js";
+import {
+  normalizeEvidenceExportPreferences,
+  type EvidenceExportPreferences
+} from "./lib/evidence-export-preferences.js";
 
 interface AppProps {
   readonly document: DesktopDemoDocument;
@@ -64,6 +69,8 @@ export function App({ document }: AppProps) {
   const [recentContextItems, setRecentContextItems] = useState<readonly RecentContextItem[]>(
     document.recentContextItems
   );
+  const [evidenceExportPreferences, setEvidenceExportPreferences] =
+    useState<EvidenceExportPreferences>(document.evidenceExportPreferences);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [materializedInspectorData, setMaterializedInspectorData] = useState<
     InspectorSessionReadModel | undefined
@@ -96,6 +103,7 @@ export function App({ document }: AppProps) {
     i18n,
     pinnedSessionIds,
     projection,
+    recentContextItems,
     selectedWorkspaces,
     sessionDefaults,
     sessionQuery,
@@ -179,6 +187,27 @@ export function App({ document }: AppProps) {
     setRecentContextItems((current) => {
       const next = toggleRecentContextItemFavorite(current, itemId);
       void document.saveRecentContextItems(next);
+      return next;
+    });
+  };
+  const toggleWorkspaceFavorite = (path: string, label: string) => {
+    setRecentContextItems((current) => {
+      const next = toggleRecentContextPathFavorite(current, {
+        kind: "workspace",
+        label,
+        path
+      });
+      void document.saveRecentContextItems(next);
+      return next;
+    });
+  };
+  const updateEvidenceExportPreferences = (patch: Partial<EvidenceExportPreferences>) => {
+    setEvidenceExportPreferences((current) => {
+      const next = normalizeEvidenceExportPreferences({
+        ...current,
+        ...patch
+      });
+      void document.saveEvidenceExportPreferences(next);
       return next;
     });
   };
@@ -455,6 +484,7 @@ export function App({ document }: AppProps) {
               sessionQuery={sessionQuery}
               setSessionQuery={setSessionQuery}
               setWorkspacePath={selectWorkspacePath}
+              toggleWorkspaceFavorite={toggleWorkspaceFavorite}
               workspaceSessionGroups={workspaceSessionGroups}
             />
           ) : null}
@@ -499,6 +529,7 @@ export function App({ document }: AppProps) {
               composerEnterBehaviorOptions={composerEnterBehaviorOptions}
               drafts={visibleSideChatDrafts}
               enqueueSideChatDraft={enqueueSideChatDraft}
+              evidenceExportPreferences={evidenceExportPreferences}
               followUpPolicyOptions={followUpPolicyOptions}
               ignoredRecordCount={ignoredRecordCount}
               i18n={i18n}
@@ -525,6 +556,7 @@ export function App({ document }: AppProps) {
               setInspectorTab={setInspectorTab}
               setRunnerStatus={setRunnerStatus}
               toggleRecentContextFavorite={toggleRecentContextFavorite}
+              updateEvidenceExportPreferences={updateEvidenceExportPreferences}
               updateAgentResponseLanguage={updateAgentResponseLanguage}
               updateRunnerMode={updateRunnerMode}
               updateSessionDefaults={updateSessionDefaults}
