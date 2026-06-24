@@ -183,6 +183,9 @@ Metadata-only adapter packages can consume the same SDK before a real runner is
 implemented. `packages/codex-cli-bridge` and `packages/opencode-bridge` are
 research boundaries that describe candidate capability, execution-policy, and
 fixture-event shapes without launching those tools or copying upstream source.
+The desktop backend picker may expose these candidates for catalog/readiness
+review, but concrete live runners must block launch when the selected backend is
+metadata-only.
 
 Execution policy is also adapter-neutral metadata. The SDK exposes shared
 policy ids such as `plan`, `ask-first`, `accept-edits`, and `bypass`; concrete

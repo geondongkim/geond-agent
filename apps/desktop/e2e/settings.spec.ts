@@ -54,6 +54,7 @@ test("settings and pinned session preferences persist across reload", async ({ p
   await expect(page.getByLabel("Runner mode")).toContainText("Claude Code live");
   await expect(page.getByLabel("Runner mode")).toHaveValue("fixture");
   await expect(page.getByLabel("Backend")).toContainText("Claude Code external CLI/ACP candidate");
+  await expect(page.getByLabel("Backend")).toContainText("Codex CLI metadata candidate");
   await expect(page.getByLabel("Provider route")).toContainText("Z.ai Anthropic-compatible route");
   await expect(page.getByLabel("Model profile")).toContainText("opus alias -> GLM 5.2");
   await expect(page.getByLabel("Permission mode")).toHaveValue("plan");

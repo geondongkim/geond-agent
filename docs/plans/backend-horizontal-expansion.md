@@ -146,7 +146,9 @@ runtime code.
 of the SDK. It does not launch Codex or copy Codex source; it proves that
 backend metadata, capability status, execution policy ids, and artifact
 references can be described outside the Claude Code bridge before a real runner
-exists.
+exists. `apps/desktop` can list it in the backend picker as a non-executable
+candidate so the UI path exercises multi-backend selection without pretending a
+Codex runner exists.
 
 `packages/opencode-bridge` is the next metadata-only consumer. It records the
 OpenCode-specific questions that matter before a real runner exists: selected
