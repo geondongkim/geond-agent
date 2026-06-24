@@ -45,6 +45,11 @@ describe("evidence capture artifact export", () => {
         suggestedActions: []
       }
     ]);
+    expect(payload.dogfoodWorkflow).toMatchObject({
+      liveSucceededCount: 1,
+      routeSwitchCandidateCount: 0,
+      runAttemptCount: 1
+    });
     expect(JSON.stringify(payload)).not.toMatch(
       /ZAI_API_KEY|ANTHROPIC_API_KEY|ANTHROPIC_AUTH_TOKEN|rawLog|transcript|sk-[A-Za-z0-9_-]{20,}/
     );
@@ -74,6 +79,11 @@ describe("evidence capture artifact export", () => {
     expect(artifact.fileName).toBe("workbench-multi-session-trace-bundle.json");
     expect(payload).toMatchObject({
       kind: "multi-session-trace-bundle",
+      dogfoodWorkflow: {
+        attentionSessionCount: 1,
+        selectedSessionCount: 2,
+        sessionCount: 2
+      },
       traceBundle: {
         errorSessionCount: 1,
         pendingApprovalCount: 1,
@@ -99,6 +109,12 @@ describe("evidence capture artifact export", () => {
     expect(payload.kind).toBe("visual-capture-policy");
     expect(payload.visualCapture.status).toBe("deferred-until-explicit-consent-and-redaction");
     expect(payload.visualCapture.reviewReady).toBe(false);
+    expect(payload.visualCapture.missingReviewSteps).toEqual([
+      "explicitConsent",
+      "redactionReview",
+      "storagePathSelected",
+      "visibleContentReviewed"
+    ]);
     expect(payload.visualCapture.rawImageStorageDefault).toBe("disabled");
     expect(JSON.stringify(payload)).not.toMatch(/data:image|base64/i);
   });
@@ -117,6 +133,7 @@ describe("evidence capture artifact export", () => {
     const payload = JSON.parse(artifact.text);
 
     expect(payload.visualCapture.reviewReady).toBe(true);
+    expect(payload.visualCapture.missingReviewSteps).toEqual([]);
     expect(payload.visualCapture.status).toBe("policy-reviewed-raw-capture-still-disabled");
     expect(payload.visualCapture.rawImageStorageDefault).toBe("disabled");
   });

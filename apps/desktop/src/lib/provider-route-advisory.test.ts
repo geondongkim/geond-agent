@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  findAlternateProviderRouteOption,
   findAdvisoryProviderRouteFallback,
   findCurrentProviderRouteOption,
   shouldOfferProviderRouteFallback
@@ -67,5 +68,25 @@ describe("provider route advisory fallback", () => {
         "zai.openai-compatible-coding"
       )?.label
     ).toBe("Z.ai OpenAI-compatible coding route");
+  });
+
+  it("finds alternate route options for route health cards", () => {
+    const fallback = findAlternateProviderRouteOption({
+      unavailableRouteIds: new Set(["zai.anthropic-compatible"]),
+      providerRouteOptions: [
+        {
+          value: "zai.anthropic-compatible",
+          label: "Z.ai Anthropic-compatible route",
+          detail: "anthropic-compatible"
+        },
+        {
+          value: "zai.openai-compatible-coding",
+          label: "Z.ai OpenAI-compatible coding route",
+          detail: "openai-compatible"
+        }
+      ]
+    });
+
+    expect(fallback?.value).toBe("zai.openai-compatible-coding");
   });
 });
