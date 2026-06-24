@@ -103,7 +103,7 @@ share the same session, plan, diff, terminal, approval, and review surfaces.
 
 ## License
 
-`geond-agent` is licensed under the [Apache License 2.0](LICENSE).
+`geond-agent` is licensed under the [Mozilla Public License 2.0](LICENSE).
 
 See [NOTICE](NOTICE) and [docs/reference/licensing.md](docs/reference/licensing.md)
 for third-party reference and attribution guidance.
