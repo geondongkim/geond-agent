@@ -190,7 +190,7 @@ export function createVisualCapturePolicyArtifact(
     dogfoodWorkflow,
     liveDogfoodRunbook: serializeLiveDogfoodRunbook(liveDogfoodRunbook),
     note:
-      "This policy artifact documents the consent/redaction boundary for future visual capture. It does not include image payload data."
+      "This policy artifact documents the consent/redaction boundary for raw visual capture. It does not include image payload data."
   };
 
   return {

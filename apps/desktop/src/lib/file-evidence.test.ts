@@ -276,6 +276,24 @@ describe("file evidence preview model", () => {
         diffs: [],
         runAttempts: []
       } as unknown as ProjectedActiveSession,
+      rawVisualCaptureReferences: [
+        {
+          id: "raw-visual:session-1",
+          sessionId: "session-1",
+          sessionTitle: "Claude dogfood",
+          path: "/Users/example/Desktop/session-1.png",
+          fileName: "session-1.png",
+          capturedAt: "2026-06-24T00:00:00.000Z",
+          payloadPersistedInWorkbench: false,
+          storagePolicy: "user-selected-path-only",
+          review: {
+            explicitConsent: true,
+            redactionReview: true,
+            storagePathSelected: true,
+            visibleContentReviewed: true
+          }
+        }
+      ],
       sessions: [
         {
           id: "session-1",
@@ -309,6 +327,9 @@ describe("file evidence preview model", () => {
     expect(report).toContain("Claude dogfood (session-1): completed");
     expect(report).toContain("resumable=yes");
     expect(report).toContain("Active session evidence");
+    expect(report).toContain("Raw visual artifact references");
+    expect(report).toContain("path=/Users/example/Desktop/session-1.png");
+    expect(report).toContain("payloadPersistedInWorkbench=no");
     expect(report).not.toContain("sk-local");
   });
 
@@ -339,6 +360,38 @@ describe("file evidence preview model", () => {
           }
         ]
       } as unknown as ProjectedActiveSession,
+      rawVisualCaptureReferences: [
+        {
+          id: "raw-visual:session-1",
+          sessionId: "session-1",
+          path: "/Users/example/Desktop/session-1.png",
+          fileName: "session-1.png",
+          capturedAt: "2026-06-24T00:00:00.000Z",
+          payloadPersistedInWorkbench: false,
+          storagePolicy: "user-selected-path-only",
+          review: {
+            explicitConsent: true,
+            redactionReview: true,
+            storagePathSelected: true,
+            visibleContentReviewed: true
+          }
+        },
+        {
+          id: "raw-visual:session-3",
+          sessionId: "session-3",
+          path: "/Users/example/Desktop/session-3.png",
+          fileName: "session-3.png",
+          capturedAt: "2026-06-24T00:05:00.000Z",
+          payloadPersistedInWorkbench: false,
+          storagePolicy: "user-selected-path-only",
+          review: {
+            explicitConsent: true,
+            redactionReview: true,
+            storagePathSelected: true,
+            visibleContentReviewed: true
+          }
+        }
+      ],
       sessions: [
         {
           id: "session-1",
@@ -368,6 +421,8 @@ describe("file evidence preview model", () => {
     expect(report).toContain("recommended actions:");
     expect(report).toContain("Trace/export checklist");
     expect(report).toContain("consent/redaction, user-selected PNG path, and OS picker");
+    expect(report).toContain("path=/Users/example/Desktop/session-1.png");
+    expect(report).not.toContain("session-3.png");
     expect(report).not.toContain(sensitiveValue);
   });
 
@@ -431,6 +486,23 @@ describe("file evidence preview model", () => {
           favorite: true
         }
       ],
+      rawVisualCaptureReferences: [
+        {
+          id: "raw-visual:session-1",
+          sessionId: "session-1",
+          path: "/Users/example/Desktop/session-1.png",
+          fileName: "session-1.png",
+          capturedAt: "2026-06-24T00:00:00.000Z",
+          payloadPersistedInWorkbench: false,
+          storagePolicy: "user-selected-path-only",
+          review: {
+            explicitConsent: true,
+            redactionReview: true,
+            storagePathSelected: true,
+            visibleContentReviewed: true
+          }
+        }
+      ],
       sessions: [
         {
           id: "session-1",
@@ -456,6 +528,8 @@ describe("file evidence preview model", () => {
     expect(manifest).toContain("Structured trace bundle: requires-explicit-consent");
     expect(manifest).toContain("structured trace bundle: requires explicit consent");
     expect(manifest).toContain("sessions with errors: 1");
+    expect(manifest).toContain("Raw visual artifact references");
+    expect(manifest).toContain("storage=user-selected-path-only");
     expect(manifest).not.toContain(sensitiveValue);
   });
 

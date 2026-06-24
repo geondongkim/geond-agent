@@ -447,6 +447,19 @@ export type UiMessageKey =
   | "workbench.files.rawVisualCaptureBlocked"
   | "workbench.files.rawVisualCaptureUnsupported"
   | "workbench.files.rawVisualCaptureFailed"
+  | "workbench.files.rawVisualCapturePathReference"
+  | "workbench.files.rawVisualCaptureReasonMissingSession"
+  | "workbench.files.rawVisualCaptureReasonNativeRuntime"
+  | "workbench.files.rawVisualCaptureReasonSaveCancelled"
+  | "workbench.files.rawVisualCaptureReasonSaveFailed"
+  | "workbench.files.rawVisualCaptureReasonReviewGate"
+  | "workbench.files.rawVisualCaptureReasonDisplayUnavailable"
+  | "workbench.files.rawVisualCaptureReasonPickerDenied"
+  | "workbench.files.rawVisualCaptureReasonFrameTimeout"
+  | "workbench.files.rawVisualCaptureReasonCanvas"
+  | "workbench.files.rawVisualCaptureReasonPngEncoding"
+  | "workbench.files.rawVisualCaptureReasonNativeWrite"
+  | "workbench.files.rawVisualCaptureReasonUnknown"
   | "workbench.files.exportSaved"
   | "workbench.files.exportDownloaded"
   | "workbench.files.exportCancelled"
@@ -1039,6 +1052,19 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.rawVisualCaptureBlocked": "Raw visual capture blocked by review gate.",
     "workbench.files.rawVisualCaptureUnsupported": "Raw visual capture requires the native desktop runtime.",
     "workbench.files.rawVisualCaptureFailed": "Raw visual capture failed or was denied by the OS picker.",
+    "workbench.files.rawVisualCapturePathReference": "Path reference recorded",
+    "workbench.files.rawVisualCaptureReasonMissingSession": "No active session",
+    "workbench.files.rawVisualCaptureReasonNativeRuntime": "Native runtime required",
+    "workbench.files.rawVisualCaptureReasonSaveCancelled": "Save path cancelled",
+    "workbench.files.rawVisualCaptureReasonSaveFailed": "Save dialog failed",
+    "workbench.files.rawVisualCaptureReasonReviewGate": "Review gate blocked capture",
+    "workbench.files.rawVisualCaptureReasonDisplayUnavailable": "Display capture unavailable",
+    "workbench.files.rawVisualCaptureReasonPickerDenied": "OS picker denied or cancelled",
+    "workbench.files.rawVisualCaptureReasonFrameTimeout": "Capture frame timed out",
+    "workbench.files.rawVisualCaptureReasonCanvas": "Capture canvas unavailable",
+    "workbench.files.rawVisualCaptureReasonPngEncoding": "PNG encoding failed",
+    "workbench.files.rawVisualCaptureReasonNativeWrite": "Native PNG write failed",
+    "workbench.files.rawVisualCaptureReasonUnknown": "Unknown capture failure",
     "workbench.files.exportSaved": "Evidence bundle saved.",
     "workbench.files.exportDownloaded": "Evidence bundle downloaded.",
     "workbench.files.exportCancelled": "Evidence bundle export cancelled.",
@@ -1628,6 +1654,19 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.rawVisualCaptureBlocked": "검토 gate가 원본 시각 캡처를 차단했습니다.",
     "workbench.files.rawVisualCaptureUnsupported": "원본 시각 캡처는 native desktop runtime이 필요합니다.",
     "workbench.files.rawVisualCaptureFailed": "원본 시각 캡처가 실패했거나 OS 선택기에서 거부되었습니다.",
+    "workbench.files.rawVisualCapturePathReference": "경로 참조를 기록했습니다",
+    "workbench.files.rawVisualCaptureReasonMissingSession": "활성 세션 없음",
+    "workbench.files.rawVisualCaptureReasonNativeRuntime": "native runtime 필요",
+    "workbench.files.rawVisualCaptureReasonSaveCancelled": "저장 경로 선택 취소",
+    "workbench.files.rawVisualCaptureReasonSaveFailed": "저장 대화상자 실패",
+    "workbench.files.rawVisualCaptureReasonReviewGate": "검토 gate가 캡처 차단",
+    "workbench.files.rawVisualCaptureReasonDisplayUnavailable": "화면 캡처 사용 불가",
+    "workbench.files.rawVisualCaptureReasonPickerDenied": "OS 선택기 거부 또는 취소",
+    "workbench.files.rawVisualCaptureReasonFrameTimeout": "캡처 프레임 시간 초과",
+    "workbench.files.rawVisualCaptureReasonCanvas": "캡처 canvas 사용 불가",
+    "workbench.files.rawVisualCaptureReasonPngEncoding": "PNG 인코딩 실패",
+    "workbench.files.rawVisualCaptureReasonNativeWrite": "native PNG 쓰기 실패",
+    "workbench.files.rawVisualCaptureReasonUnknown": "알 수 없는 캡처 실패",
     "workbench.files.exportSaved": "증거 묶음을 저장했습니다.",
     "workbench.files.exportDownloaded": "증거 묶음을 다운로드했습니다.",
     "workbench.files.exportCancelled": "증거 묶음 내보내기를 취소했습니다.",

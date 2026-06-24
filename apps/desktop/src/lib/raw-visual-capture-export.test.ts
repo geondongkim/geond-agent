@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createRawVisualCaptureArtifactReference,
   createRawVisualCaptureFileName,
   createRawVisualCaptureReadiness,
+  exportRawVisualCapturePng,
   stripPngDataUrlPrefix
 } from "./raw-visual-capture-export.js";
 import type { ProjectedActiveSession } from "./workbench-types.js";
@@ -61,6 +63,49 @@ describe("raw visual capture export helpers", () => {
     expect(stripPngDataUrlPrefix("data:image/png;base64,aGVsbG8=")).toBe("aGVsbG8=");
     expect(stripPngDataUrlPrefix("data:image/jpeg;base64,aGVsbG8=")).toBeUndefined();
     expect(stripPngDataUrlPrefix("not-base64")).toBeUndefined();
+  });
+
+  it("returns a specific unsupported reason outside the native desktop runtime", async () => {
+    await expect(
+      exportRawVisualCapturePng({
+        activeSession: { id: "session-1" } as ProjectedActiveSession,
+        visualReview: {
+          explicitConsent: true,
+          redactionReview: true,
+          storagePathSelected: true,
+          visibleContentReviewed: true
+        }
+      })
+    ).resolves.toMatchObject({
+      status: "unsupported",
+      failureKind: "native-runtime-required"
+    });
+  });
+
+  it("creates path-only raw visual artifact references", () => {
+    const reference = createRawVisualCaptureArtifactReference({
+      activeSession: {
+        id: "session-1",
+        title: "Claude dogfood"
+      } as ProjectedActiveSession,
+      capturedAt: "2026-06-24T00:00:00.000Z",
+      path: "/Users/example/Desktop/capture.png",
+      visualReview: {
+        explicitConsent: true,
+        redactionReview: true,
+        storagePathSelected: true,
+        visibleContentReviewed: true
+      }
+    });
+
+    expect(reference).toMatchObject({
+      id: "session-1:2026-06-24T00:00:00.000Z:capture.png",
+      fileName: "capture.png",
+      path: "/Users/example/Desktop/capture.png",
+      payloadPersistedInWorkbench: false,
+      storagePolicy: "user-selected-path-only"
+    });
+    expect(JSON.stringify(reference)).not.toMatch(/data:image|base64/i);
   });
 
   it("creates stable raw visual capture file names", () => {
