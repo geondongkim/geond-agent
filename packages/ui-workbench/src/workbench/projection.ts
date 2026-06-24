@@ -94,7 +94,9 @@ export interface ProjectedProviderRouteHealth {
   readonly latestIssueKind?: WorkbenchRunnerIssueKind;
   readonly latestIssueTitle?: string;
   readonly latestIssueMessage?: string;
+  readonly latestAttemptStatus?: WorkbenchRunAttemptSnapshot["status"];
   readonly issueCount: number;
+  readonly successfulAttemptCount: number;
   readonly retryableIssueCount: number;
   readonly lastDetectedAt?: string;
   readonly suggestedActions: readonly WorkbenchRunnerIssueSuggestedAction[];
@@ -337,7 +339,7 @@ function projectActiveSession(
     usageReports: Object.values(session.usageReports),
     runAttempts,
     runnerIssues,
-    providerRouteHealth: projectProviderRouteHealth(runnerIssues),
+    providerRouteHealth: projectProviderRouteHealth(runnerIssues, runAttempts),
     liveRunContinuity,
     liveRunGuidance: projectLiveRunGuidance(runAttempts, runnerIssues, liveRunContinuity),
     approvals: Object.values(session.approvals),
@@ -546,7 +548,8 @@ function guidanceKindForIssue(
 }
 
 function projectProviderRouteHealth(
-  issues: readonly WorkbenchSessionSnapshot["runnerIssues"][string][]
+  issues: readonly WorkbenchSessionSnapshot["runnerIssues"][string][],
+  runAttempts: readonly WorkbenchRunAttemptSnapshot[]
 ): readonly ProjectedProviderRouteHealth[] {
   const byRoute = new Map<
     string,
@@ -556,7 +559,9 @@ function projectProviderRouteHealth(
       latestIssueKind?: WorkbenchRunnerIssueKind;
       latestIssueTitle?: string;
       latestIssueMessage?: string;
+      latestAttemptStatus?: WorkbenchRunAttemptSnapshot["status"];
       issueCount: number;
+      successfulAttemptCount: number;
       retryableIssueCount: number;
       lastDetectedAt?: string;
       suggestedActions: Set<WorkbenchRunnerIssueSuggestedAction>;
@@ -575,6 +580,7 @@ function projectProviderRouteHealth(
       providerRouteId,
       latestHealth: "unknown" as WorkbenchProviderRouteHealthStatus,
       issueCount: 0,
+      successfulAttemptCount: 0,
       retryableIssueCount: 0,
       suggestedActions: new Set<WorkbenchRunnerIssueSuggestedAction>(),
       modelProfileIds: new Set<string>()
@@ -591,6 +597,51 @@ function projectProviderRouteHealth(
       entry.latestIssueKind = issue.kind;
       entry.latestIssueTitle = issue.title;
       entry.latestIssueMessage = issue.message;
+      entry.latestAttemptStatus = undefined;
+      entry.lastDetectedAt = nextDetectedAt;
+    }
+
+    byRoute.set(providerRouteId, entry);
+  });
+
+  runAttempts.forEach((attempt) => {
+    const providerRouteId = attempt.providerRouteId;
+    if (!providerRouteId) {
+      return;
+    }
+
+    const current = byRoute.get(providerRouteId);
+    const nextDetectedAt = attempt.finishedAt ?? attempt.startedAt;
+    const isNewer =
+      !current ||
+      compareMaybeIso(nextDetectedAt, current.lastDetectedAt) >= 0;
+    const entry = current ?? {
+      providerRouteId,
+      latestHealth: "unknown" as WorkbenchProviderRouteHealthStatus,
+      issueCount: 0,
+      successfulAttemptCount: 0,
+      retryableIssueCount: 0,
+      suggestedActions: new Set<WorkbenchRunnerIssueSuggestedAction>(),
+      modelProfileIds: new Set<string>()
+    };
+
+    if (attempt.modelProfileId) {
+      entry.modelProfileIds.add(attempt.modelProfileId);
+    }
+    if (attempt.status === "succeeded") {
+      entry.successfulAttemptCount += 1;
+    }
+
+    if (isNewer) {
+      if (attempt.status === "succeeded") {
+        entry.latestHealth = "healthy";
+        entry.latestIssueKind = "route_reached";
+        entry.latestIssueTitle = undefined;
+        entry.latestIssueMessage = undefined;
+      } else if (attempt.failureKind && !entry.latestIssueKind) {
+        entry.latestIssueKind = attempt.failureKind;
+      }
+      entry.latestAttemptStatus = attempt.status;
       entry.lastDetectedAt = nextDetectedAt;
     }
 
@@ -604,7 +655,9 @@ function projectProviderRouteHealth(
       latestIssueKind: entry.latestIssueKind,
       latestIssueTitle: entry.latestIssueTitle,
       latestIssueMessage: entry.latestIssueMessage,
+      latestAttemptStatus: entry.latestAttemptStatus,
       issueCount: entry.issueCount,
+      successfulAttemptCount: entry.successfulAttemptCount,
       retryableIssueCount: entry.retryableIssueCount,
       lastDetectedAt: entry.lastDetectedAt,
       suggestedActions: Array.from(entry.suggestedActions).sort(),

@@ -32,6 +32,19 @@ describe("evidence capture artifact export", () => {
       modelProfileId: "glm-5.2",
       providerRouteId: "zai-anthropic-compatible"
     });
+    expect(payload.activeSession.routeHealth).toEqual([
+      {
+        providerRouteId: "zai-anthropic-compatible",
+        latestHealth: "healthy",
+        latestIssueKind: "route_reached",
+        latestAttemptStatus: "succeeded",
+        issueCount: 0,
+        modelProfileIds: ["glm-5.2"],
+        retryableIssueCount: 0,
+        successfulAttemptCount: 1,
+        suggestedActions: []
+      }
+    ]);
     expect(JSON.stringify(payload)).not.toMatch(
       /ZAI_API_KEY|ANTHROPIC_API_KEY|ANTHROPIC_AUTH_TOKEN|rawLog|transcript|sk-[A-Za-z0-9_-]{20,}/
     );
@@ -185,7 +198,19 @@ function createSessionFixture(): ProjectedActiveSession {
     liveRunGuidance: {} as ProjectedActiveSession["liveRunGuidance"],
     notices: [],
     plan: undefined,
-    providerRouteHealth: [],
+    providerRouteHealth: [
+      {
+        issueCount: 0,
+        latestAttemptStatus: "succeeded",
+        latestHealth: "healthy",
+        latestIssueKind: "route_reached",
+        modelProfileIds: ["glm-5.2"],
+        providerRouteId: "zai-anthropic-compatible",
+        retryableIssueCount: 0,
+        successfulAttemptCount: 1,
+        suggestedActions: []
+      }
+    ],
     runnerIssues: [],
     runAttempts: [
       {

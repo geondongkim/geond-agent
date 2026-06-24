@@ -3,7 +3,11 @@ import type { UiI18n, WorkbenchSessionDefaults } from "@geond-agent/ui-workbench
 
 import type { DesktopDemoDocument } from "../demo-workbench.js";
 import type { DesktopWorkspaceDescriptor } from "../workspace.js";
-import { createWorkspaceSessionGroups } from "./workspace-session-groups.js";
+import type { RecentContextItem } from "./recent-context.js";
+import {
+  createWorkspaceSessionGroups,
+  type WorkspaceSessionOption
+} from "./workspace-session-groups.js";
 
 type Projection = DesktopDemoDocument["initialControllerSnapshot"]["projection"];
 
@@ -11,6 +15,7 @@ export function useWorkbenchDerivedState({
   i18n,
   pinnedSessionIds,
   projection,
+  recentContextItems,
   selectedWorkspaces,
   sessionDefaults,
   sessionQuery,
@@ -19,6 +24,7 @@ export function useWorkbenchDerivedState({
   readonly i18n: UiI18n;
   readonly pinnedSessionIds: readonly string[];
   readonly projection: Projection;
+  readonly recentContextItems: readonly RecentContextItem[];
   readonly selectedWorkspaces: readonly DesktopWorkspaceDescriptor[];
   readonly sessionDefaults: WorkbenchSessionDefaults;
   readonly sessionQuery: string;
@@ -39,11 +45,31 @@ export function useWorkbenchDerivedState({
     ? getExternalSessionLink(activeSession, sessionDefaults.defaultBackendAdapterId)
     : undefined;
   const workspaceOptions = useMemo(() => {
-    const options = new Map<string, { readonly label: string; readonly path: string }>();
-    selectedWorkspaces.forEach((workspace) => options.set(workspace.path, workspace));
-    projection.workspaces.forEach((workspace) => options.set(workspace.path, workspace));
+    const options = new Map<string, WorkspaceSessionOption>();
+    const upsertWorkspace = (workspace: WorkspaceSessionOption) => {
+      const existing = options.get(workspace.path);
+      options.set(workspace.path, {
+        ...existing,
+        ...workspace,
+        favorite: existing?.favorite === true || workspace.favorite === true,
+        updatedAt: maxMaybeIso(existing?.updatedAt, workspace.updatedAt)
+      });
+    };
+
+    selectedWorkspaces.forEach((workspace) => upsertWorkspace(workspace));
+    projection.workspaces.forEach((workspace) => upsertWorkspace(workspace));
+    recentContextItems
+      .filter((item) => item.kind === "workspace")
+      .forEach((item) =>
+        upsertWorkspace({
+          label: item.label,
+          path: item.path,
+          favorite: item.favorite,
+          updatedAt: item.updatedAt
+        })
+      );
     return [...options.values()];
-  }, [projection.workspaces, selectedWorkspaces]);
+  }, [projection.workspaces, recentContextItems, selectedWorkspaces]);
   const workspaceSessionGroups = useMemo(
     () =>
       createWorkspaceSessionGroups({
@@ -66,6 +92,20 @@ export function useWorkbenchDerivedState({
     workspaceSessionGroups,
     workspaceOptions
   };
+}
+
+function maxMaybeIso(
+  left: string | undefined,
+  right: string | undefined
+): string | undefined {
+  if (!left) {
+    return right;
+  }
+  if (!right) {
+    return left;
+  }
+
+  return Date.parse(left) >= Date.parse(right) ? left : right;
 }
 
 function getExternalSessionLink(

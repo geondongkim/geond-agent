@@ -38,7 +38,7 @@ export function classifyClaudeLiveRunIssue({
     severity: "error",
     title,
     message: issueMessage(i18n, kind),
-    retryable: kind !== "provider_auth",
+    retryable: isRetryableIssue(kind),
     suggestedAction,
     backendAdapterId: request.backendAdapterId,
     providerRouteId: request.providerRouteId,
@@ -79,6 +79,18 @@ export function collectClaudeLiveRunFailureText(result: RunnerResult): string {
 }
 
 function classifyIssueKind(value: string): WorkbenchRunnerIssueKind | undefined {
+  if (value.includes("cancelled") || value.includes("canceled")) {
+    return "runner_cancelled";
+  }
+
+  if (
+    value.includes("retry exhausted") ||
+    value.includes("retries exhausted") ||
+    value.includes("all retries failed")
+  ) {
+    return "retry_exhausted";
+  }
+
   if (
     value.includes("529") ||
     value.includes("overloaded") ||
@@ -110,12 +122,43 @@ function classifyIssueKind(value: string): WorkbenchRunnerIssueKind | undefined 
   if (
     value.includes("timeout") ||
     value.includes("timed out") ||
-    value.includes("etimedout")
+    value.includes("etimedout") ||
+    value.includes("deadline exceeded")
   ) {
-    return "provider_timeout";
+    return value.includes("process") || value.includes("runner")
+      ? "runner_timeout"
+      : "provider_timeout";
+  }
+
+  if (
+    value.includes("enoent") ||
+    value.includes("command not found") ||
+    value.includes("spawn") ||
+    value.includes("failed to launch") ||
+    value.includes("runner process")
+  ) {
+    return "runner_process";
   }
 
   return undefined;
+}
+
+function isRetryableIssue(kind: WorkbenchRunnerIssueKind): boolean {
+  switch (kind) {
+    case "provider_overloaded":
+    case "provider_quota":
+    case "provider_timeout":
+    case "retry_exhausted":
+    case "runner_timeout":
+    case "runner_process":
+      return true;
+    case "provider_auth":
+    case "readiness_blocked":
+    case "runner_cancelled":
+    case "route_reached":
+    case "unknown":
+      return false;
+  }
 }
 
 function suggestedActionForIssue(
@@ -125,11 +168,15 @@ function suggestedActionForIssue(
     case "provider_overloaded":
     case "provider_quota":
     case "provider_timeout":
+    case "retry_exhausted":
       return "retry_later";
     case "provider_auth":
       return "check_key";
+    case "runner_timeout":
     case "runner_process":
     case "readiness_blocked":
+    case "runner_cancelled":
+    case "route_reached":
     case "unknown":
       return "inspect_terminal";
   }
@@ -145,8 +192,16 @@ function issueTitle(i18n: UiI18n, kind: WorkbenchRunnerIssueKind): string {
       return i18n.t("workbench.issue.kind.providerQuota");
     case "provider_timeout":
       return i18n.t("workbench.issue.kind.providerTimeout");
+    case "retry_exhausted":
+      return i18n.t("workbench.issue.kind.retryExhausted");
     case "readiness_blocked":
       return i18n.t("workbench.issue.kind.readinessBlocked");
+    case "runner_timeout":
+      return i18n.t("workbench.issue.kind.runnerTimeout");
+    case "runner_cancelled":
+      return i18n.t("workbench.issue.kind.runnerCancelled");
+    case "route_reached":
+      return i18n.t("workbench.issue.kind.routeReached");
     case "runner_process":
     case "unknown":
       return i18n.t("workbench.issue.kind.runnerProcess");
@@ -163,6 +218,14 @@ function issueMessage(i18n: UiI18n, kind: WorkbenchRunnerIssueKind): string {
       return i18n.t("workbench.issue.providerQuotaMessage");
     case "provider_timeout":
       return i18n.t("workbench.issue.providerTimeoutMessage");
+    case "retry_exhausted":
+      return i18n.t("workbench.issue.retryExhaustedMessage");
+    case "runner_timeout":
+      return i18n.t("workbench.issue.runnerTimeoutMessage");
+    case "runner_cancelled":
+      return i18n.t("workbench.issue.runnerCancelledMessage");
+    case "route_reached":
+      return i18n.t("workbench.issue.routeReachedMessage");
     case "readiness_blocked":
     case "runner_process":
     case "unknown":
@@ -176,10 +239,15 @@ function routeHealthForIssue(
   switch (kind) {
     case "provider_overloaded":
     case "provider_quota":
+    case "retry_exhausted":
       return "degraded";
     case "provider_auth":
     case "provider_timeout":
+    case "runner_timeout":
       return "unavailable";
+    case "route_reached":
+      return "healthy";
+    case "runner_cancelled":
     case "readiness_blocked":
     case "runner_process":
     case "unknown":

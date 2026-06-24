@@ -255,6 +255,7 @@ function serializeSession(
   const diffs = inspectorData?.diffs ?? activeSession.diffs;
   const usageReports = inspectorData?.usageReports ?? activeSession.usageReports;
   const runAttempts = inspectorData?.runAttempts ?? activeSession.runAttempts;
+  const latestRunAttempt = runAttempts[0];
 
   return {
     id: activeSession.id,
@@ -282,6 +283,17 @@ function serializeSession(
       approvals: activeSession.approvals.length,
       runnerIssues: activeSession.runnerIssues.length
     },
+    routeHealth: activeSession.providerRouteHealth.map((health) => ({
+      providerRouteId: health.providerRouteId,
+      latestHealth: health.latestHealth,
+      latestIssueKind: health.latestIssueKind,
+      latestAttemptStatus: health.latestAttemptStatus,
+      issueCount: health.issueCount,
+      successfulAttemptCount: health.successfulAttemptCount,
+      retryableIssueCount: health.retryableIssueCount,
+      suggestedActions: health.suggestedActions,
+      modelProfileIds: health.modelProfileIds
+    })),
     contextAttachments: contextAttachments.map((attachment) => ({
       id: attachment.id,
       kind: attachment.kind,
@@ -301,17 +313,22 @@ function serializeSession(
         deletions: file.deletions
       }))
     })),
-    latestRunAttempt: runAttempts.at(-1)
+    latestRunAttempt: latestRunAttempt
       ? {
-          id: runAttempts.at(-1)?.id,
-          mode: runAttempts.at(-1)?.mode,
-          status: runAttempts.at(-1)?.status,
-          exitCode: runAttempts.at(-1)?.exitCode,
-          failureKind: runAttempts.at(-1)?.failureKind,
-          trigger: runAttempts.at(-1)?.trigger,
-          eventCount: runAttempts.at(-1)?.eventCount,
-          ignoredRecordCount: runAttempts.at(-1)?.ignoredRecordCount,
-          parseWarningCount: runAttempts.at(-1)?.parseWarningCount
+          id: latestRunAttempt.id,
+          mode: latestRunAttempt.mode,
+          status: latestRunAttempt.status,
+          providerRouteId: latestRunAttempt.providerRouteId,
+          modelProfileId: latestRunAttempt.modelProfileId,
+          exitCode: latestRunAttempt.exitCode,
+          failureKind: latestRunAttempt.failureKind,
+          trigger: latestRunAttempt.trigger,
+          parentRunAttemptId: latestRunAttempt.parentRunAttemptId,
+          followUpReason: latestRunAttempt.followUpReason,
+          sourceApprovalId: latestRunAttempt.sourceApprovalId,
+          eventCount: latestRunAttempt.eventCount,
+          ignoredRecordCount: latestRunAttempt.ignoredRecordCount,
+          parseWarningCount: latestRunAttempt.parseWarningCount
         }
       : undefined
   };

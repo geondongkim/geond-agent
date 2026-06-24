@@ -100,7 +100,9 @@ describe("desktop live run event factories", () => {
       true,
       {
         trigger: "approval_follow_up",
-        sourceApprovalId: "approval-1"
+        sourceApprovalId: "approval-1",
+        parentRunAttemptId: "attempt-parent",
+        followUpReason: "approval_follow_up"
       }
     );
     const updated = createRunAttemptUpdatedEvent("workbench-session-1", "attempt-1", "failed", {
@@ -135,6 +137,8 @@ describe("desktop live run event factories", () => {
         mode: "claude-live",
         status: "running",
         resumedFromExternalSessionId: "claude-session-1",
+        parentRunAttemptId: "attempt-parent",
+        followUpReason: "approval_follow_up",
         trigger: "approval_follow_up",
         sourceApprovalId: "approval-1"
       }

@@ -1,5 +1,5 @@
 import type { UiI18n } from "@geond-agent/ui-workbench";
-import { Folder, FolderOpen, Plus } from "lucide-react";
+import { Folder, FolderOpen, Plus, Star } from "lucide-react";
 
 import { cn } from "../../lib/cn.js";
 import type { WorkspaceSessionGroup } from "../../lib/workspace-session-groups.js";
@@ -12,7 +12,8 @@ export function WorkspaceSessionList({
   groups,
   i18n,
   onSelect,
-  onSelectWorkspace
+  onSelectWorkspace,
+  onToggleWorkspaceFavorite
 }: {
   readonly activeSessionId?: string;
   readonly chooseWorkspace: () => void;
@@ -20,6 +21,7 @@ export function WorkspaceSessionList({
   readonly i18n: UiI18n;
   readonly onSelect: (sessionId: string) => void;
   readonly onSelectWorkspace: (path: string) => void;
+  readonly onToggleWorkspaceFavorite: (path: string, label: string) => void;
 }) {
   return (
     <section className="workspace-session-section">
@@ -46,6 +48,7 @@ export function WorkspaceSessionList({
               i18n={i18n}
               onSelect={onSelect}
               onSelectWorkspace={onSelectWorkspace}
+              onToggleWorkspaceFavorite={onToggleWorkspaceFavorite}
             />
           ))
         ) : (
@@ -61,13 +64,15 @@ function WorkspaceSessionGroupView({
   group,
   i18n,
   onSelect,
-  onSelectWorkspace
+  onSelectWorkspace,
+  onToggleWorkspaceFavorite
 }: {
   readonly activeSessionId?: string;
   readonly group: WorkspaceSessionGroup;
   readonly i18n: UiI18n;
   readonly onSelect: (sessionId: string) => void;
   readonly onSelectWorkspace: (path: string) => void;
+  readonly onToggleWorkspaceFavorite: (path: string, label: string) => void;
 }) {
   const FolderIcon = group.selected ? FolderOpen : Folder;
 
@@ -78,23 +83,51 @@ function WorkspaceSessionGroupView({
         group.selected ? "workspace-session-group-active" : "workspace-session-group-idle"
       )}
     >
-      <button
-        type="button"
-        className="workspace-session-header"
-        onClick={() => onSelectWorkspace(group.path)}
-        aria-current={group.selected ? "true" : undefined}
-      >
-        <span className="workspace-session-folder">
-          <FolderIcon aria-hidden="true" size={15} strokeWidth={2.2} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold">{group.label}</span>
-          <span className="block truncate text-[11px] text-[color:var(--ink-soft)]">
-            {group.path}
+      <div className="workspace-session-header-row">
+        <button
+          type="button"
+          className="workspace-session-header"
+          onClick={() => onSelectWorkspace(group.path)}
+          aria-current={group.selected ? "true" : undefined}
+        >
+          <span className="workspace-session-folder">
+            <FolderIcon aria-hidden="true" size={15} strokeWidth={2.2} />
           </span>
-        </span>
-        <span className="workspace-session-count">{group.sessions.length}</span>
-      </button>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-semibold">{group.label}</span>
+            <span className="block truncate text-[11px] text-[color:var(--ink-soft)]">
+              {group.path}
+            </span>
+          </span>
+          <span className="workspace-session-count">{group.sessions.length}</span>
+        </button>
+        <button
+          type="button"
+          className={cn(
+            "workspace-favorite-button",
+            group.favorite ? "workspace-favorite-button-active" : undefined
+          )}
+          onClick={() => onToggleWorkspaceFavorite(group.path, group.label)}
+          title={
+            group.favorite
+              ? i18n.t("workbench.files.unmarkFavorite")
+              : i18n.t("workbench.files.markFavorite")
+          }
+          aria-pressed={group.favorite}
+          aria-label={
+            group.favorite
+              ? i18n.t("workbench.files.unmarkFavorite")
+              : i18n.t("workbench.files.markFavorite")
+          }
+        >
+          <Star
+            aria-hidden="true"
+            size={13}
+            strokeWidth={2.2}
+            fill={group.favorite ? "currentColor" : "none"}
+          />
+        </button>
+      </div>
 
       <div className="workspace-session-card-list">
         {group.sessions.length ? (

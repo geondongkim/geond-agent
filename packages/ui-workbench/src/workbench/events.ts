@@ -66,12 +66,16 @@ export type WorkbenchRunAttemptTrigger =
   | "readiness_blocked";
 export type WorkbenchStreamQuality = "pending" | "clean" | "warning" | "failed" | "cancelled";
 export type WorkbenchRunnerIssueKind =
+  | "route_reached"
   | "provider_overloaded"
   | "provider_auth"
   | "provider_quota"
   | "provider_timeout"
+  | "retry_exhausted"
   | "readiness_blocked"
   | "runner_process"
+  | "runner_timeout"
+  | "runner_cancelled"
   | "unknown";
 export type WorkbenchRunnerIssueSeverity = "info" | "warning" | "error";
 export type WorkbenchRunnerIssueSuggestedAction =
@@ -97,6 +101,8 @@ export interface WorkbenchRunAttemptSnapshot {
   readonly permissionMode?: string;
   readonly externalSessionId?: string;
   readonly resumedFromExternalSessionId?: string;
+  readonly parentRunAttemptId?: string;
+  readonly followUpReason?: string;
   readonly commandPreview?: string;
   readonly promptSummary?: string;
   readonly startedAt?: string;

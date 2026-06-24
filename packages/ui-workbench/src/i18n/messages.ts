@@ -107,6 +107,8 @@ export type UiMessageKey =
   | "workbench.runAttempts.triggerReadinessBlocked"
   | "workbench.runAttempts.streamQuality"
   | "workbench.runAttempts.sourceApproval"
+  | "workbench.runAttempts.parentAttempt"
+  | "workbench.runAttempts.followUpReason"
   | "workbench.runAttempts.prompt"
   | "workbench.runAttempts.command"
   | "workbench.runAttempts.resume"
@@ -171,21 +173,31 @@ export type UiMessageKey =
   | "workbench.issue.action.lowerModel"
   | "workbench.issue.action.checkKey"
   | "workbench.issue.action.inspectTerminal"
+  | "workbench.issue.kind.routeReached"
   | "workbench.issue.kind.providerOverloaded"
   | "workbench.issue.kind.providerAuth"
   | "workbench.issue.kind.providerQuota"
   | "workbench.issue.kind.providerTimeout"
+  | "workbench.issue.kind.retryExhausted"
   | "workbench.issue.kind.readinessBlocked"
   | "workbench.issue.kind.runnerProcess"
+  | "workbench.issue.kind.runnerTimeout"
+  | "workbench.issue.kind.runnerCancelled"
+  | "workbench.issue.routeReachedMessage"
   | "workbench.issue.providerOverloadedMessage"
   | "workbench.issue.providerAuthMessage"
   | "workbench.issue.providerQuotaMessage"
   | "workbench.issue.providerTimeoutMessage"
+  | "workbench.issue.retryExhaustedMessage"
   | "workbench.issue.runnerProcessMessage"
+  | "workbench.issue.runnerTimeoutMessage"
+  | "workbench.issue.runnerCancelledMessage"
   | "workbench.routeHealth.title"
   | "workbench.routeHealth.route"
   | "workbench.routeHealth.issues"
   | "workbench.routeHealth.latest"
+  | "workbench.routeHealth.latestAttempt"
+  | "workbench.routeHealth.successful"
   | "workbench.routeHealth.models"
   | "workbench.routeHealth.noHistory"
   | "workbench.routeHealth.advisoryFallback"
@@ -370,6 +382,8 @@ export type UiMessageKey =
   | "workbench.files.visualCapturePolicy"
   | "workbench.files.exportScope"
   | "workbench.files.exportScopeDetail"
+  | "workbench.files.savedLocalPreference"
+  | "workbench.files.resetExportScope"
   | "workbench.files.includeSession"
   | "workbench.files.selectedSessions"
   | "workbench.files.selectAllSessions"
@@ -415,6 +429,7 @@ export type UiMessageKey =
   | "workbench.files.visualCapturePolicyExportCancelled"
   | "workbench.files.visualCaptureReview"
   | "workbench.files.visualCaptureReviewDetail"
+  | "workbench.files.resetVisualReview"
   | "workbench.files.visualConsentCheck"
   | "workbench.files.visualRedactionCheck"
   | "workbench.files.visualStorageCheck"
@@ -637,6 +652,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runAttempts.triggerReadinessBlocked": "Readiness blocked",
     "workbench.runAttempts.streamQuality": "Stream quality",
     "workbench.runAttempts.sourceApproval": "Source approval",
+    "workbench.runAttempts.parentAttempt": "Parent attempt",
+    "workbench.runAttempts.followUpReason": "Follow-up reason",
     "workbench.runAttempts.prompt": "Prompt",
     "workbench.runAttempts.command": "Command",
     "workbench.runAttempts.resume": "Resume",
@@ -701,21 +718,31 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.issue.action.lowerModel": "Lower model",
     "workbench.issue.action.checkKey": "Check local key",
     "workbench.issue.action.inspectTerminal": "Inspect terminal",
+    "workbench.issue.kind.routeReached": "Route reached",
     "workbench.issue.kind.providerOverloaded": "Provider overloaded",
     "workbench.issue.kind.providerAuth": "Provider auth issue",
     "workbench.issue.kind.providerQuota": "Provider quota issue",
     "workbench.issue.kind.providerTimeout": "Provider timeout",
+    "workbench.issue.kind.retryExhausted": "Retry exhausted",
     "workbench.issue.kind.readinessBlocked": "Readiness blocked",
     "workbench.issue.kind.runnerProcess": "Runner process issue",
+    "workbench.issue.kind.runnerTimeout": "Runner timeout",
+    "workbench.issue.kind.runnerCancelled": "Runner cancelled",
+    "workbench.issue.routeReachedMessage": "The selected provider route completed a live run successfully. Keep this as the latest healthy route evidence.",
     "workbench.issue.providerOverloadedMessage": "The selected provider route is overloaded. Retry later, lower the model, or switch route; OpenAI-compatible advisory fallback may still be available.",
     "workbench.issue.providerAuthMessage": "The selected provider route rejected authentication. Check local-only key presence and route settings.",
     "workbench.issue.providerQuotaMessage": "The selected provider route reported quota or rate limit pressure. Retry later, lower the model, or switch route.",
     "workbench.issue.providerTimeoutMessage": "The selected provider route timed out. Retry later or inspect terminal output for network details.",
+    "workbench.issue.retryExhaustedMessage": "The live route exhausted its retry budget. Wait for provider recovery before retrying or manually switch route.",
     "workbench.issue.runnerProcessMessage": "The local runner process failed before a provider-specific issue could be classified. Inspect terminal output.",
+    "workbench.issue.runnerTimeoutMessage": "The local runner timed out before a stable provider result was recorded. Inspect terminal output before retrying.",
+    "workbench.issue.runnerCancelledMessage": "The live run was cancelled locally. Review partial terminal evidence before retrying or resuming.",
     "workbench.routeHealth.title": "Route health history",
     "workbench.routeHealth.route": "Route",
     "workbench.routeHealth.issues": "Issues",
     "workbench.routeHealth.latest": "Latest",
+    "workbench.routeHealth.latestAttempt": "Latest attempt",
+    "workbench.routeHealth.successful": "Successful",
     "workbench.routeHealth.models": "Models",
     "workbench.routeHealth.noHistory": "No provider route incidents have been recorded for this session.",
     "workbench.routeHealth.advisoryFallback": "Advisory fallback",
@@ -900,6 +927,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.visualCapturePolicy": "Visual capture policy",
     "workbench.files.exportScope": "Export scope",
     "workbench.files.exportScopeDetail": "Choose which sessions are included in multi-session reports and trace bundles.",
+    "workbench.files.savedLocalPreference": "Saved locally",
+    "workbench.files.resetExportScope": "Reset scope",
     "workbench.files.includeSession": "Include session",
     "workbench.files.selectedSessions": "Selected sessions",
     "workbench.files.selectAllSessions": "All sessions",
@@ -945,6 +974,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.visualCapturePolicyExportCancelled": "Visual capture policy export cancelled.",
     "workbench.files.visualCaptureReview": "Visual capture review",
     "workbench.files.visualCaptureReviewDetail": "Raw visual capture remains disabled; this checklist is recorded only in the policy artifact.",
+    "workbench.files.resetVisualReview": "Reset review",
     "workbench.files.visualConsentCheck": "Explicit per-export consent is confirmed.",
     "workbench.files.visualRedactionCheck": "Visible secrets, account state, and private local files were reviewed.",
     "workbench.files.visualStorageCheck": "A user-selected storage path is required before raw capture.",
@@ -1164,6 +1194,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runAttempts.triggerReadinessBlocked": "준비 상태 차단",
     "workbench.runAttempts.streamQuality": "스트림 품질",
     "workbench.runAttempts.sourceApproval": "출처 승인",
+    "workbench.runAttempts.parentAttempt": "상위 시도",
+    "workbench.runAttempts.followUpReason": "이어쓰기 이유",
     "workbench.runAttempts.prompt": "프롬프트",
     "workbench.runAttempts.command": "명령",
     "workbench.runAttempts.resume": "이어쓰기",
@@ -1228,21 +1260,31 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.issue.action.lowerModel": "모델 낮추기",
     "workbench.issue.action.checkKey": "로컬 키 확인",
     "workbench.issue.action.inspectTerminal": "터미널 확인",
+    "workbench.issue.kind.routeReached": "경로 도달",
     "workbench.issue.kind.providerOverloaded": "프로바이더 과부하",
     "workbench.issue.kind.providerAuth": "프로바이더 인증 문제",
     "workbench.issue.kind.providerQuota": "프로바이더 할당량 문제",
     "workbench.issue.kind.providerTimeout": "프로바이더 시간 초과",
+    "workbench.issue.kind.retryExhausted": "재시도 소진",
     "workbench.issue.kind.readinessBlocked": "준비 상태 차단",
     "workbench.issue.kind.runnerProcess": "실행 프로세스 문제",
+    "workbench.issue.kind.runnerTimeout": "실행 시간 초과",
+    "workbench.issue.kind.runnerCancelled": "실행 취소됨",
+    "workbench.issue.routeReachedMessage": "선택한 프로바이더 경로가 live run을 성공적으로 완료했습니다. 최신 정상 경로 근거로 유지합니다.",
     "workbench.issue.providerOverloadedMessage": "선택한 프로바이더 경로가 과부하 상태입니다. 나중에 재시도하거나 모델을 낮추거나 경로를 전환하세요. OpenAI-compatible 자문 fallback은 가능할 수 있습니다.",
     "workbench.issue.providerAuthMessage": "선택한 프로바이더 경로가 인증을 거절했습니다. 로컬 전용 키 존재 여부와 경로 설정을 확인하세요.",
     "workbench.issue.providerQuotaMessage": "선택한 프로바이더 경로가 할당량 또는 rate limit 압박을 보고했습니다. 나중에 재시도하거나 모델을 낮추거나 경로를 전환하세요.",
     "workbench.issue.providerTimeoutMessage": "선택한 프로바이더 경로가 시간 초과됐습니다. 나중에 재시도하거나 터미널 출력에서 네트워크 세부 정보를 확인하세요.",
+    "workbench.issue.retryExhaustedMessage": "live 경로의 재시도 한도가 소진됐습니다. 프로바이더가 회복될 때까지 기다린 뒤 재시도하거나 수동으로 경로를 전환하세요.",
     "workbench.issue.runnerProcessMessage": "프로바이더 문제로 분류하기 전에 로컬 실행 프로세스가 실패했습니다. 터미널 출력을 확인하세요.",
+    "workbench.issue.runnerTimeoutMessage": "안정적인 프로바이더 결과가 기록되기 전에 로컬 runner가 시간 초과됐습니다. 재시도 전에 터미널 출력을 확인하세요.",
+    "workbench.issue.runnerCancelledMessage": "live run이 로컬에서 취소됐습니다. 재시도하거나 이어쓰기 전에 부분 터미널 근거를 검토하세요.",
     "workbench.routeHealth.title": "경로 상태 기록",
     "workbench.routeHealth.route": "경로",
     "workbench.routeHealth.issues": "문제",
     "workbench.routeHealth.latest": "최근",
+    "workbench.routeHealth.latestAttempt": "최근 시도",
+    "workbench.routeHealth.successful": "성공",
     "workbench.routeHealth.models": "모델",
     "workbench.routeHealth.noHistory": "이 세션에는 프로바이더 경로 문제가 아직 기록되지 않았습니다.",
     "workbench.routeHealth.advisoryFallback": "자문 fallback",
@@ -1427,6 +1469,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.visualCapturePolicy": "시각 캡처 정책",
     "workbench.files.exportScope": "내보내기 범위",
     "workbench.files.exportScopeDetail": "멀티세션 리포트와 trace 묶음에 포함할 세션을 선택합니다.",
+    "workbench.files.savedLocalPreference": "로컬 저장됨",
+    "workbench.files.resetExportScope": "범위 초기화",
     "workbench.files.includeSession": "세션 포함",
     "workbench.files.selectedSessions": "선택된 세션",
     "workbench.files.selectAllSessions": "전체 세션",
@@ -1472,6 +1516,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.files.visualCapturePolicyExportCancelled": "시각 캡처 정책 내보내기를 취소했습니다.",
     "workbench.files.visualCaptureReview": "시각 캡처 검토",
     "workbench.files.visualCaptureReviewDetail": "원본 시각 캡처는 여전히 비활성화 상태이며, 이 체크리스트는 정책 artifact에만 기록합니다.",
+    "workbench.files.resetVisualReview": "검토 초기화",
     "workbench.files.visualConsentCheck": "내보내기별 명시적 동의를 확인했습니다.",
     "workbench.files.visualRedactionCheck": "보이는 secret, 계정 상태, private 로컬 파일을 검토했습니다.",
     "workbench.files.visualStorageCheck": "원본 캡처 전에 사용자 선택 저장 경로가 필요합니다.",

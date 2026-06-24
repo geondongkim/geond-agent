@@ -32,6 +32,7 @@ import type { ClaudeCodeCliProbe } from "../claude-runner.js";
 import type { InspectorSessionReadModel } from "../lib/inspector-read-model.js";
 import type { RecentContextItem } from "../lib/recent-context.js";
 import type { SideChatDraft } from "../lib/side-chat-drafts.js";
+import type { EvidenceExportPreferences } from "../lib/evidence-export-preferences.js";
 
 export function InspectorPane({
   activeExternalSession,
@@ -48,6 +49,7 @@ export function InspectorPane({
   composerEnterBehaviorOptions,
   drafts,
   enqueueSideChatDraft,
+  evidenceExportPreferences,
   followUpPolicyOptions,
   ignoredRecordCount,
   i18n,
@@ -74,6 +76,7 @@ export function InspectorPane({
   setInspectorTab,
   setRunnerStatus,
   toggleRecentContextFavorite,
+  updateEvidenceExportPreferences,
   updateAgentResponseLanguage,
   updateRunnerMode,
   updateSessionDefaults,
@@ -94,6 +97,7 @@ export function InspectorPane({
   readonly composerEnterBehaviorOptions: readonly { readonly value: string; readonly label: string }[];
   readonly drafts: readonly SideChatDraft[];
   readonly enqueueSideChatDraft: (text: string, sourceLabel?: string) => void;
+  readonly evidenceExportPreferences: EvidenceExportPreferences;
   readonly followUpPolicyOptions: readonly { readonly value: string; readonly label: string }[];
   readonly i18n: UiI18n;
   readonly inspectorTab: string;
@@ -119,6 +123,9 @@ export function InspectorPane({
   readonly setInspectorTab: (tab: string) => void;
   readonly setRunnerStatus: (status: string) => void;
   readonly toggleRecentContextFavorite: (itemId: string) => void;
+  readonly updateEvidenceExportPreferences: (
+    patch: Partial<EvidenceExportPreferences>
+  ) => void;
   readonly updateAgentResponseLanguage: (language: string) => void;
   readonly updateRunnerMode: (mode: DesktopRunnerMode) => void;
   readonly updateSessionDefaults: (patch: Partial<WorkbenchSessionDefaults>) => void;
@@ -247,12 +254,14 @@ export function InspectorPane({
           attachFileContext={attachFileContext}
           attachWorkspaceContext={attachWorkspaceContext}
           enqueueSideChatDraft={enqueueSideChatDraft}
+          evidenceExportPreferences={evidenceExportPreferences}
           inspectorData={inspectorData}
           i18n={i18n}
           projectedSessions={projectedSessions}
           recentContextItems={recentContextItems}
           setRunnerStatus={setRunnerStatus}
           toggleRecentContextFavorite={toggleRecentContextFavorite}
+          updateEvidenceExportPreferences={updateEvidenceExportPreferences}
         />
         <InspectorSideChatTab
           drafts={drafts}

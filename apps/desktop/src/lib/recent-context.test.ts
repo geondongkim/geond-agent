@@ -8,7 +8,8 @@ import {
   mergeRecentContextItem,
   normalizeRecentContextItems,
   saveRecentContextItems,
-  toggleRecentContextItemFavorite
+  toggleRecentContextItemFavorite,
+  toggleRecentContextPathFavorite
 } from "./recent-context.js";
 
 describe("recent context", () => {
@@ -111,6 +112,34 @@ describe("recent context", () => {
       kind: "file",
       path: "/workspace/geond-agent/docs/architecture.md",
       favorite: true
+    });
+  });
+
+  it("toggles favorite workspace entries by path and creates missing metadata-only entries", () => {
+    const created = toggleRecentContextPathFavorite([], {
+      kind: "workspace",
+      label: "geond-agent",
+      path: "/workspace/geond-agent",
+      updatedAt: "2026-06-24T00:00:00.000Z"
+    });
+
+    expect(created).toEqual([
+      expect.objectContaining({
+        kind: "workspace",
+        label: "geond-agent",
+        path: "/workspace/geond-agent",
+        favorite: true
+      })
+    ]);
+
+    const toggled = toggleRecentContextPathFavorite(created, {
+      kind: "workspace",
+      path: "/workspace/geond-agent"
+    });
+
+    expect(toggled[0]).toMatchObject({
+      path: "/workspace/geond-agent",
+      favorite: false
     });
   });
 

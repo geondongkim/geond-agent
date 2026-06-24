@@ -58,6 +58,7 @@ import {
   type RecentContextItem,
   type RecentContextWorkspaceGroup
 } from "../../lib/recent-context.js";
+import type { EvidenceExportPreferences } from "../../lib/evidence-export-preferences.js";
 import {
   exportJsonArtifact,
   exportMarkdownFile,
@@ -72,35 +73,33 @@ export function InspectorFilesTab({
   attachFileContext,
   attachWorkspaceContext,
   enqueueSideChatDraft,
+  evidenceExportPreferences,
   inspectorData,
   i18n,
   projectedSessions,
   recentContextItems,
   setRunnerStatus,
-  toggleRecentContextFavorite
+  toggleRecentContextFavorite,
+  updateEvidenceExportPreferences
 }: {
   readonly activeSession?: ProjectedActiveSession;
   readonly attachRecentContext: (item: RecentContextItem) => void;
   readonly attachFileContext: () => void;
   readonly attachWorkspaceContext: () => void;
   readonly enqueueSideChatDraft: (text: string, sourceLabel?: string) => void;
+  readonly evidenceExportPreferences: EvidenceExportPreferences;
   readonly inspectorData?: InspectorSessionReadModel;
   readonly i18n: UiI18n;
   readonly projectedSessions: readonly ProjectedSessionListItem[];
   readonly recentContextItems: readonly RecentContextItem[];
   readonly setRunnerStatus: (status: string) => void;
   readonly toggleRecentContextFavorite: (itemId: string) => void;
+  readonly updateEvidenceExportPreferences: (
+    patch: Partial<EvidenceExportPreferences>
+  ) => void;
 }) {
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | undefined>();
-  const [selectedExportSessionIds, setSelectedExportSessionIds] = useState<
-    readonly string[] | undefined
-  >();
-  const [visualReview, setVisualReview] = useState<VisualCaptureReviewState>({
-    explicitConsent: false,
-    redactionReview: false,
-    storagePathSelected: false,
-    visibleContentReviewed: false
-  });
+  const visualReview = evidenceExportPreferences.visualReview;
   const model = createFileEvidencePreviewModel({ activeSession, inspectorData });
   const hasEvidence = model.contextCount > 0 || model.changedFileCount > 0;
   const favoriteContextItems = recentContextItems.filter((item) => item.favorite);
@@ -109,10 +108,25 @@ export function InspectorFilesTab({
   const resolvedSelectedEvidenceId = getFileEvidenceSelectionId(selectedEvidence);
   const captureReadiness = createEvidenceCaptureReadiness();
   const allExportSessionIds = projectedSessions.map((session) => session.id);
+  const attentionExportSessionIds = projectedSessions
+    .filter(
+      (session) =>
+        session.errorCount > 0 ||
+        session.warningCount > 0 ||
+        session.pendingApprovalCount > 0 ||
+        session.resumable
+    )
+    .map((session) => session.id);
   const validExportSessionIds = new Set(allExportSessionIds);
-  const resolvedSelectedExportSessionIds = (
-    selectedExportSessionIds ?? allExportSessionIds
-  ).filter((sessionId) => validExportSessionIds.has(sessionId));
+  const requestedExportSessionIds =
+    evidenceExportPreferences.exportScopeMode === "custom"
+      ? evidenceExportPreferences.selectedSessionIds
+      : evidenceExportPreferences.exportScopeMode === "attention"
+        ? attentionExportSessionIds
+        : allExportSessionIds;
+  const resolvedSelectedExportSessionIds = requestedExportSessionIds.filter((sessionId) =>
+    validExportSessionIds.has(sessionId)
+  );
   const selectedExportSessionSet = new Set(resolvedSelectedExportSessionIds);
   const selectedExportSessions = projectedSessions.filter((session) =>
     selectedExportSessionSet.has(session.id)
@@ -391,28 +405,36 @@ export function InspectorFilesTab({
 
       <MultiSessionExportScopeSection
         i18n={i18n}
-        onSelectAll={() => setSelectedExportSessionIds(allExportSessionIds)}
+        onReset={() =>
+          updateEvidenceExportPreferences({
+            exportScopeMode: "all",
+            selectedSessionIds: []
+          })
+        }
+        onSelectAll={() =>
+          updateEvidenceExportPreferences({
+            exportScopeMode: "all",
+            selectedSessionIds: []
+          })
+        }
         onSelectAttention={() =>
-          setSelectedExportSessionIds(
-            projectedSessions
-              .filter(
-                (session) =>
-                  session.errorCount > 0 ||
-                  session.warningCount > 0 ||
-                  session.pendingApprovalCount > 0 ||
-                  session.resumable
-              )
-              .map((session) => session.id)
-          )
+          updateEvidenceExportPreferences({
+            exportScopeMode: "attention",
+            selectedSessionIds: attentionExportSessionIds
+          })
         }
         onToggleSession={(sessionId) => {
           const next = selectedExportSessionSet.has(sessionId)
             ? resolvedSelectedExportSessionIds.filter((id) => id !== sessionId)
             : [...resolvedSelectedExportSessionIds, sessionId];
-          setSelectedExportSessionIds(next);
+          updateEvidenceExportPreferences({
+            exportScopeMode: "custom",
+            selectedSessionIds: next
+          });
         }}
         selectedSessionIds={selectedExportSessionSet}
         selectedSessionCount={selectedExportSessionCount}
+        scopeMode={evidenceExportPreferences.exportScopeMode}
         sessions={projectedSessions}
       />
 
@@ -440,9 +462,24 @@ export function InspectorFilesTab({
         i18n={i18n}
         items={captureReadiness}
         onToggleVisualReview={(key) =>
-          setVisualReview((current) => ({ ...current, [key]: !current[key] }))
+          updateEvidenceExportPreferences({
+            visualReview: { ...visualReview, [key]: !visualReview[key] },
+            visualReviewUpdatedAt: new Date().toISOString()
+          })
+        }
+        onResetVisualReview={() =>
+          updateEvidenceExportPreferences({
+            visualReview: {
+              explicitConsent: false,
+              redactionReview: false,
+              storagePathSelected: false,
+              visibleContentReviewed: false
+            },
+            visualReviewUpdatedAt: undefined
+          })
         }
         traceBundleDisabled={selectedExportSessions.length === 0}
+        visualReviewUpdatedAt={evidenceExportPreferences.visualReviewUpdatedAt}
         visualReview={visualReview}
       />
 
@@ -538,7 +575,9 @@ function EvidenceCaptureBoundarySection({
   i18n,
   items,
   onToggleVisualReview,
+  onResetVisualReview,
   traceBundleDisabled,
+  visualReviewUpdatedAt,
   visualReview
 }: {
   readonly disabled: boolean;
@@ -549,7 +588,9 @@ function EvidenceCaptureBoundarySection({
   readonly i18n: UiI18n;
   readonly items: readonly EvidenceCaptureReadiness[];
   readonly onToggleVisualReview: (key: keyof VisualCaptureReviewState) => void;
+  readonly onResetVisualReview: () => void;
   readonly traceBundleDisabled: boolean;
+  readonly visualReviewUpdatedAt?: string;
   readonly visualReview: VisualCaptureReviewState;
 }) {
   return (
@@ -590,7 +631,9 @@ function EvidenceCaptureBoundarySection({
       <VisualCaptureReviewSection
         i18n={i18n}
         onToggle={onToggleVisualReview}
+        onReset={onResetVisualReview}
         review={visualReview}
+        updatedAt={visualReviewUpdatedAt}
       />
     </EvidenceSection>
   );
@@ -600,7 +643,9 @@ function MultiSessionExportScopeSection({
   i18n,
   onSelectAll,
   onSelectAttention,
+  onReset,
   onToggleSession,
+  scopeMode,
   selectedSessionCount,
   selectedSessionIds,
   sessions
@@ -608,7 +653,9 @@ function MultiSessionExportScopeSection({
   readonly i18n: UiI18n;
   readonly onSelectAll: () => void;
   readonly onSelectAttention: () => void;
+  readonly onReset: () => void;
   readonly onToggleSession: (sessionId: string) => void;
+  readonly scopeMode: EvidenceExportPreferences["exportScopeMode"];
   readonly selectedSessionCount: number;
   readonly selectedSessionIds: ReadonlySet<string>;
   readonly sessions: readonly ProjectedSessionListItem[];
@@ -623,6 +670,9 @@ function MultiSessionExportScopeSection({
         {i18n.t("workbench.files.exportScopeDetail")}
       </p>
       <div className="mb-3 flex flex-wrap justify-end gap-2">
+        <span className="status-pill status-neutral">
+          {i18n.t("workbench.files.savedLocalPreference")}: {scopeMode}
+        </span>
         <Button variant="ghost" className="gap-2" onClick={onSelectAttention}>
           <ShieldCheck size={14} />
           {i18n.t("workbench.files.selectAttentionSessions")}
@@ -630,6 +680,9 @@ function MultiSessionExportScopeSection({
         <Button variant="outline" className="gap-2" onClick={onSelectAll}>
           <FolderOpen size={14} />
           {i18n.t("workbench.files.selectAllSessions")}
+        </Button>
+        <Button variant="ghost" className="gap-2" onClick={onReset}>
+          {i18n.t("workbench.files.resetExportScope")}
         </Button>
       </div>
       <div className="grid gap-2">
@@ -669,12 +722,16 @@ function MultiSessionExportScopeSection({
 
 function VisualCaptureReviewSection({
   i18n,
+  onReset,
   onToggle,
-  review
+  review,
+  updatedAt
 }: {
   readonly i18n: UiI18n;
+  readonly onReset: () => void;
   readonly onToggle: (key: keyof VisualCaptureReviewState) => void;
   readonly review: VisualCaptureReviewState;
+  readonly updatedAt?: string;
 }) {
   const ready =
     review.explicitConsent &&
@@ -715,6 +772,16 @@ function VisualCaptureReviewSection({
       <p className="mt-3 text-xs leading-5 text-[color:var(--ink-soft)]">
         {i18n.t("workbench.files.visualCaptureReviewDetail")}
       </p>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <span className="muted-meta">
+          {updatedAt
+            ? `${i18n.t("workbench.files.savedLocalPreference")}: ${updatedAt}`
+            : i18n.t("workbench.files.savedLocalPreference")}
+        </span>
+        <Button variant="ghost" className="gap-2" onClick={onReset}>
+          {i18n.t("workbench.files.resetVisualReview")}
+        </Button>
+      </div>
       <div className="mt-3 grid gap-2">
         {items.map((item) => (
           <label

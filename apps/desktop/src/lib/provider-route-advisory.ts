@@ -6,7 +6,8 @@ import type {
 const FALLBACK_WORTHY_ISSUES = new Set([
   "provider_overloaded",
   "provider_quota",
-  "provider_timeout"
+  "provider_timeout",
+  "retry_exhausted"
 ]);
 
 export function shouldOfferProviderRouteFallback(
