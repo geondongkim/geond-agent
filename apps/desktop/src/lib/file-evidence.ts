@@ -268,6 +268,59 @@ export function createWorkspaceEvidenceReportDraft({
   ].join("\n");
 }
 
+export function createMultiSessionIssueReportDraft({
+  activeSession,
+  inspectorData,
+  sessions
+}: {
+  readonly activeSession?: ProjectedActiveSession;
+  readonly inspectorData?: InspectorSessionReadModel;
+  readonly sessions: readonly ProjectedSessionListItem[];
+}): string {
+  const activeSessionId = activeSession?.id ?? inspectorData?.sessionId;
+  const activeBundle = createEvidenceBundleDraft({ activeSession, inspectorData });
+  const attentionSessions = sessions.filter(
+    (session) =>
+      session.errorCount > 0 ||
+      session.warningCount > 0 ||
+      session.pendingApprovalCount > 0 ||
+      session.resumable
+  );
+
+  return [
+    "Workbench multi-session issue report (metadata only).",
+    "Raw private file contents, raw Claude logs, API keys, provider account state, local session files, and visual payloads are excluded.",
+    "",
+    "Scope",
+    "- Use this report when several sessions or trace artifacts need one local issue/review bundle.",
+    "- Attach separate structured trace JSON artifacts only after explicit metadata export.",
+    "- Capture raw visuals only through the separate visual consent/redaction policy.",
+    "",
+    `Session count: ${sessions.length}`,
+    `Attention session count: ${attentionSessions.length}`,
+    activeSessionId ? `Active session: ${safeText(activeSessionId)}` : "Active session: none",
+    "",
+    "Attention sessions",
+    ...formatSessionIndexReportItems(attentionSessions),
+    "",
+    "All sessions",
+    ...formatSessionIndexReportItems(sessions),
+    "",
+    "Active session evidence",
+    activeBundle,
+    "",
+    "Trace/export checklist",
+    "- Export the multi-session trace bundle for session index and route metadata.",
+    "- Export per-session structured traces for sessions that need deeper replay evidence.",
+    "- Keep visual capture disabled unless a human explicitly approves a redacted visual artifact.",
+    "",
+    "Decision prompts",
+    "- Is this a provider route issue, tool runner issue, workbench replay issue, or UX issue?",
+    "- Which session is the canonical reproduction path?",
+    "- Which follow-up should be queued before filing or sharing the report?"
+  ].join("\n");
+}
+
 export function createEvidenceExportManifestDraft({
   activeSession,
   inspectorData,
@@ -345,6 +398,8 @@ export function createEvidenceExportManifestDraft({
     "- issue/report draft: ready",
     "- screenshot bundle: requires explicit consent and redaction configuration",
     "- structured trace bundle: requires explicit consent and redaction configuration",
+    "- multi-session trace bundle: ready as metadata-only JSON",
+    "- visual capture policy: ready as metadata-only JSON",
     "",
     "Review prompts",
     "- Is the active session evidence enough to reproduce the concern without raw logs?",
@@ -393,6 +448,14 @@ export function createWorkspaceEvidenceReportFileName({
   readonly now?: Date;
 } = {}): string {
   return `${now.toISOString().slice(0, 10)}-workbench-workspace-report.md`;
+}
+
+export function createMultiSessionIssueReportFileName({
+  now = new Date()
+}: {
+  readonly now?: Date;
+} = {}): string {
+  return `${now.toISOString().slice(0, 10)}-workbench-multi-session-issue-report.md`;
 }
 
 export function createEvidenceExportManifestFileName({

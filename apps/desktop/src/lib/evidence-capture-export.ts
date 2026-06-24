@@ -9,7 +9,11 @@ import type {
   ProjectedSessionListItem
 } from "./workbench-types.js";
 
-export type EvidenceCaptureArtifactKind = "screenshot-manifest" | "structured-trace";
+export type EvidenceCaptureArtifactKind =
+  | "screenshot-manifest"
+  | "structured-trace"
+  | "multi-session-trace-bundle"
+  | "visual-capture-policy";
 
 export interface EvidenceCaptureArtifactOptions {
   readonly activeSession?: ProjectedActiveSession;
@@ -49,6 +53,90 @@ export function createScreenshotManifestArtifact(
     captureKind: "screenshot",
     kind: "screenshot-manifest"
   });
+}
+
+export function createMultiSessionTraceBundleArtifact(
+  options: EvidenceCaptureArtifactOptions
+): EvidenceCaptureArtifact {
+  const generatedAt = options.generatedAt ?? new Date().toISOString();
+  const sessions = options.projectedSessions ?? [];
+  const readiness = createEvidenceCaptureReadiness({
+    consentGranted: true,
+    redactionConfigured: true,
+    structuredTraceCount: Math.max(1, sessions.length)
+  });
+  const payload = {
+    schemaVersion: 1,
+    kind: "multi-session-trace-bundle",
+    generatedAt,
+    capturePolicy: createCapturePolicy(),
+    readiness: readiness.map(serializeReadiness),
+    activeSession: serializeSession(options.activeSession, options.inspectorData),
+    sessions: sessions.map(serializeSessionIndexItem),
+    traceBundle: {
+      metadataOnly: true,
+      sessionCount: sessions.length,
+      warningSessionCount: sessions.filter((session) => session.warningCount > 0).length,
+      errorSessionCount: sessions.filter((session) => session.errorCount > 0).length,
+      resumableSessionCount: sessions.filter((session) => session.resumable).length,
+      pendingApprovalCount: sessions.reduce(
+        (count, session) => count + session.pendingApprovalCount,
+        0
+      )
+    },
+    reviewPrompts: [
+      "Which sessions need retry, resume, approval follow-up, or route health review?",
+      "Which sessions have enough metadata-only evidence for a local issue report?",
+      "Which session ids should be exported as separate structured trace artifacts?"
+    ],
+    note:
+      "This bundle groups session/trace metadata for local issue review. It excludes raw logs, prompt bodies, conversation bodies, image payloads, and provider secrets."
+  };
+
+  return {
+    fileName: createEvidenceCaptureArtifactFileName("multi-session-trace-bundle"),
+    kind: "multi-session-trace-bundle",
+    text: `${JSON.stringify(payload, null, 2)}\n`
+  };
+}
+
+export function createVisualCapturePolicyArtifact(
+  options: EvidenceCaptureArtifactOptions
+): EvidenceCaptureArtifact {
+  const generatedAt = options.generatedAt ?? new Date().toISOString();
+  const payload = {
+    schemaVersion: 1,
+    kind: "visual-capture-policy",
+    generatedAt,
+    capturePolicy: createCapturePolicy(),
+    activeSession: serializeSession(options.activeSession, options.inspectorData),
+    visualCapture: {
+      status: "deferred-until-explicit-consent-and-redaction",
+      rawImageStorageDefault: "disabled",
+      requiredUserAction: "per-export visual capture consent",
+      redactionRequirements: [
+        "review visible workspace paths before capture",
+        "hide provider keys, tokens, account state, and local private files",
+        "prefer manifest-only export when the visual surface is not required",
+        "store visual artifacts only in a user-selected path"
+      ],
+      blockedDataClasses: [
+        "provider secrets",
+        "raw Claude stream logs",
+        "private file contents",
+        "local session files",
+        "unreviewed browser or terminal output"
+      ]
+    },
+    note:
+      "This policy artifact documents the consent/redaction boundary for future visual capture. It does not include image payload data."
+  };
+
+  return {
+    fileName: createEvidenceCaptureArtifactFileName("visual-capture-policy"),
+    kind: "visual-capture-policy",
+    text: `${JSON.stringify(payload, null, 2)}\n`
+  };
 }
 
 function createCaptureArtifact(
@@ -92,6 +180,13 @@ export function createEvidenceCaptureArtifactFileName(
   kind: EvidenceCaptureArtifactKind,
   activeSession?: ProjectedActiveSession
 ): string {
+  if (kind === "multi-session-trace-bundle") {
+    return "workbench-multi-session-trace-bundle.json";
+  }
+  if (kind === "visual-capture-policy") {
+    return "workbench-visual-capture-policy.json";
+  }
+
   const sessionPart = sanitizeFileName(activeSession?.id ?? "workbench");
   return `${sessionPart}-${kind}.json`;
 }
@@ -189,6 +284,22 @@ function serializeSession(
           parseWarningCount: runAttempts.at(-1)?.parseWarningCount
         }
       : undefined
+  };
+}
+
+function serializeSessionIndexItem(session: ProjectedSessionListItem) {
+  return {
+    id: session.id,
+    title: session.title,
+    lifecycle: session.lifecycle,
+    workspacePath: session.workspacePath,
+    backendAdapterId: session.backendAdapterId,
+    backendLabel: session.backendLabel,
+    pendingApprovalCount: session.pendingApprovalCount,
+    warningCount: session.warningCount,
+    errorCount: session.errorCount,
+    resumable: session.resumable,
+    updatedAt: session.updatedAt
   };
 }
 

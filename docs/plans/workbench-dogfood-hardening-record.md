@@ -175,6 +175,14 @@ Follow-up implemented from the route refresh result:
 - Screenshot manifests do not include bitmap data. Structured traces include
   metadata-only session, selection, count, diff path/stat, latest run attempt,
   and capture-policy evidence.
+- The Files inspector now also exports a multi-session trace bundle and a
+  visual capture policy artifact. The trace bundle groups session index,
+  attention counts, route metadata, and active-session trace metadata without
+  raw logs. The visual policy records the explicit consent/redaction
+  requirements that must be satisfied before any future raw visual artifact is
+  captured.
+- A multi-session issue report can be queued as a side-chat draft or exported as
+  markdown when several sessions need one local review bundle.
 
 ## Verification Checklist
 
@@ -187,9 +195,9 @@ Follow-up implemented from the route refresh result:
 
 ## Remaining TODO
 
-- Add a multi-session issue/report bundle that can include multiple structured
-  trace artifacts without raw logs.
-- Design a separate consent/redaction path before capturing raw screenshot
-  bitmap data.
+- Add true raw visual capture only after a dedicated consent UI, redaction
+  review, and user-selected storage path are implemented.
+- Let users select which sessions are included in a multi-session trace/report
+  bundle instead of exporting the whole projected session index.
 - Continue workspace/file picker polish with favorites, recency, and workspace
   switcher integration.

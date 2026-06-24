@@ -23,6 +23,8 @@ test("file evidence export package and capture boundary stay metadata-only", asy
   await expect(filesPanel.getByText("Structured trace bundle")).toBeVisible();
   await expect(filesPanel.getByRole("button", { name: "Export screenshot manifest" })).toBeVisible();
   await expect(filesPanel.getByRole("button", { name: "Export structured trace" })).toBeVisible();
+  await expect(filesPanel.getByRole("button", { name: "Export multi-session trace bundle" })).toBeVisible();
+  await expect(filesPanel.getByRole("button", { name: "Export visual capture policy" })).toBeVisible();
   await expect(filesPanel.getByText("Explicit consent required").first()).toBeVisible();
   await expect(filesPanel.getByRole("heading", { name: "Changed files" })).toBeVisible();
   await expect(filesPanel.getByText("Privacy boundary").first()).toBeVisible();
@@ -37,6 +39,13 @@ test("file evidence export package and capture boundary stay metadata-only", asy
   await filesPanel.getByRole("button", { name: "Export workspace report" }).click();
   const workspaceDownload = await workspaceDownloadPromise;
   expect(workspaceDownload.suggestedFilename()).toMatch(/workbench-workspace-report\.md$/);
+
+  const multiSessionReportDownloadPromise = page.waitForEvent("download");
+  await filesPanel.getByRole("button", { name: "Export multi-session report" }).click();
+  const multiSessionReportDownload = await multiSessionReportDownloadPromise;
+  expect(multiSessionReportDownload.suggestedFilename()).toMatch(
+    /workbench-multi-session-issue-report\.md$/
+  );
 
   const manifestDownloadPromise = page.waitForEvent("download");
   await filesPanel.getByRole("button", { name: "Export manifest", exact: true }).click();
@@ -55,6 +64,20 @@ test("file evidence export package and capture boundary stay metadata-only", asy
   const traceDownload = await traceDownloadPromise;
   expect(traceDownload.suggestedFilename()).toMatch(/local-session-1-structured-trace\.json$/);
 
+  const traceBundleDownloadPromise = page.waitForEvent("download");
+  await filesPanel.getByRole("button", { name: "Export multi-session trace bundle" }).click();
+  const traceBundleDownload = await traceBundleDownloadPromise;
+  expect(traceBundleDownload.suggestedFilename()).toMatch(
+    /workbench-multi-session-trace-bundle\.json$/
+  );
+
+  const visualPolicyDownloadPromise = page.waitForEvent("download");
+  await filesPanel.getByRole("button", { name: "Export visual capture policy" }).click();
+  const visualPolicyDownload = await visualPolicyDownloadPromise;
+  expect(visualPolicyDownload.suggestedFilename()).toMatch(
+    /workbench-visual-capture-policy\.json$/
+  );
+
   await queueAndClearDraft(page, filesPanel, "Queue evidence bundle", "Workbench evidence bundle");
   await queueAndClearDraft(page, filesPanel, "Queue report", "Workbench dogfood report");
   await queueAndClearDraft(
@@ -62,6 +85,12 @@ test("file evidence export package and capture boundary stay metadata-only", asy
     filesPanel,
     "Queue workspace report",
     "Workbench workspace report"
+  );
+  await queueAndClearDraft(
+    page,
+    filesPanel,
+    "Queue multi-session report",
+    "Workbench multi-session issue report"
   );
   await queueAndClearDraft(
     page,
