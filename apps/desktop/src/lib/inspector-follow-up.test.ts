@@ -125,6 +125,7 @@ describe("inspector follow-up drafts", () => {
             files: []
           }
         ],
+        artifacts: [],
         usageReports: [
           {
             id: "usage-1",

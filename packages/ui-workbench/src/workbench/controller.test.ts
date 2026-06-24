@@ -198,6 +198,62 @@ describe("createWorkbenchSessionController", () => {
     );
   });
 
+  it("tracks metadata-only artifacts and reasoning usage through replayed projection state", () => {
+    const controller = createWorkbenchSessionController();
+    const sessionEvents = createWorkbenchSessionStartEvents({
+      sessionId: "session-artifact",
+      title: "Artifact session",
+      at: "2026-06-21T02:00:00.000Z"
+    });
+    const events: readonly WorkbenchEvent[] = [
+      ...sessionEvents,
+      {
+        type: "usage.reported",
+        sessionId: "session-artifact",
+        usage: {
+          id: "usage-1",
+          source: "model",
+          model: "glm-5.2",
+          inputTokens: 1000,
+          outputTokens: 200,
+          thinkingTokens: 75,
+          reasoningTokens: 40
+        },
+        at: "2026-06-21T02:01:00.000Z"
+      },
+      {
+        type: "artifact.emitted",
+        sessionId: "session-artifact",
+        artifact: {
+          id: "artifact-1",
+          kind: "structured-trace",
+          title: "Structured trace",
+          contentState: "metadata-only",
+          path: "output/local/session-artifact/trace.json",
+          summary: "Path-only reference; payload is stored outside the event stream."
+        },
+        at: "2026-06-21T02:02:00.000Z"
+      }
+    ];
+
+    const snapshot = controller.appendEvents(events, {
+      activateSessionId: "session-artifact"
+    });
+
+    expect(snapshot.projection.activeSession?.usageReports[0]).toMatchObject({
+      model: "glm-5.2",
+      thinkingTokens: 75,
+      reasoningTokens: 40
+    });
+    expect(snapshot.projection.activeSession?.artifacts[0]).toMatchObject({
+      id: "artifact-1",
+      contentState: "metadata-only"
+    });
+    expect(snapshot.projection.activeSession?.timeline.map((entry) => entry.kind)).toContain(
+      "artifact"
+    );
+  });
+
   it("creates a resumable adapter-linked session prelude", () => {
     const controller = createWorkbenchSessionController({
       initialEvents: createWorkbenchSessionStartEvents({

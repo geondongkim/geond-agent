@@ -179,6 +179,7 @@ function createSessionIndexFixture(): readonly ProjectedSessionListItem[] {
 function createSessionFixture(): ProjectedActiveSession {
   return {
     approvals: [],
+    artifacts: [],
     assistantMessages: [],
     commandOutputs: [
       {

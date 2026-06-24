@@ -69,6 +69,7 @@ export type UiMessageKey =
   | "workbench.timeline.kind.command"
   | "workbench.timeline.kind.diff"
   | "workbench.timeline.kind.usage"
+  | "workbench.timeline.kind.artifact"
   | "workbench.timeline.kind.run"
   | "workbench.timeline.kind.issue"
   | "workbench.timeline.kind.approval"
@@ -109,6 +110,9 @@ export type UiMessageKey =
   | "workbench.runAttempts.sourceApproval"
   | "workbench.runAttempts.parentAttempt"
   | "workbench.runAttempts.followUpReason"
+  | "workbench.runAttempts.childAttempt"
+  | "workbench.runAttempts.childCount"
+  | "workbench.runAttempts.parentMissing"
   | "workbench.runAttempts.prompt"
   | "workbench.runAttempts.command"
   | "workbench.runAttempts.resume"
@@ -681,6 +685,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.timeline.kind.command": "Command",
     "workbench.timeline.kind.diff": "Diff",
     "workbench.timeline.kind.usage": "Usage",
+    "workbench.timeline.kind.artifact": "Artifact",
     "workbench.timeline.kind.run": "Run",
     "workbench.timeline.kind.issue": "Runtime issue",
     "workbench.timeline.kind.approval": "Approval",
@@ -721,6 +726,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runAttempts.sourceApproval": "Source approval",
     "workbench.runAttempts.parentAttempt": "Parent attempt",
     "workbench.runAttempts.followUpReason": "Follow-up reason",
+    "workbench.runAttempts.childAttempt": "Follow-up attempt",
+    "workbench.runAttempts.childCount": "{count} follow-up attempt(s)",
+    "workbench.runAttempts.parentMissing": "Parent attempt not loaded",
     "workbench.runAttempts.prompt": "Prompt",
     "workbench.runAttempts.command": "Command",
     "workbench.runAttempts.resume": "Resume",
@@ -1290,6 +1298,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.timeline.kind.command": "명령",
     "workbench.timeline.kind.diff": "변경",
     "workbench.timeline.kind.usage": "사용량",
+    "workbench.timeline.kind.artifact": "아티팩트",
     "workbench.timeline.kind.run": "실행",
     "workbench.timeline.kind.issue": "런타임 문제",
     "workbench.timeline.kind.approval": "승인",
@@ -1330,6 +1339,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.runAttempts.sourceApproval": "출처 승인",
     "workbench.runAttempts.parentAttempt": "상위 시도",
     "workbench.runAttempts.followUpReason": "이어쓰기 이유",
+    "workbench.runAttempts.childAttempt": "후속 실행",
+    "workbench.runAttempts.childCount": "후속 실행 {count}개",
+    "workbench.runAttempts.parentMissing": "상위 실행을 불러오지 못했습니다",
     "workbench.runAttempts.prompt": "프롬프트",
     "workbench.runAttempts.command": "명령",
     "workbench.runAttempts.resume": "이어쓰기",

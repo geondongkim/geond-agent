@@ -16,6 +16,7 @@ import {
 export interface ZaiProviderEnvironment {
   readonly ZAI_API_KEY?: string;
   readonly ANTHROPIC_AUTH_TOKEN?: string;
+  readonly OPENAI_API_KEY?: string;
   readonly ANTHROPIC_BASE_URL?: string;
   readonly ANTHROPIC_DEFAULT_HAIKU_MODEL?: string;
   readonly ANTHROPIC_DEFAULT_SONNET_MODEL?: string;
@@ -26,6 +27,8 @@ export interface ZaiProviderConfig {
   readonly anthropicBaseUrl: string;
   readonly routing: ZaiModelRouting;
   readonly hasApiKey: boolean;
+  readonly hasAnthropicKey: boolean;
+  readonly hasOpenAiKey: boolean;
   readonly route: ZaiAnthropicRouteMetadata;
   readonly openAiCompatibleRoute: ZaiOpenAiCompatibleRouteMetadata;
   readonly modelProfiles: readonly ZaiModelProfile[];
@@ -44,9 +47,12 @@ export function createZaiProviderConfig(
   const opusModel = asZaiModel(readNonEmptyString(environment.ANTHROPIC_DEFAULT_OPUS_MODEL));
   const anthropicBaseUrl =
     readNonEmptyString(environment.ANTHROPIC_BASE_URL) ?? ZAI_ANTHROPIC_BASE_URL;
-  const hasApiKey =
-    readNonEmptyString(environment.ZAI_API_KEY) !== undefined ||
-    readNonEmptyString(environment.ANTHROPIC_AUTH_TOKEN) !== undefined;
+  const hasZaiApiKey = readNonEmptyString(environment.ZAI_API_KEY) !== undefined;
+  const hasAnthropicKey =
+    hasZaiApiKey || readNonEmptyString(environment.ANTHROPIC_AUTH_TOKEN) !== undefined;
+  const hasOpenAiKey =
+    hasZaiApiKey || readNonEmptyString(environment.OPENAI_API_KEY) !== undefined;
+  const hasApiKey = hasAnthropicKey || hasOpenAiKey;
 
   if (haikuModel) {
     routingOverrides.haiku = haikuModel;
@@ -64,12 +70,14 @@ export function createZaiProviderConfig(
     anthropicBaseUrl,
     routing: createZaiModelRouting(routingOverrides),
     hasApiKey,
+    hasAnthropicKey,
+    hasOpenAiKey,
     route: createZaiAnthropicRouteMetadata({
       endpoint: anthropicBaseUrl,
-      hasApiKey
+      hasApiKey: hasAnthropicKey
     }),
     openAiCompatibleRoute: createZaiOpenAiRouteMetadata({
-      hasApiKey
+      hasApiKey: hasOpenAiKey
     }),
     modelProfiles: listZaiModelProfiles()
   };

@@ -179,6 +179,13 @@ normalized event contract. Concrete adapters such as
 `packages/claude-code-bridge` import SDK types and helpers; UI packages re-export
 them only for compatibility and rendering convenience.
 
+Execution policy is also adapter-neutral metadata. The SDK exposes shared
+policy ids such as `plan`, `ask-first`, `accept-edits`, and `bypass`; concrete
+bridges map those ids to tool-specific permission flags. Claude Code maps them
+to `--permission-mode` values, while future Codex/OpenCode adapters can provide
+their own mapping without changing UI state shape. Normal UI defaults should
+avoid bypass-style policies outside isolated evaluation worktrees.
+
 The first implementation can prove this boundary with
 `packages/claude-code-bridge`, but workbench concepts such as session lists,
 resume/fork actions, tool-call cards, terminal output, diff events, approval
@@ -362,9 +369,11 @@ usage metadata, and redacted run attempt summaries when available.
 The desktop shell now exposes Tauri commands for app-data JSON preferences and a
 SQLite-backed normalized event store. The native event store uses
 `PRAGMA user_version` migrations and transactionally appends workbench events
-with derived updates. Approval requests and resolutions are materialized into a
-queryable `workbench_approvals` table so pending approval counts come from
-approval rows rather than hand-maintained JSON-only session summaries. The v3
+with derived updates. The current native schema version is defined by
+`EVENT_STORE_SCHEMA_VERSION` in `apps/desktop/src-tauri/src/lib.rs` and is
+schema v8. Approval requests and resolutions are materialized into a queryable
+`workbench_approvals` table so pending approval counts come from approval rows
+rather than hand-maintained JSON-only session summaries. The current
 persistence slice also materializes context attachments, tool calls, command
 output previews, diff summaries, usage metadata, and run attempt summaries into
 queryable tables derived from the normalized event stream. Run attempt rows

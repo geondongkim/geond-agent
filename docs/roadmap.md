@@ -48,8 +48,10 @@
 - SQLite-backed local sessions, events, snapshots, approvals, tool calls,
   command output summaries, diff summaries, and usage metadata.
 - Started native event materialization for context attachments, tool calls,
-  command output previews, diff summaries, and usage metadata through schema v3
-  tables derived from normalized events.
+  command output previews, diff summaries, usage metadata, and run attempt
+  summaries through native materialized tables derived from normalized events.
+  The exact schema version is owned by `EVENT_STORE_SCHEMA_VERSION` in
+  `apps/desktop/src-tauri/src/lib.rs`.
 - Per-session projection:
   - load durable session summaries first,
   - replay detailed event streams for the active session only,

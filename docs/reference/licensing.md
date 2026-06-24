@@ -134,10 +134,16 @@ license-review rules above before merge.
 
 ## Backend Adapter SDK and Examples
 
-`packages/backend-adapter-sdk` and `examples/adapters/mock-backend` are original
-repository code and currently inherit the repository MPL-2.0 license. The SDK is
-designed as a neutral adapter authoring contract inside this monorepo; it is not
-`geond-agent-protocol`, and it does not include third-party adapter source.
+`packages/backend-adapter-sdk`, `packages/codex-cli-bridge`, and
+`examples/adapters/mock-backend` are original repository code and currently
+inherit the repository MPL-2.0 license. The SDK is designed as a neutral adapter
+authoring contract inside this monorepo; it is not `geond-agent-protocol`, and
+it does not include third-party adapter source.
+
+`packages/codex-cli-bridge` is metadata-only. It does not import, vendor, or
+copy OpenAI Codex source, app assets, VS Code extension bundles, screenshots,
+fonts, fixtures, or local session state. If a future PR imports code from
+`openai/codex`, preserve Apache-2.0 license text and notices before merging.
 
 Future distribution may choose to publish adapter SDK/types/examples under a
 separate license or package boundary if external adapter authorship becomes a

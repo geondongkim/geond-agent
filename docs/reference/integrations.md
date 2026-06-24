@@ -118,6 +118,7 @@ explicit integration plan and license/security review allows it.
 | OpenCode | External CLI/workbench process and setup guide reference | Candidate evaluation route for terminal-oriented workflows. No vendored code. |
 | OpenHands | Documented API/protocol or external process reference | Candidate workflow and agent surface reference. No vendored code. |
 | Kilo Code | IDE/plugin mediated backend and UX reference | Candidate review and planning workflow reference. No vendored code. |
+| OpenAI Codex CLI | Metadata-only adapter research | `packages/codex-cli-bridge` records capability and execution-policy shape only. No Codex process runner or vendored source. |
 | GitHub Copilot app | Reference product pattern | Agent-driven desktop, per-session model/tool choice, MCP/tool connection. No dependency. |
 | GitHub Copilot Chat | Reference product pattern | Model picker and auto model selection reference. No dependency. |
 | GitHub Copilot SDK | Future integration research | Embedded agent runtime candidate. Do not add dependency yet. |

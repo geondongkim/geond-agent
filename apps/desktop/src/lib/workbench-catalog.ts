@@ -7,10 +7,12 @@ import type {
 import type { ZaiProviderConfig } from "@geond-agent/zai-provider";
 
 export function createDesktopWorkbenchCatalog(
-  providerConfig?: Pick<ZaiProviderConfig, "hasApiKey">
+  providerConfig?: Partial<
+    Pick<ZaiProviderConfig, "hasApiKey" | "hasAnthropicKey" | "hasOpenAiKey">
+  >
 ): WorkbenchSelectionCatalog {
   return createClaudeCodeSelectionCatalog({
-    hasAnthropicKey: providerConfig?.hasApiKey,
-    hasOpenAiKey: providerConfig?.hasApiKey
+    hasAnthropicKey: providerConfig?.hasAnthropicKey ?? providerConfig?.hasApiKey,
+    hasOpenAiKey: providerConfig?.hasOpenAiKey ?? providerConfig?.hasApiKey
   });
 }

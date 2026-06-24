@@ -169,10 +169,25 @@ export const ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS: readonly WorkbenchEvent[] = [
       model: "glm-4.7",
       inputTokens: 1200,
       outputTokens: 220,
+      thinkingTokens: 80,
       cacheReadInputTokens: 180,
       note: "Synthetic usage metadata for replay and projection checks."
     },
     at: "2026-06-21T00:00:07.500Z"
+  },
+  {
+    type: "artifact.emitted",
+    sessionId: "eval-task-1",
+    artifact: {
+      id: "artifact-trace-1",
+      kind: "structured-trace",
+      title: "Structured trace manifest",
+      contentState: "metadata-only",
+      path: "output/local/eval-task-1/structured-trace.json",
+      mediaType: "application/json",
+      summary: "Path-only trace artifact reference; payload is not stored in the event stream."
+    },
+    at: "2026-06-21T00:00:07.750Z"
   },
   {
     type: "approval.requested",
@@ -182,6 +197,7 @@ export const ZAI_PRE_SUBSCRIPTION_SAMPLE_EVENTS: readonly WorkbenchEvent[] = [
       kind: "diff",
       title: "Review language settings patch",
       status: "pending",
+      diffId: "diff-1",
       subject: "packages/ui-workbench/src/settings/language-settings.ts"
     },
     at: "2026-06-21T00:00:08.000Z"

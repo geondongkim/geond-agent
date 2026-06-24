@@ -28,6 +28,24 @@ describe("projectWorkbenchEvents scale fixtures", () => {
       latestAttemptStatus: "succeeded"
     });
   });
+
+  it("replays a 100-session stress stream without losing active-session isolation", () => {
+    const events = createLargeWorkbenchEventStream({
+      eventCount: 50_000,
+      sessionCount: 100
+    });
+    const activeSessionId = "scale-session-99";
+
+    const projection = projectWorkbenchEvents(events, undefined, { activeSessionId });
+
+    expect(projection.sessions).toHaveLength(100);
+    expect(projection.workspaces).toHaveLength(5);
+    expect(projection.activeSession?.id).toBe(activeSessionId);
+    expect(projection.activeSession?.assistantMessages).toHaveLength(1);
+    expect(projection.activeSession?.timeline.length).toBe(
+      events.filter((event) => event.sessionId === activeSessionId).length
+    );
+  });
 });
 
 function createLargeWorkbenchEventStream({
