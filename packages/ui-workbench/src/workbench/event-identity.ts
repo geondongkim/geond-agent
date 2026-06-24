@@ -61,6 +61,8 @@ export function workbenchEventIdentity(event: WorkbenchEvent): string {
       return [event.type, event.sessionId, event.diff.id, event.at ?? ""].join(":");
     case "usage.reported":
       return [event.type, event.sessionId, event.usage.id, event.at ?? ""].join(":");
+    case "artifact.emitted":
+      return [event.type, event.sessionId, event.artifact.id, event.artifact.contentState, event.at ?? ""].join(":");
     case "run.attempt.started":
       return [event.type, event.sessionId, event.attempt.id, event.at ?? ""].join(":");
     case "run.attempt.updated":

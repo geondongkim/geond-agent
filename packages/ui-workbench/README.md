@@ -121,6 +121,12 @@ review-delivery preferences describe local workbench behavior first; future
 adapter packages may advertise whether they can support steering, interrupting,
 or detached review sessions.
 
+The SDK now also exposes adapter-neutral execution policy ids. UI surfaces
+should render policy concepts such as `plan`, `ask-first`, and `accept-edits`,
+then let each bridge map them to backend-specific permission flags. Claude Code
+keeps compatibility labels such as `default`/`acceptEdits`, but those names
+should not become the shared SDK contract.
+
 Reference workbench patterns are tracked in
 `../../docs/research/oss-agent-workbench-reference.md`. The package should learn
 from Goose-style model registries, Cline-style provider/model catalogs,

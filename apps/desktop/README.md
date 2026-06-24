@@ -36,7 +36,7 @@ The desktop shell is Tauri v2 with a React + Vite renderer. Native commands own:
 - app-data JSON settings for non-secret preferences,
 - SQLite storage for normalized workbench events,
 - a durable SQLite session index for startup/session-rail metadata,
-- schema v5 materialized tables for context attachments, tool calls, command
+- schema v8 materialized tables for context attachments, tool calls, command
   output previews, diff summaries, usage metadata, and Claude run attempt
   summaries derived from normalized events,
 - Tauri query commands and a typed renderer client for reading those
@@ -84,10 +84,12 @@ files, or raw private file contents from context attachments.
   settings persistence, and runner/approval review. Keep new tests in the
   closest surface file instead of growing a single large spec again.
 
-`createDesktopMaterializedEventStore` is the renderer boundary for the v5
-materialized event views. It reads context attachments, tool calls, command
-output previews, diff summaries, usage metadata, and run attempt summaries
-through Tauri commands when the native shell is available, and falls back to an
-in-memory read model during renderer-only development. The active inspector
-refreshes those materialized records for the selected session and falls back to
-replay-derived projection data when native SQLite commands are unavailable.
+`createDesktopMaterializedEventStore` is the renderer boundary for the
+materialized event views. The native schema is currently versioned by
+`EVENT_STORE_SCHEMA_VERSION` in `apps/desktop/src-tauri/src/lib.rs` and is at
+schema v8. It reads context attachments, tool calls, command output previews,
+diff summaries, usage metadata, and run attempt summaries through Tauri commands
+when the native shell is available, and falls back to an in-memory read model
+during renderer-only development. The active inspector refreshes those
+materialized records for the selected session and falls back to replay-derived
+projection data when native SQLite commands are unavailable.

@@ -97,6 +97,7 @@ export function InspectorReviewTab({
   const diffs = inspectorData?.diffs ?? activeSession.diffs;
   const usageReports = inspectorData?.usageReports ?? activeSession.usageReports;
   const runAttempts = inspectorData?.runAttempts ?? activeSession.runAttempts;
+  const runAttemptRows = createRunAttemptReviewRows(runAttempts);
   const runnerIssues = activeSession.runnerIssues;
   const providerRouteHealth = activeSession.providerRouteHealth;
   const liveRunContinuity = activeSession.liveRunContinuity;
@@ -442,10 +443,29 @@ export function InspectorReviewTab({
           </div>
           {runAttempts.length ? (
             <div className="space-y-2">
-              {runAttempts.map((attempt) => (
-                <div key={attempt.id} className="inspector-card">
+              {runAttemptRows.map(({ attempt, childCount, depth, parentMissing }) => (
+                <div
+                  key={attempt.id}
+                  className={cn(
+                    "inspector-card",
+                    depth > 0 && "border-l-2 border-[color:var(--border-strong)]"
+                  )}
+                  style={depth > 0 ? { marginLeft: Math.min(depth, 3) * 14 } : undefined}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
+                      {depth > 0 || childCount > 0 || parentMissing ? (
+                        <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.12em] text-[color:var(--ink-muted)]">
+                          {depth > 0
+                            ? i18n.t("workbench.runAttempts.childAttempt")
+                            : formatMessage(i18n.t("workbench.runAttempts.childCount"), {
+                                count: childCount
+                              })}
+                          {parentMissing
+                            ? ` / ${i18n.t("workbench.runAttempts.parentMissing")}`
+                            : ""}
+                        </p>
+                      ) : null}
                       <p className="truncate text-sm font-semibold">
                         {attempt.modelProfileId ?? attempt.mode}
                       </p>
@@ -942,6 +962,74 @@ function shouldOfferHealthRouteFallback(
     health.latestHealth === "unavailable" ||
     health.suggestedActions.includes("switch_route")
   );
+}
+
+interface RunAttemptReviewRow {
+  readonly attempt: ProjectedActiveSession["runAttempts"][number];
+  readonly depth: number;
+  readonly childCount: number;
+  readonly parentMissing: boolean;
+}
+
+function createRunAttemptReviewRows(
+  attempts: readonly ProjectedActiveSession["runAttempts"][number][]
+): readonly RunAttemptReviewRow[] {
+  const byId = new Map(attempts.map((attempt) => [attempt.id, attempt]));
+  const childrenByParent = new Map<string, ProjectedActiveSession["runAttempts"][number][]>();
+  const roots: ProjectedActiveSession["runAttempts"][number][] = [];
+  const missingParentChildren: ProjectedActiveSession["runAttempts"][number][] = [];
+
+  for (const attempt of attempts) {
+    const parentId = attempt.parentRunAttemptId;
+    if (!parentId) {
+      roots.push(attempt);
+      continue;
+    }
+
+    if (!byId.has(parentId)) {
+      missingParentChildren.push(attempt);
+      continue;
+    }
+
+    const children = childrenByParent.get(parentId) ?? [];
+    children.push(attempt);
+    childrenByParent.set(parentId, children);
+  }
+
+  const rows: RunAttemptReviewRow[] = [];
+  const visited = new Set<string>();
+  const append = (
+    attempt: ProjectedActiveSession["runAttempts"][number],
+    depth: number,
+    parentMissing: boolean
+  ) => {
+    if (visited.has(attempt.id)) {
+      return;
+    }
+    visited.add(attempt.id);
+    const children = childrenByParent.get(attempt.id) ?? [];
+    rows.push({
+      attempt,
+      depth,
+      childCount: children.length,
+      parentMissing
+    });
+    for (const child of children) {
+      append(child, depth + 1, false);
+    }
+  };
+
+  for (const root of roots) {
+    append(root, 0, false);
+  }
+  for (const child of missingParentChildren) {
+    append(child, 1, true);
+  }
+  for (const attempt of attempts) {
+    append(attempt, 0, false);
+  }
+
+  return rows;
 }
 
 function runAttemptTone(status: string): string {

@@ -1,5 +1,6 @@
 import type {
   ApprovalDecision,
+  ExecutionPolicyId,
   WorkbenchApprovalSnapshot,
   WorkbenchEvent
 } from "@geond-agent/backend-adapter-sdk";
@@ -18,6 +19,7 @@ export interface ClaudeCodeStreamJsonCommandOptions {
   readonly prompt: string;
   readonly cwd?: string;
   readonly modelAlias?: string;
+  readonly executionPolicy?: ExecutionPolicyId;
   readonly permissionMode?: ClaudeCodePermissionMode;
   readonly sessionId?: string;
   readonly externalSessionId?: string;
@@ -104,7 +106,8 @@ export function buildClaudeCodeStreamJsonCommand(
       "--model",
       options.modelAlias ?? "sonnet",
       "--permission-mode",
-      options.permissionMode ?? "plan",
+      options.permissionMode ??
+        mapExecutionPolicyToClaudeCodePermissionMode(options.executionPolicy ?? "plan"),
       ...(isClaudeCodeSessionUuid(options.externalSessionId)
         ? ["--resume", options.externalSessionId]
         : isClaudeCodeSessionUuid(options.sessionId)
@@ -113,6 +116,21 @@ export function buildClaudeCodeStreamJsonCommand(
       options.prompt
     ]
   };
+}
+
+export function mapExecutionPolicyToClaudeCodePermissionMode(
+  policy: ExecutionPolicyId
+): ClaudeCodePermissionMode {
+  switch (policy) {
+    case "ask-first":
+      return "default";
+    case "accept-edits":
+      return "acceptEdits";
+    case "bypass":
+      return "bypassPermissions";
+    case "plan":
+      return "plan";
+  }
 }
 
 function isClaudeCodeSessionUuid(value: string | undefined): value is string {

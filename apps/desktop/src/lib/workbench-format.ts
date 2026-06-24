@@ -371,6 +371,8 @@ export function formatTimelineKindLabel(i18n: UiI18n, kind: string): string {
       return i18n.t("workbench.timeline.kind.diff");
     case "usage":
       return i18n.t("workbench.timeline.kind.usage");
+    case "artifact":
+      return i18n.t("workbench.timeline.kind.artifact");
     case "run":
       return i18n.t("workbench.timeline.kind.run");
     case "issue":
@@ -448,6 +450,8 @@ export function eventCardTone(kind: string): string {
       return "event-card-command";
     case "usage":
       return "event-card-usage";
+    case "artifact":
+      return "event-card-command";
     case "run":
       return "event-card-command";
     case "warning":

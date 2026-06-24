@@ -25,12 +25,37 @@ describe("desktop workbench catalog", () => {
   });
 
   it("exposes only API key presence metadata, never a secret value", () => {
-    const serialized = JSON.stringify(createDesktopWorkbenchCatalog({ hasApiKey: true }));
+    const serialized = JSON.stringify(
+      createDesktopWorkbenchCatalog({
+        hasApiKey: true,
+        hasAnthropicKey: true,
+        hasOpenAiKey: true
+      })
+    );
 
     expect(serialized).toContain('"hasApiKey":true');
     expect(serialized).toContain('"apiKeyState":"present"');
     expect(serialized).not.toMatch(
       /ZAI_API_KEY|ANTHROPIC_API_KEY|ANTHROPIC_AUTH_TOKEN|sk-[A-Za-z0-9_-]{20,}/
     );
+  });
+
+  it("keeps Anthropic-compatible and OpenAI-compatible key presence separate", () => {
+    const catalog = createDesktopWorkbenchCatalog({
+      hasApiKey: true,
+      hasAnthropicKey: true,
+      hasOpenAiKey: false
+    });
+
+    expect(catalog.providerRoutes).toEqual([
+      expect.objectContaining({
+        id: "zai.anthropic-compatible",
+        apiKeyState: "present"
+      }),
+      expect.objectContaining({
+        id: "zai.openai-compatible-coding",
+        apiKeyState: "missing"
+      })
+    ]);
   });
 });

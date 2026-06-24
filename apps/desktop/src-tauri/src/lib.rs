@@ -22,6 +22,8 @@ const RUNNER_MODE_SETTINGS_KEY: &str = "geond-agent.workbench.runner-mode";
 const LAYOUT_SETTINGS_KEY: &str = "geond-agent.workbench.layout";
 const SIDE_CHAT_DRAFTS_SETTINGS_KEY: &str = "geond-agent.workbench.side-chat-drafts";
 const RECENT_CONTEXT_SETTINGS_KEY: &str = "geond-agent.workbench.recent-context";
+const EVIDENCE_EXPORT_PREFERENCES_SETTINGS_KEY: &str =
+    "geond-agent.workbench.evidence-export-preferences";
 const LOCAL_ENV_FILE_NAME: &str = ".env.local";
 const CLAUDE_STREAM_EVENT_NAME: &str = "geond-agent://claude-code-stream-json";
 const CLAUDE_DEFAULT_TIMEOUT_MS: u64 = 10 * 60 * 1000;
@@ -986,7 +988,8 @@ fn ensure_allowed_setting_key(key: &str) -> Result<(), String> {
         | RUNNER_MODE_SETTINGS_KEY
         | LAYOUT_SETTINGS_KEY
         | SIDE_CHAT_DRAFTS_SETTINGS_KEY
-        | RECENT_CONTEXT_SETTINGS_KEY => Ok(()),
+        | RECENT_CONTEXT_SETTINGS_KEY
+        | EVIDENCE_EXPORT_PREFERENCES_SETTINGS_KEY => Ok(()),
         _ => Err("Unsupported settings key.".to_string()),
     }
 }
@@ -3479,6 +3482,7 @@ mod tests {
         assert!(ensure_allowed_setting_key(LAYOUT_SETTINGS_KEY).is_ok());
         assert!(ensure_allowed_setting_key(SIDE_CHAT_DRAFTS_SETTINGS_KEY).is_ok());
         assert!(ensure_allowed_setting_key(RECENT_CONTEXT_SETTINGS_KEY).is_ok());
+        assert!(ensure_allowed_setting_key(EVIDENCE_EXPORT_PREFERENCES_SETTINGS_KEY).is_ok());
         assert!(ensure_allowed_setting_key("geond-agent.workbench.provider-credential").is_err());
     }
 

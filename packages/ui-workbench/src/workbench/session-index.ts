@@ -133,6 +133,7 @@ export function applyWorkbenchSessionIndexEvent(
     case "command.output":
     case "diff.emitted":
     case "usage.reported":
+    case "artifact.emitted":
     case "run.attempt.started":
     case "run.attempt.updated":
       return putSessionIndexEntry(index, {

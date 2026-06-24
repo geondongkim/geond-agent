@@ -49,6 +49,8 @@ export interface WorkbenchUsageSnapshot {
   readonly model?: string;
   readonly inputTokens?: number;
   readonly outputTokens?: number;
+  readonly thinkingTokens?: number;
+  readonly reasoningTokens?: number;
   readonly cacheCreationInputTokens?: number;
   readonly cacheReadInputTokens?: number;
   readonly contextWindow?: number;
@@ -180,6 +182,32 @@ export interface WorkbenchApprovalSnapshot {
   readonly resolvedAt?: string;
   readonly decision?: ApprovalDecision;
   readonly subject?: string;
+  readonly diffId?: string;
+  readonly toolCallId?: string;
+  readonly commandId?: string;
+}
+
+export type WorkbenchArtifactKind =
+  | "structured-trace"
+  | "visual-capture"
+  | "report"
+  | "patch"
+  | "unknown";
+export type WorkbenchArtifactContentState =
+  | "metadata-only"
+  | "external-reference"
+  | "redacted";
+
+export interface WorkbenchArtifactSnapshot {
+  readonly id: string;
+  readonly kind: WorkbenchArtifactKind;
+  readonly title: string;
+  readonly contentState: WorkbenchArtifactContentState;
+  readonly path?: string;
+  readonly mediaType?: string;
+  readonly summary?: string;
+  readonly sourceEventId?: string;
+  readonly createdAt?: string;
 }
 
 export type WorkbenchEvent =
@@ -266,6 +294,12 @@ export type WorkbenchEvent =
       readonly type: "usage.reported";
       readonly sessionId: string;
       readonly usage: WorkbenchUsageSnapshot;
+      readonly at?: string;
+    }
+  | {
+      readonly type: "artifact.emitted";
+      readonly sessionId: string;
+      readonly artifact: WorkbenchArtifactSnapshot;
       readonly at?: string;
     }
   | {

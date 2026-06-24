@@ -21,11 +21,15 @@ export function createZaiAnthropicCompatibleEnvironment(
 
 export function describeZaiProviderConfig(config: ZaiProviderConfig): string {
   const keyState = config.hasApiKey ? "api-key-present" : "api-key-missing";
+  const anthropicKeyState = config.hasAnthropicKey ? "anthropic-key-present" : "anthropic-key-missing";
+  const openAiKeyState = config.hasOpenAiKey ? "openai-key-present" : "openai-key-missing";
   return [
     `base=${config.anthropicBaseUrl}`,
     `haiku=${config.routing.haiku}`,
     `sonnet=${config.routing.sonnet}`,
     `opus=${config.routing.opus}`,
-    keyState
+    keyState,
+    anthropicKeyState,
+    openAiKeyState
   ].join(" ");
 }

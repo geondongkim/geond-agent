@@ -3,6 +3,7 @@ import type {
   CommandStatus,
   WorkbenchApprovalSnapshot,
   WorkbenchAdapterSessionLinkSnapshot,
+  WorkbenchArtifactSnapshot,
   WorkbenchContextAttachmentSnapshot,
   WorkbenchDiffSnapshot,
   WorkbenchEvent,
@@ -56,6 +57,7 @@ export interface WorkbenchSessionSnapshot {
   readonly commandOutputs: Readonly<Record<string, CommandOutputSnapshot>>;
   readonly diffs: Readonly<Record<string, WorkbenchDiffSnapshot>>;
   readonly usageReports: Readonly<Record<string, WorkbenchUsageSnapshot>>;
+  readonly artifacts: Readonly<Record<string, WorkbenchArtifactSnapshot>>;
   readonly runAttempts: Readonly<Record<string, WorkbenchRunAttemptSnapshot>>;
   readonly runnerIssues: Readonly<Record<string, WorkbenchRunnerIssueSnapshot>>;
   readonly approvals: Readonly<Record<string, WorkbenchApprovalSnapshot>>;
@@ -249,6 +251,18 @@ export function applyWorkbenchEvent(
         },
         updatedAt: event.at ?? session.updatedAt
       });
+    case "artifact.emitted":
+      return putSession(state, {
+        ...session,
+        artifacts: {
+          ...session.artifacts,
+          [event.artifact.id]: {
+            ...event.artifact,
+            createdAt: event.artifact.createdAt ?? event.at
+          }
+        },
+        updatedAt: event.at ?? session.updatedAt
+      });
     case "run.attempt.started":
       return putSession(state, {
         ...session,
@@ -372,6 +386,7 @@ function ensureSession(
       commandOutputs: {},
       diffs: {},
       usageReports: {},
+      artifacts: {},
       runAttempts: {},
       runnerIssues: {},
       approvals: {},

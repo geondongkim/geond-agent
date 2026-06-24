@@ -142,6 +142,12 @@ forcing all backends to pretend they support the same features. New adapter
 examples should start from `examples/adapters/mock-backend/` before adding
 runtime code.
 
+`packages/codex-cli-bridge` is the first metadata-only second adapter consumer
+of the SDK. It does not launch Codex or copy Codex source; it proves that
+backend metadata, capability status, execution policy ids, and artifact
+references can be described outside the Claude Code bridge before a real runner
+exists.
+
 OpenCode is the next horizontal-expansion route after Claude Code stabilizes.
 Do not start by spreading implementation effort across both routes.
 
@@ -161,6 +167,12 @@ Do not start by spreading implementation effort across both routes.
 | Auto routing support | Possible when backend can route or accept auto mode. | Possible if adapter can choose env/flags before launch. | Depends on plugin/provider support. | Primary home for task, cost, availability, and reliability policy. |
 | BYOK/BYOM support | Depends on protocol/provider configuration. | Common through local env or ignored config. | Depends on plugin policy and local settings. | Primary place to describe external provider/local model routes. |
 | Quota/cost reporting | Depends on backend telemetry. | Depends on CLI/provider output. | Depends on plugin/provider visibility. | Primary place for provider-level usage metadata when available. |
+
+Execution policy is modeled as adapter-neutral SDK metadata before it is mapped
+to tool-specific permission names. The initial common policy ids are `plan`,
+`ask-first`, `accept-edits`, and `bypass`; concrete adapters translate those ids
+to their own CLI flags or protocol fields. Normal UI defaults should not expose
+`bypass`.
 
 ## Open Questions
 

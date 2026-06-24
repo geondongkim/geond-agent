@@ -34,6 +34,7 @@ export type WorkbenchTimelineEntryKind =
   | "command"
   | "diff"
   | "usage"
+  | "artifact"
   | "run"
   | "issue"
   | "approval"
@@ -168,6 +169,7 @@ export interface ProjectedWorkbenchSession {
   readonly commandOutputs: readonly ProjectedCommandOutput[];
   readonly diffs: readonly WorkbenchSessionSnapshot["diffs"][string][];
   readonly usageReports: readonly WorkbenchSessionSnapshot["usageReports"][string][];
+  readonly artifacts: readonly WorkbenchSessionSnapshot["artifacts"][string][];
   readonly runAttempts: readonly WorkbenchSessionSnapshot["runAttempts"][string][];
   readonly runnerIssues: readonly WorkbenchSessionSnapshot["runnerIssues"][string][];
   readonly providerRouteHealth: readonly ProjectedProviderRouteHealth[];
@@ -337,6 +339,7 @@ function projectActiveSession(
     commandOutputs: Object.values(session.commandOutputs).map(projectCommandOutput),
     diffs: Object.values(session.diffs),
     usageReports: Object.values(session.usageReports),
+    artifacts: Object.values(session.artifacts),
     runAttempts,
     runnerIssues,
     providerRouteHealth: projectProviderRouteHealth(runnerIssues, runAttempts),
@@ -805,6 +808,15 @@ function projectTimelineEntry(event: WorkbenchEvent): WorkbenchTimelineEntry | u
         body: describeUsage(event.usage),
         status: event.usage.source
       };
+    case "artifact.emitted":
+      return {
+        id: `${event.type}:${event.artifact.id}:${event.at ?? "unknown"}`,
+        kind: "artifact",
+        at: event.at,
+        title: event.artifact.title,
+        body: event.artifact.summary ?? event.artifact.path,
+        status: event.artifact.contentState
+      };
     case "run.attempt.started":
       return {
         id: `${event.type}:${event.attempt.id}:${event.at ?? "unknown"}`,
@@ -1123,6 +1135,8 @@ function describeUsage(
     usage.inputTokens === undefined ? undefined : `input ${usage.inputTokens}`,
     usage.outputTokens === undefined ? undefined : `output ${usage.outputTokens}`,
     usage.cacheReadInputTokens === undefined ? undefined : `cache read ${usage.cacheReadInputTokens}`,
+    usage.thinkingTokens === undefined ? undefined : `thinking ${usage.thinkingTokens}`,
+    usage.reasoningTokens === undefined ? undefined : `reasoning ${usage.reasoningTokens}`,
     usage.costUsd === undefined ? undefined : `$${usage.costUsd.toFixed(4)}`
   ].filter((part): part is string => part !== undefined);
 

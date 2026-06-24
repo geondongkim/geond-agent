@@ -5,6 +5,7 @@ import {
   buildClaudeCodeStreamJsonCommand,
   createClaudeCodeFixtureReplayRunner,
   createClaudeCodeProcessRunner,
+  mapExecutionPolicyToClaudeCodePermissionMode,
   parseClaudeCodeStreamJsonLines,
   selectClaudeCodeApprovalFollowUpPermissionMode
 } from "./runner.js";
@@ -36,6 +37,21 @@ describe("Claude Code runner boundary", () => {
       "plan",
       "Summarize the current workbench session."
     ]);
+  });
+
+  it("maps adapter-neutral execution policies to Claude Code permission modes", () => {
+    expect(mapExecutionPolicyToClaudeCodePermissionMode("plan")).toBe("plan");
+    expect(mapExecutionPolicyToClaudeCodePermissionMode("ask-first")).toBe("default");
+    expect(mapExecutionPolicyToClaudeCodePermissionMode("accept-edits")).toBe("acceptEdits");
+    expect(mapExecutionPolicyToClaudeCodePermissionMode("bypass")).toBe("bypassPermissions");
+
+    const command = buildClaudeCodeStreamJsonCommand({
+      prompt: "Implement a guarded change.",
+      sessionId: "session-1",
+      executionPolicy: "ask-first"
+    });
+
+    expect(command.args).toContain("default");
   });
 
   it("passes a Claude Code UUID session id when one is explicitly available", () => {

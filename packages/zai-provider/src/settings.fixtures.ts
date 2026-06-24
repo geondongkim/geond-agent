@@ -34,6 +34,8 @@ type AssertEqual<X, Y> =
 
 // `hasApiKey` is a boolean presence flag and can never carry the key value.
 const _hasApiKeyIsBoolean: AssertEqual<ZaiProviderConfig["hasApiKey"], boolean> = true;
+const _hasAnthropicKeyIsBoolean: AssertEqual<ZaiProviderConfig["hasAnthropicKey"], boolean> = true;
+const _hasOpenAiKeyIsBoolean: AssertEqual<ZaiProviderConfig["hasOpenAiKey"], boolean> = true;
 
 // The raw API key is intentionally not part of the provider config shape, so a
 // future field that exposes it fails to compile.
@@ -42,6 +44,8 @@ const _configHasNoRawApiKeyField: AssertEqual<
   | "anthropicBaseUrl"
   | "routing"
   | "hasApiKey"
+  | "hasAnthropicKey"
+  | "hasOpenAiKey"
   | "route"
   | "openAiCompatibleRoute"
   | "modelProfiles"
@@ -107,7 +111,21 @@ export function verifyNonEmptyApiKeyReportsPresent(): void {
     ...DEFAULT_PROVIDER_ENVIRONMENT,
     ANTHROPIC_AUTH_TOKEN: FAKE_API_KEY_MARKER
   });
-  if (!zaiConfig.hasApiKey || !anthropicConfig.hasApiKey) {
+  const openAiOnlyConfig = createZaiProviderConfig({
+    ...DEFAULT_PROVIDER_ENVIRONMENT,
+    OPENAI_API_KEY: FAKE_API_KEY_MARKER
+  });
+  if (
+    !zaiConfig.hasApiKey ||
+    !zaiConfig.hasAnthropicKey ||
+    !zaiConfig.hasOpenAiKey ||
+    !anthropicConfig.hasApiKey ||
+    !anthropicConfig.hasAnthropicKey ||
+    anthropicConfig.hasOpenAiKey ||
+    !openAiOnlyConfig.hasApiKey ||
+    openAiOnlyConfig.hasAnthropicKey ||
+    !openAiOnlyConfig.hasOpenAiKey
+  ) {
     throw new Error("Non-empty Z.ai credential was reported as missing");
   }
 }
