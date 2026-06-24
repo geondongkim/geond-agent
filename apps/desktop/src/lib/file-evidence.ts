@@ -1,5 +1,9 @@
 import { redactSensitiveTextContent } from "@geond-agent/claude-code-bridge";
 
+import {
+  createEvidenceCaptureReadiness,
+  formatEvidenceCaptureReadinessForManifest
+} from "./evidence-capture.js";
 import type { InspectorSessionReadModel } from "./inspector-read-model.js";
 import { groupRecentContextByWorkspace, type RecentContextItem } from "./recent-context.js";
 import type { ProjectedActiveSession, ProjectedSessionListItem } from "./workbench-types.js";
@@ -287,6 +291,7 @@ export function createEvidenceExportManifestDraft({
   const resumableSessionCount = sessions.filter((session) => session.resumable).length;
   const source = inspectorData?.source ?? "projection";
   const selection = activeSession?.selection;
+  const captureReadiness = createEvidenceCaptureReadiness();
 
   return [
     "Workbench export manifest (metadata only).",
@@ -331,12 +336,15 @@ export function createEvidenceExportManifestDraft({
     "Favorite context by workspace",
     ...formatRecentContextWorkspaceGroups(workspaceGroups),
     "",
+    "Capture consent and redaction readiness",
+    ...formatEvidenceCaptureReadinessForManifest(captureReadiness),
+    "",
     "Export-ready documents",
     "- active session evidence bundle: ready",
     "- workspace report: ready",
     "- issue/report draft: ready",
-    "- screenshot bundle: not collected in this slice",
-    "- structured trace bundle: not collected in this slice",
+    "- screenshot bundle: requires explicit consent and redaction configuration",
+    "- structured trace bundle: requires explicit consent and redaction configuration",
     "",
     "Review prompts",
     "- Is the active session evidence enough to reproduce the concern without raw logs?",

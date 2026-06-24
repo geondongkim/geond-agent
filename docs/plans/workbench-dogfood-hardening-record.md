@@ -91,6 +91,39 @@ Follow-up implemented from the dogfood result:
 - Chunk budget monitoring moved from manual Vite warning inspection into the
   desktop build script.
 
+## Live Claude Export Dogfood: 2026-06-24
+
+Raw run output is local-only under
+`output/local/claude-live-dogfood/export-panel-2026-06-24*` and is not tracked.
+This tracked record keeps only safe operational findings.
+
+- Smoke route with `--output-format json` reached Claude Code but returned
+  `Invalid API key` with `is_error=true`. The key value was not printed.
+- First stream-json attempt without `--verbose` failed before provider routing
+  with `When using --print, --output-format=stream-json requires --verbose`.
+  This confirms the app default should continue to include
+  `--bare -p --verbose --output-format stream-json`.
+- Verbose cancel probe exited `142` with no parsed stream records. This is a
+  valid local cancellation shape for export/report review.
+- Verbose retry and resume probes emitted parseable stream-json records
+  (`system`, `assistant`, `result`) but the result carried API status `401`.
+  The app should classify this as `provider_auth`, not as a generic runner
+  failure or Z.ai model-quality verdict.
+- The export panel is still useful in this blocked state: evidence bundle,
+  issue report, workspace report, and export manifest can explain the failed
+  route from metadata without raw Claude logs.
+- Screenshot and structured trace evidence remained deferred. They require
+  explicit consent plus redaction configuration before any future export can
+  include captured visual or trace artifacts.
+
+Follow-up implemented from the export dogfood result:
+
+- The export manifest now includes a capture consent/redaction readiness section.
+- The Files inspector shows a Capture boundary section for screenshot and
+  structured trace bundles, both deferred until consent and redaction are ready.
+- The tracked record separates provider auth failure from runner/process failure
+  and keeps raw local outputs ignored.
+
 ## Verification Checklist
 
 - `git diff --check`
@@ -102,10 +135,11 @@ Follow-up implemented from the dogfood result:
 
 ## Remaining TODO
 
-- Dogfood the export panel against real live Claude cancel/retry/resume runs and
-  confirm the report/manifest wording is enough without raw logs.
-- Add explicit screenshot and structured trace capture/export after consent and
-  redaction rules are designed.
+- Refresh the local Z.ai key or provider route and rerun a successful live
+  Claude retry/resume dogfood; the current export dogfood is blocked at
+  provider auth (`401`).
+- Add explicit screenshot and structured trace capture/export after the consent
+  and redaction boundaries are wired to a real capture command.
 - Add a multi-session issue/report bundle once screenshots and structured traces
   exist.
 - Continue workspace/file picker polish with favorites, recency, and workspace

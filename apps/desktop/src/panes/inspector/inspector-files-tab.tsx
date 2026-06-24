@@ -2,6 +2,7 @@ import type { UiI18n } from "@geond-agent/ui-workbench";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import {
+  Camera,
   Download,
   FileDiff,
   FilePlus,
@@ -17,6 +18,10 @@ import { Button } from "../../components/ui/button.js";
 import { TabsContent } from "../../components/ui/tabs.js";
 import { EmptyState } from "../../components/workbench/empty-state.js";
 import { cn } from "../../lib/cn.js";
+import {
+  createEvidenceCaptureReadiness,
+  type EvidenceCaptureReadiness
+} from "../../lib/evidence-capture.js";
 import {
   createEvidenceBundleDraft,
   createEvidenceBundleFileName,
@@ -78,6 +83,7 @@ export function InspectorFilesTab({
   const nonFavoriteContextItems = recentContextItems.filter((item) => !item.favorite);
   const selectedEvidence = findFileEvidenceSelection(model, selectedEvidenceId);
   const resolvedSelectedEvidenceId = getFileEvidenceSelectionId(selectedEvidence);
+  const captureReadiness = createEvidenceCaptureReadiness();
 
   function queueSelectedEvidenceFollowUp() {
     if (!selectedEvidence) {
@@ -279,6 +285,8 @@ export function InspectorFilesTab({
         queueWorkspaceReport={queueWorkspaceReport}
       />
 
+      <EvidenceCaptureBoundarySection i18n={i18n} items={captureReadiness} />
+
       {favoriteContextItems.length > 0 ? (
         <RecentContextSection
           attachRecentContext={attachRecentContext}
@@ -362,6 +370,70 @@ export function InspectorFilesTab({
   );
 }
 
+function EvidenceCaptureBoundarySection({
+  i18n,
+  items
+}: {
+  readonly i18n: UiI18n;
+  readonly items: readonly EvidenceCaptureReadiness[];
+}) {
+  return (
+    <EvidenceSection count={items.length} title={i18n.t("workbench.files.captureBoundary")}>
+      <p className="mb-3 px-1 text-xs leading-5 text-[color:var(--ink-soft)]">
+        {i18n.t("workbench.files.captureBoundaryDetail")}
+      </p>
+      <div className="grid gap-2">
+        {items.map((item) => (
+          <EvidenceCaptureBoundaryCard i18n={i18n} item={item} key={item.kind} />
+        ))}
+      </div>
+    </EvidenceSection>
+  );
+}
+
+function EvidenceCaptureBoundaryCard({
+  i18n,
+  item
+}: {
+  readonly i18n: UiI18n;
+  readonly item: EvidenceCaptureReadiness;
+}) {
+  return (
+    <div className="file-evidence-card">
+      <div className="file-evidence-card-header">
+        <span className="file-evidence-icon">
+          {item.kind === "screenshot" ? <Camera size={15} /> : <FileText size={15} />}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="muted-meta">{formatCaptureStatus(i18n, item)}</p>
+          <h4 className="truncate text-sm font-semibold">
+            {item.kind === "screenshot"
+              ? i18n.t("workbench.files.screenshotBundle")
+              : i18n.t("workbench.files.structuredTraceBundle")}
+          </h4>
+        </div>
+        <span className="status-pill status-neutral">
+          {i18n.t("workbench.files.captureDeferred")}
+        </span>
+      </div>
+      <dl className="file-evidence-details">
+        <EvidenceDetail
+          label={i18n.t("workbench.files.captureConsentRequired")}
+          value={item.consentGranted ? i18n.t("workbench.status.ready") : i18n.t("workbench.files.captureRequired")}
+        />
+        <EvidenceDetail
+          label={i18n.t("workbench.files.captureRedactionRequired")}
+          value={item.redactionConfigured ? i18n.t("workbench.status.ready") : i18n.t("workbench.files.captureRequired")}
+        />
+        <EvidenceDetail
+          label={i18n.t("workbench.files.captureRawPolicy")}
+          value={item.rawStoragePolicy}
+        />
+      </dl>
+    </div>
+  );
+}
+
 function EvidenceExportSection({
   activeSession,
   exportEvidenceBundle,
@@ -429,6 +501,18 @@ function EvidenceExportSection({
       </div>
     </EvidenceSection>
   );
+}
+
+function formatCaptureStatus(i18n: UiI18n, item: EvidenceCaptureReadiness): string {
+  switch (item.status) {
+    case "ready-for-export":
+      return i18n.t("workbench.files.captureReady");
+    case "redaction-not-configured":
+      return i18n.t("workbench.files.captureRedactionRequired");
+    case "requires-explicit-consent":
+    default:
+      return i18n.t("workbench.files.captureConsentRequired");
+  }
 }
 
 function ExportActionCard({

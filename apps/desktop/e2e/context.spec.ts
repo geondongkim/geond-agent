@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import {
   collectConsoleErrors,
@@ -8,92 +8,72 @@ import {
   showWorkspacePanel
 } from "./workbench-helpers";
 
-test("file evidence, provider prompt disclosure, browser check, and side chat drafts", async ({
-  page
-}) => {
+test("file evidence export package and capture boundary stay metadata-only", async ({ page }) => {
   const errors = collectConsoleErrors(page);
-  await resetWorkbench(page);
-  await showWorkspacePanel(page);
+  const filesPanel = await openFilesPanelWithWorkspaceContext(page);
 
-  await openCommandPaletteAction(page, "context", /Attach workspace context/);
-  await page.keyboard.press("Control+K");
-  await page.getByLabel("Search actions").fill("file");
-  await expect(page.getByRole("button", { name: /Attach file evidence/ })).toBeVisible();
-  await page.keyboard.press("Escape");
-
-  const filesPanel = page.getByRole("tabpanel", { name: "Files" });
-  await expect(filesPanel).toBeVisible();
   await expect(filesPanel.getByText("Evidence preview")).toBeVisible();
   await expect(filesPanel.getByText("Evidence detail")).toBeVisible();
   await expect(filesPanel.getByText("Recent context")).toBeVisible();
   await expect(filesPanel.getByRole("button", { name: "Attach workspace" })).toBeVisible();
   await expect(filesPanel.getByRole("button", { name: "Attach file" })).toBeVisible();
   await expect(filesPanel.getByRole("heading", { name: "Export package" })).toBeVisible();
+  await expect(filesPanel.getByRole("heading", { name: "Capture boundary" })).toBeVisible();
+  await expect(filesPanel.getByText("Screenshot bundle")).toBeVisible();
+  await expect(filesPanel.getByText("Structured trace bundle")).toBeVisible();
+  await expect(filesPanel.getByText("Explicit consent required").first()).toBeVisible();
   await expect(filesPanel.getByRole("heading", { name: "Changed files" })).toBeVisible();
   await expect(filesPanel.getByText("Privacy boundary").first()).toBeVisible();
   await expect(filesPanel.getByText("When you dispatch a run")).toBeVisible();
+
   const downloadPromise = page.waitForEvent("download");
   await filesPanel.getByRole("button", { name: "Export evidence bundle" }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/local-workbench-session-evidence\.md$/);
+
   const workspaceDownloadPromise = page.waitForEvent("download");
   await filesPanel.getByRole("button", { name: "Export workspace report" }).click();
   const workspaceDownload = await workspaceDownloadPromise;
   expect(workspaceDownload.suggestedFilename()).toMatch(/workbench-workspace-report\.md$/);
+
   const manifestDownloadPromise = page.waitForEvent("download");
   await filesPanel.getByRole("button", { name: "Export manifest", exact: true }).click();
   const manifestDownload = await manifestDownloadPromise;
   expect(manifestDownload.suggestedFilename()).toMatch(/workbench-export-manifest\.md$/);
-  await filesPanel.getByRole("button", { name: "Queue evidence bundle" }).click();
-  await expectSideChatStorage(page, "Workbench evidence bundle (metadata only).");
-  await page.getByRole("tab", { name: "Side chat" }).click();
-  const earlySideChatPanel = page.getByRole("tabpanel", { name: "Side chat" });
-  await expect(earlySideChatPanel.getByText("Workbench evidence bundle")).toBeVisible();
-  await earlySideChatPanel
-    .locator(".side-chat-draft-card")
-    .filter({ hasText: "Workbench evidence bundle" })
-    .getByRole("button", { name: "Remove" })
-    .click();
-  await expectSideChatStorage(page, "[]", "equals");
-  await page.getByRole("tab", { name: "Files" }).click();
-  await filesPanel.getByRole("button", { name: "Queue report" }).click();
-  await expectSideChatStorage(page, "Workbench dogfood report");
-  await page.getByRole("tab", { name: "Side chat" }).click();
-  await earlySideChatPanel
-    .locator(".side-chat-draft-card")
-    .filter({ hasText: "Workbench dogfood report" })
-    .getByRole("button", { name: "Remove" })
-    .click();
-  await expectSideChatStorage(page, "[]", "equals");
-  await page.getByRole("tab", { name: "Files" }).click();
-  await filesPanel.getByRole("button", { name: "Queue workspace report" }).click();
-  await expectSideChatStorage(page, "Workbench workspace report (metadata only).");
-  await page.getByRole("tab", { name: "Side chat" }).click();
-  await earlySideChatPanel
-    .locator(".side-chat-draft-card")
-    .filter({ hasText: "Workbench workspace report" })
-    .getByRole("button", { name: "Remove" })
-    .click();
-  await expectSideChatStorage(page, "[]", "equals");
-  await page.getByRole("tab", { name: "Files" }).click();
-  await filesPanel.getByRole("button", { name: "Queue export manifest" }).click();
-  await expectSideChatStorage(page, "Workbench export manifest (metadata only).");
-  await page.getByRole("tab", { name: "Side chat" }).click();
-  await earlySideChatPanel
-    .locator(".side-chat-draft-card")
-    .filter({ hasText: "Workbench export manifest" })
-    .getByRole("button", { name: "Remove" })
-    .click();
-  await expectSideChatStorage(page, "[]", "equals");
+
+  await queueAndClearDraft(page, filesPanel, "Queue evidence bundle", "Workbench evidence bundle");
+  await queueAndClearDraft(page, filesPanel, "Queue report", "Workbench dogfood report");
+  await queueAndClearDraft(
+    page,
+    filesPanel,
+    "Queue workspace report",
+    "Workbench workspace report"
+  );
+  await queueAndClearDraft(
+    page,
+    filesPanel,
+    "Queue export manifest",
+    "Workbench export manifest"
+  );
+
   await page.getByRole("tab", { name: "Files" }).click();
   await filesPanel.getByRole("button", { name: "Mark as favorite" }).first().click();
   await expect(filesPanel.getByRole("heading", { name: "Favorite context" })).toBeVisible();
   await expect(filesPanel.getByRole("heading", { name: "geond-agent" }).first()).toBeVisible();
   await expect(filesPanel.getByRole("button", { name: "Remove from favorites" })).toBeVisible();
+
+  expect(errors).toEqual([]);
+});
+
+test("file evidence follow-ups, side chat drafts, and browser checks remain queued", async ({
+  page
+}) => {
+  const errors = collectConsoleErrors(page);
+  const filesPanel = await openFilesPanelWithWorkspaceContext(page);
+
   await expect(
     filesPanel.getByRole("button", { name: /apps\/desktop\/src\/app\.tsx/ })
   ).toBeVisible();
-
   await filesPanel.getByRole("button", { name: /apps\/desktop\/src\/app\.tsx/ }).click();
   await expect(filesPanel.getByLabel("Evidence detail")).toContainText(
     "apps/desktop/src/app.tsx"
@@ -104,7 +84,9 @@ test("file evidence, provider prompt disclosure, browser check, and side chat dr
   await expect(filesPanel.getByRole("heading", { name: "Attached context" })).toBeVisible();
   await expect(filesPanel.getByText("Metadata only", { exact: true }).first()).toBeVisible();
   await expect(filesPanel.getByText("Workspace path attached as metadata only")).toBeVisible();
-  await expect(page.locator(".context-chip").filter({ hasText: "geond-agent" }).first()).toBeVisible();
+  await expect(
+    page.locator(".context-chip").filter({ hasText: "geond-agent" }).first()
+  ).toBeVisible();
 
   await page.getByRole("tab", { name: "Side chat" }).click();
   const sideChatPanel = page.getByRole("tabpanel", { name: "Side chat" });
@@ -151,3 +133,32 @@ test("file evidence, provider prompt disclosure, browser check, and side chat dr
 
   expect(errors).toEqual([]);
 });
+
+async function openFilesPanelWithWorkspaceContext(page: Page) {
+  await resetWorkbench(page);
+  await showWorkspacePanel(page);
+
+  await openCommandPaletteAction(page, "context", /Attach workspace context/);
+  await page.keyboard.press("Control+K");
+  await page.getByLabel("Search actions").fill("file");
+  await expect(page.getByRole("button", { name: /Attach file evidence/ })).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  const filesPanel = page.getByRole("tabpanel", { name: "Files" });
+  await expect(filesPanel).toBeVisible();
+  return filesPanel;
+}
+
+async function queueAndClearDraft(
+  page: Page,
+  filesPanel: Locator,
+  buttonName: string,
+  expectedDraftText: string
+): Promise<void> {
+  await page.getByRole("tab", { name: "Files" }).click();
+  await filesPanel.getByRole("button", { name: buttonName }).click();
+  await expectSideChatStorage(page, expectedDraftText);
+  await page.evaluate(() => {
+    window.localStorage.setItem("geond-agent.workbench.side-chat-drafts", "[]");
+  });
+}
