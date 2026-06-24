@@ -64,9 +64,9 @@ ZAI_API_KEY=
 # Z.ai Anthropic-compatible endpoint used by the evaluation.
 ANTHROPIC_BASE_URL=https://api.z.ai/api/anthropic
 
-# Claude Code's Z.ai route expects an Anthropic auth token in its local
-# settings/env layer. geond-agent can derive this from ZAI_API_KEY at launch
-# time, so do not duplicate the real value in tracked files.
+# Claude Code --bare should receive this through a local-only apiKeyHelper
+# settings boundary. geond-agent can derive it from ZAI_API_KEY at launch time,
+# so do not duplicate the real value in tracked files.
 ANTHROPIC_AUTH_TOKEN=
 
 # Default coding-plan routing for Anthropic-style aliases.
@@ -83,10 +83,10 @@ GEOND_AGENT_EVAL_TASK_ID=bug-1
 ```
 
 These optional names are for local notes and shell history only. They are not
-required by the codebase. For Claude Code direct runs, prefer an ignored local
-settings file or shell environment that provides `ANTHROPIC_AUTH_TOKEN`; for
-geond-agent desktop runs, keep `ZAI_API_KEY` in ignored local env and let the
-native runner create the process-local Claude settings boundary.
+required by the codebase. For Claude Code direct `--bare` runs, prefer an
+ignored local settings file that uses `apiKeyHelper`; for geond-agent desktop
+runs, keep `ZAI_API_KEY` in ignored local env and let the native runner create
+the process-local Claude settings/helper boundary.
 
 ## Local-Only Storage Rules
 
