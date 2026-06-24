@@ -119,7 +119,7 @@ describe("evidence capture artifact export", () => {
     expect(JSON.stringify(payload)).not.toMatch(/data:image|base64/i);
   });
 
-  it("records completed visual capture policy review without enabling raw capture", () => {
+  it("records completed visual capture policy review while requiring per-export path", () => {
     const artifact = createVisualCapturePolicyArtifact({
       activeSession: createSessionFixture(),
       generatedAt: "2026-06-24T00:00:00.000Z",
@@ -134,8 +134,13 @@ describe("evidence capture artifact export", () => {
 
     expect(payload.visualCapture.reviewReady).toBe(true);
     expect(payload.visualCapture.missingReviewSteps).toEqual([]);
-    expect(payload.visualCapture.status).toBe("policy-reviewed-raw-capture-still-disabled");
+    expect(payload.visualCapture.status).toBe("policy-reviewed-per-export-capture-gated");
     expect(payload.visualCapture.rawImageStorageDefault).toBe("disabled");
+    expect(payload.visualCapture.gate).toMatchObject({
+      allowed: false,
+      status: "blocked-missing-storage-path",
+      storagePathState: "missing"
+    });
   });
 });
 

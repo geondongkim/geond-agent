@@ -367,7 +367,7 @@ describe("file evidence preview model", () => {
     expect(report).toContain("Dogfood workflow summary");
     expect(report).toContain("recommended actions:");
     expect(report).toContain("Trace/export checklist");
-    expect(report).toContain("visual consent/redaction policy");
+    expect(report).toContain("consent/redaction, user-selected PNG path, and OS picker");
     expect(report).not.toContain(sensitiveValue);
   });
 

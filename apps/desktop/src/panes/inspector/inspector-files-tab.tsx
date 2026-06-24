@@ -68,6 +68,12 @@ import {
   type LiveDogfoodRunbookStepStatus
 } from "../../lib/live-dogfood-runbook.js";
 import {
+  createRawVisualCaptureFileName,
+  createRawVisualCaptureReadiness,
+  exportRawVisualCapturePng,
+  type RawVisualCaptureExportResult
+} from "../../lib/raw-visual-capture-export.js";
+import {
   groupRecentContextByWorkspace,
   type RecentContextItem,
   type RecentContextWorkspaceGroup
@@ -158,6 +164,10 @@ export function InspectorFilesTab({
     inspectorData,
     projectedSessions,
     selectedSessions: selectedExportSessions,
+    visualReview
+  });
+  const rawVisualCaptureReadiness = createRawVisualCaptureReadiness({
+    activeSession,
     visualReview
   });
 
@@ -408,6 +418,16 @@ export function InspectorFilesTab({
     setRunnerStatus(formatCaptureExportStatus(i18n, "visual-capture-policy", result));
   }
 
+  async function exportRawVisualCapture() {
+    const result = await exportRawVisualCapturePng({
+      activeSession,
+      fileName: createRawVisualCaptureFileName({ activeSession }),
+      title: i18n.t("workbench.files.exportRawVisualCapturePng"),
+      visualReview
+    });
+    setRunnerStatus(formatRawVisualCaptureExportStatus(i18n, result));
+  }
+
   return (
     <TabsContent value="files" className="border-0 bg-transparent p-0">
       <div className="file-evidence-hero">
@@ -522,6 +542,7 @@ export function InspectorFilesTab({
       <EvidenceCaptureBoundarySection
         disabled={!activeSession}
         exportMultiSessionTraceBundle={() => void exportMultiSessionTraceBundle()}
+        exportRawVisualCapture={() => void exportRawVisualCapture()}
         exportScreenshotManifest={() => void exportScreenshotManifest()}
         exportStructuredTrace={() => void exportStructuredTrace()}
         exportVisualCapturePolicy={() => void exportVisualCapturePolicy()}
@@ -545,6 +566,7 @@ export function InspectorFilesTab({
           })
         }
         traceBundleDisabled={selectedExportSessions.length === 0}
+        rawVisualCaptureDisabled={!rawVisualCaptureReadiness.canRequestCapture}
         visualReviewUpdatedAt={evidenceExportPreferences.visualReviewUpdatedAt}
         visualReview={visualReview}
       />
@@ -635,6 +657,7 @@ export function InspectorFilesTab({
 function EvidenceCaptureBoundarySection({
   disabled,
   exportMultiSessionTraceBundle,
+  exportRawVisualCapture,
   exportScreenshotManifest,
   exportStructuredTrace,
   exportVisualCapturePolicy,
@@ -642,12 +665,14 @@ function EvidenceCaptureBoundarySection({
   items,
   onToggleVisualReview,
   onResetVisualReview,
+  rawVisualCaptureDisabled,
   traceBundleDisabled,
   visualReviewUpdatedAt,
   visualReview
 }: {
   readonly disabled: boolean;
   readonly exportMultiSessionTraceBundle: () => void;
+  readonly exportRawVisualCapture: () => void;
   readonly exportScreenshotManifest: () => void;
   readonly exportStructuredTrace: () => void;
   readonly exportVisualCapturePolicy: () => void;
@@ -655,6 +680,7 @@ function EvidenceCaptureBoundarySection({
   readonly items: readonly EvidenceCaptureReadiness[];
   readonly onToggleVisualReview: (key: keyof VisualCaptureReviewState) => void;
   readonly onResetVisualReview: () => void;
+  readonly rawVisualCaptureDisabled: boolean;
   readonly traceBundleDisabled: boolean;
   readonly visualReviewUpdatedAt?: string;
   readonly visualReview: VisualCaptureReviewState;
@@ -692,6 +718,14 @@ function EvidenceCaptureBoundarySection({
           metaLabel={i18n.t("workbench.context.metadataOnly")}
           onExport={exportVisualCapturePolicy}
           title={i18n.t("workbench.files.visualCapturePolicy")}
+        />
+        <CaptureExportAction
+          disabled={disabled || rawVisualCaptureDisabled}
+          icon={<Camera size={15} />}
+          label={i18n.t("workbench.files.exportRawVisualCapturePng")}
+          metaLabel={i18n.t("workbench.files.rawVisualCaptureStorage")}
+          onExport={exportRawVisualCapture}
+          title={i18n.t("workbench.files.rawVisualCapturePng")}
         />
       </div>
       <VisualCaptureReviewSection
@@ -1221,6 +1255,24 @@ function formatCaptureExportStatus(
     : result === "downloaded"
       ? i18n.t("workbench.files.structuredTraceExportDownloaded")
       : i18n.t("workbench.files.structuredTraceExportCancelled");
+}
+
+function formatRawVisualCaptureExportStatus(
+  i18n: UiI18n,
+  result: RawVisualCaptureExportResult
+): string {
+  switch (result) {
+    case "saved":
+      return i18n.t("workbench.files.rawVisualCaptureSaved");
+    case "cancelled":
+      return i18n.t("workbench.files.rawVisualCaptureCancelled");
+    case "blocked":
+      return i18n.t("workbench.files.rawVisualCaptureBlocked");
+    case "unsupported":
+      return i18n.t("workbench.files.rawVisualCaptureUnsupported");
+    case "failed":
+      return i18n.t("workbench.files.rawVisualCaptureFailed");
+  }
 }
 
 function EvidenceExportSection({

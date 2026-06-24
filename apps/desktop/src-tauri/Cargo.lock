@@ -1015,6 +1015,7 @@ dependencies = [
 name = "geond-agent-desktop"
 version = "0.0.0"
 dependencies = [
+ "base64 0.22.1",
  "rusqlite",
  "serde",
  "serde_json",

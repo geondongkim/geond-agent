@@ -73,6 +73,8 @@ export function createLiveDogfoodRunbook({
   });
   const rawVisualCaptureGate = createRawVisualCaptureGate({
     activeSession,
+    rawCaptureImplementationEnabled: true,
+    requireStoragePathValue: true,
     visualReview
   });
   const runAttempts = inspectorData?.runAttempts ?? activeSession?.runAttempts ?? [];
@@ -282,6 +284,6 @@ function createRawVisualCaptureStep(
     title: "Raw visual capture",
     detail: gate.policySummary,
     evidenceHint:
-      "Raw visual payload capture stays disabled until explicit consent, redaction review, active session, storage path, and implementation gates all pass."
+      "Raw visual payload capture requires explicit consent, redaction review, active session, a user-selected PNG path, and the OS display picker."
   };
 }

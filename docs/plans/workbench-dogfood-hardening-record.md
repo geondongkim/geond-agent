@@ -205,8 +205,8 @@ Follow-up implemented from the route refresh result:
 - Workspace report, multi-session issue report, export manifest, structured
   trace, multi-session trace bundle, and visual capture policy artifacts all
   include the same metadata-only dogfood summary.
-- The visual capture policy now records missing consent/redaction checklist
-  steps explicitly while keeping raw image capture disabled.
+- The visual capture policy records missing consent/redaction checklist steps
+  explicitly before any raw image capture action can be requested.
 - The local-only evidence boundary is unchanged: raw Claude logs, provider
   keys, private file contents, local session files, and visual payloads are not
   persisted into normalized workbench artifacts.
@@ -223,14 +223,27 @@ Follow-up implemented from the route refresh result:
 - Workspace reports, multi-session issue reports, export manifests, structured
   trace artifacts, screenshot manifests, multi-session trace bundles, and visual
   capture policy artifacts now include the same live dogfood runbook summary.
-- Raw visual capture now has an explicit gate model. It requires explicit
-  per-export consent, redaction review, an active session, user-selected storage
-  path readiness, visible-content review, and a separate implementation gate.
-- Even when the human review checklist is complete, raw visual payload capture
-  remains blocked until the implementation gate is deliberately enabled in a
-  later slice.
+- Raw visual capture has an explicit gate model. It requires explicit
+  per-export consent, redaction review, an active session, user-selected PNG
+  path readiness, and visible-content review before any raw payload can be
+  written.
 - The native artifact writer still accepts only metadata artifacts and rejects
   unsupported raw capture kinds.
+
+## Raw Visual PNG Capture: 2026-06-24
+
+- The Files inspector now exposes a raw visual PNG capture action after the
+  visual review checklist is complete.
+- The action first requires a Tauri save dialog path, then uses the browser/OS
+  display-capture picker, then writes exactly one PNG payload to the
+  user-selected path.
+- Browser-only/Vite runs do not write raw visual payloads because they cannot
+  enforce a native save path.
+- The native command enforces consent, redaction review, visible-content review,
+  active session id, `.png` extension, PNG signature, and a raw payload size cap
+  before writing.
+- Raw visual payloads are not persisted into SQLite, normalized workbench
+  events, reports, manifests, structured traces, or tracked docs.
 
 ## Live Claude Runbook Gate Dogfood: 2026-06-24
 
@@ -266,9 +279,8 @@ tracked. This tracked record keeps only safe operational findings.
 
 ## Remaining TODO
 
-- Add true raw visual payload capture only after the new gate can be connected
-  to a dedicated capture implementation with explicit per-export consent,
-  redaction review, and a user-selected save path.
+- Dogfood raw visual PNG capture in the packaged Tauri app on macOS and record
+  the OS permission behavior without committing captured images.
 - Run more live Claude dogfood sessions with successful route switch, retry,
   cancel, and resume paths so the runbook statuses can be tuned against real
   operator behavior.

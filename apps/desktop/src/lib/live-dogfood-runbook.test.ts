@@ -101,7 +101,7 @@ describe("live dogfood runbook", () => {
       ["evidence_export", "attention"],
       ["raw_visual_capture", "blocked"]
     ]);
-    expect(runbook.rawVisualCaptureGate.status).toBe("blocked-implementation-disabled");
+    expect(runbook.rawVisualCaptureGate.status).toBe("blocked-missing-storage-path");
     expect(formatLiveDogfoodRunbookForReport(runbook).join("\n")).toContain(
       "Manual route switch: attention"
     );

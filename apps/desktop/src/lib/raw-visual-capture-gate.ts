@@ -17,6 +17,7 @@ export type RawVisualCaptureGateMissingStep =
 export interface RawVisualCaptureGateOptions {
   readonly activeSession?: ProjectedActiveSession;
   readonly rawCaptureImplementationEnabled?: boolean;
+  readonly requireStoragePathValue?: boolean;
   readonly storagePath?: string;
   readonly visualReview?: VisualCaptureReviewState;
 }
@@ -35,12 +36,17 @@ export interface RawVisualCaptureGate {
 export function createRawVisualCaptureGate({
   activeSession,
   rawCaptureImplementationEnabled = false,
+  requireStoragePathValue = false,
   storagePath,
   visualReview
 }: RawVisualCaptureGateOptions): RawVisualCaptureGate {
   const review = normalizeVisualReview(visualReview);
   const missingReviewSteps = getMissingVisualReviewSteps(review);
-  const storagePathSelected = storagePath?.trim() ? true : review.storagePathSelected;
+  const storagePathSelected = storagePath?.trim()
+    ? true
+    : requireStoragePathValue
+      ? false
+      : review.storagePathSelected;
   const missingSteps: RawVisualCaptureGateMissingStep[] = [
     ...missingReviewSteps.filter((step) => step !== "storagePathSelected"),
     ...(storagePathSelected ? [] : (["storagePathSelected", "storagePath"] as const)),
