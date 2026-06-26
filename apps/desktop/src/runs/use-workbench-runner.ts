@@ -12,6 +12,7 @@ import {
 } from "@geond-agent/ui-workbench";
 
 import { cancelTauriClaudeCodeStream } from "../claude-runner.js";
+import { cancelTauriCodexCliStream } from "../codex-runner.js";
 import type { DesktopDemoDocument, DesktopRunnerMode } from "../demo-workbench.js";
 import { createSelectionSnapshotFromRequest } from "../lib/selection-snapshot.js";
 import type { ProjectedSessionListItem } from "../lib/workbench-types.js";
@@ -32,7 +33,7 @@ import {
 } from "./live-run-issues.js";
 import { formatLiveRunReadinessBlockMessage } from "./live-run-readiness.js";
 import { buildDispatchPrompt } from "./runner-prompt.js";
-import { listenToClaudeCodeStream } from "./stream-listener.js";
+import { listenToClaudeCodeStream, listenToCodexCliStream } from "./stream-listener.js";
 
 type WorkbenchRunnerResult = Awaited<ReturnType<DesktopDemoDocument["runSession"]>>;
 
@@ -212,6 +213,10 @@ export function useWorkbenchRunner({
         unlistenStream = await listenToClaudeCodeStream(request, i18n, (events) =>
           appendEvents(events, { markAsStreamed: true })
         );
+      } else if (mode === "codex-live") {
+        unlistenStream = await listenToCodexCliStream(request, i18n, (events) =>
+          appendEvents(events, { markAsStreamed: true })
+        );
       }
 
       const result = await document.runSession(mode, request);
@@ -221,6 +226,8 @@ export function useWorkbenchRunner({
               ...result.events.filter((event) => !streamedEventKeys.has(workbenchEventIdentity(event))),
               ...createLiveRunCompletionEvents(sessionId, result)
             ]
+          : mode === "codex-live"
+            ? result.events.filter((event) => !streamedEventKeys.has(workbenchEventIdentity(event)))
           : result.events;
       const exitCode = getRunnerExitCode(result);
       const attemptStatus =
@@ -309,17 +316,28 @@ export function useWorkbenchRunner({
   };
 
   const cancelActiveRun = async () => {
-    if (!activeRunSessionId || !activeRunAttemptId || activeRunMode !== "claude-live") {
+    if (
+      !activeRunSessionId ||
+      !activeRunAttemptId ||
+      (activeRunMode !== "claude-live" && activeRunMode !== "codex-live")
+    ) {
       setRunnerStatus(i18n.t("workbench.runner.cancelFailed"));
       return;
     }
 
-    const cancelled = await cancelTauriClaudeCodeStream(activeRunSessionId);
+    const cancelled =
+      activeRunMode === "codex-live"
+        ? await cancelTauriCodexCliStream(activeRunSessionId)
+        : await cancelTauriClaudeCodeStream(activeRunSessionId);
     if (cancelled) {
       cancelledAttemptIds.current.add(activeRunAttemptId);
     }
     const events = [
-      ...createLiveRunCancelledEvents(activeRunSessionId, i18n, cancelled),
+      ...createLiveRunCancelledEvents(activeRunSessionId, i18n, cancelled, {
+        commandId:
+          activeRunMode === "codex-live" ? "codex-cli-live-prelude" : "claude-code-live-prelude",
+        eventIdPrefix: activeRunMode === "codex-live" ? "codex-cli-live" : "claude-code-live"
+      }),
       createRunAttemptUpdatedEvent(
         activeRunSessionId,
         activeRunAttemptId,

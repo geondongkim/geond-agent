@@ -5,7 +5,7 @@ use serde_json::{Map, Value};
 use std::{
     collections::BTreeMap,
     env, fs,
-    io::{BufRead, BufReader, Read},
+    io::{BufRead, BufReader, Read, Write},
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
     sync::{Arc, Mutex, OnceLock},
@@ -26,6 +26,7 @@ const EVIDENCE_EXPORT_PREFERENCES_SETTINGS_KEY: &str =
     "geond-agent.workbench.evidence-export-preferences";
 const LOCAL_ENV_FILE_NAME: &str = ".env.local";
 const CLAUDE_STREAM_EVENT_NAME: &str = "geond-agent://claude-code-stream-json";
+const CODEX_STREAM_EVENT_NAME: &str = "geond-agent://codex-cli-jsonl";
 const CLAUDE_DEFAULT_TIMEOUT_MS: u64 = 10 * 60 * 1000;
 const CLAUDE_MAX_TIMEOUT_MS: u64 = 60 * 60 * 1000;
 const PROCESS_OUTPUT_CAP_BYTES: usize = 1024 * 1024;
@@ -71,6 +72,17 @@ pub struct ClaudeCodeCommandRequest {
     executable: String,
     cwd: Option<String>,
     args: Vec<String>,
+    stream_channel_id: Option<String>,
+    timeout_ms: Option<u64>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexCliCommandRequest {
+    executable: String,
+    cwd: Option<String>,
+    args: Vec<String>,
+    stdin: Option<String>,
     stream_channel_id: Option<String>,
     timeout_ms: Option<u64>,
 }
@@ -301,7 +313,10 @@ pub fn run() {
             capture_raw_visual_png,
             probe_claude_code_executable,
             run_claude_code_stream_json,
-            cancel_claude_code_stream
+            cancel_claude_code_stream,
+            probe_codex_cli_executable,
+            run_codex_cli_jsonl,
+            cancel_codex_cli_stream
         ])
         .run(tauri::generate_context!())
         .expect("error while running geond-agent desktop");
@@ -682,12 +697,84 @@ fn run_claude_code_stream_json(
 
 #[tauri::command]
 fn cancel_claude_code_stream(channel_id: String) -> Result<bool, String> {
+    cancel_registered_process(&channel_id, "Claude Code")
+}
+
+#[tauri::command]
+fn probe_codex_cli_executable(
+    request: ClaudeCodeProbeRequest,
+) -> Result<ClaudeCodeProbeResponse, String> {
+    let executable = request.executable.unwrap_or_else(|| "codex".to_string());
+    normalize_codex_executable(&executable)?;
+
+    match Command::new(&executable).arg("--version").output() {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+            let version = first_non_empty_line(&stdout).or_else(|| first_non_empty_line(&stderr));
+            Ok(ClaudeCodeProbeResponse {
+                available: output.status.success(),
+                executable,
+                version,
+                error: if output.status.success() {
+                    None
+                } else {
+                    Some("Codex CLI returned a non-zero status for --version.".to_string())
+                },
+            })
+        }
+        Err(error) => Ok(ClaudeCodeProbeResponse {
+            available: false,
+            executable,
+            version: None,
+            error: Some(error.to_string()),
+        }),
+    }
+}
+
+#[tauri::command]
+fn run_codex_cli_jsonl(
+    app: AppHandle,
+    request: CodexCliCommandRequest,
+) -> Result<ClaudeCodeCommandResponse, String> {
+    normalize_codex_executable(&request.executable)?;
+    ensure_codex_jsonl_args(&request.args)?;
+    let timeout_ms = normalize_timeout_ms(request.timeout_ms)?;
+    let mut command = Command::new(&request.executable);
+    command.args(&request.args);
+
+    if let Some(cwd) = request.cwd.as_deref() {
+        command.current_dir(PathBuf::from(cwd));
+    }
+
+    let channel_id = request
+        .stream_channel_id
+        .clone()
+        .unwrap_or_else(|| "codex-cli-jsonl".to_string());
+    run_streaming_process(
+        app,
+        command,
+        channel_id,
+        timeout_ms,
+        Vec::new(),
+        request.stdin,
+        CODEX_STREAM_EVENT_NAME,
+        "Codex CLI",
+    )
+}
+
+#[tauri::command]
+fn cancel_codex_cli_stream(channel_id: String) -> Result<bool, String> {
+    cancel_registered_process(&channel_id, "Codex CLI")
+}
+
+fn cancel_registered_process(channel_id: &str, label: &str) -> Result<bool, String> {
     let Some(handle) = process_handle(&channel_id)? else {
         return Ok(false);
     };
     let mut child = handle
         .lock()
-        .map_err(|_| "Claude Code process registry is unavailable.".to_string())?;
+        .map_err(|_| format!("{label} process registry is unavailable."))?;
 
     if child.try_wait().map_err(to_string)?.is_some() {
         return Ok(false);
@@ -732,6 +819,14 @@ fn normalize_claude_executable(value: &str) -> Result<String, String> {
     }
 }
 
+fn normalize_codex_executable(value: &str) -> Result<String, String> {
+    if value == "codex" {
+        Ok(value.to_string())
+    } else {
+        Err("Only the user-installed `codex` executable is allowed.".to_string())
+    }
+}
+
 fn first_non_empty_line(value: &str) -> Option<String> {
     value
         .lines()
@@ -742,11 +837,36 @@ fn first_non_empty_line(value: &str) -> Option<String> {
 
 fn run_streaming_claude_command(
     app: AppHandle,
-    mut command: Command,
+    command: Command,
     channel_id: String,
     timeout_ms: u64,
     temp_paths: Vec<PathBuf>,
 ) -> Result<ClaudeCodeCommandResponse, String> {
+    run_streaming_process(
+        app,
+        command,
+        channel_id,
+        timeout_ms,
+        temp_paths,
+        None,
+        CLAUDE_STREAM_EVENT_NAME,
+        "Claude Code",
+    )
+}
+
+fn run_streaming_process(
+    app: AppHandle,
+    mut command: Command,
+    channel_id: String,
+    timeout_ms: u64,
+    temp_paths: Vec<PathBuf>,
+    stdin_text: Option<String>,
+    event_name: &str,
+    label: &str,
+) -> Result<ClaudeCodeCommandResponse, String> {
+    if stdin_text.is_some() {
+        command.stdin(Stdio::piped());
+    }
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
 
     let cleanup = || cleanup_temp_files(temp_paths.clone());
@@ -769,19 +889,45 @@ fn run_streaming_claude_command(
         Some(stderr) => stderr,
         None => {
             cleanup();
-            return Err("Unable to capture Claude Code stderr.".to_string());
+            return Err(format!("Unable to capture {label} stderr."));
         }
     };
+    if let Some(stdin_text) = stdin_text {
+        let mut stdin = match child.stdin.take() {
+            Some(stdin) => stdin,
+            None => {
+                cleanup();
+                return Err(format!("Unable to write {label} stdin."));
+            }
+        };
+        stdin.write_all(stdin_text.as_bytes()).map_err(to_string)?;
+    }
     let child_handle = register_process(&channel_id, child)?;
 
     let stdout_app = app.clone();
     let stdout_channel_id = channel_id.clone();
-    let stdout_reader =
-        thread::spawn(move || read_process_stream(stdout, stdout_app, stdout_channel_id, "stdout"));
+    let stdout_event_name = event_name.to_string();
+    let stdout_reader = thread::spawn(move || {
+        read_process_stream(
+            stdout,
+            stdout_app,
+            stdout_channel_id,
+            "stdout",
+            &stdout_event_name,
+        )
+    });
     let stderr_app = app.clone();
     let stderr_channel_id = channel_id.clone();
-    let stderr_reader =
-        thread::spawn(move || read_process_stream(stderr, stderr_app, stderr_channel_id, "stderr"));
+    let stderr_event_name = event_name.to_string();
+    let stderr_reader = thread::spawn(move || {
+        read_process_stream(
+            stderr,
+            stderr_app,
+            stderr_channel_id,
+            "stderr",
+            &stderr_event_name,
+        )
+    });
 
     let wait_result = wait_for_process(&child_handle, timeout_ms);
     remove_process(&channel_id)?;
@@ -816,7 +962,7 @@ fn run_streaming_claude_command(
     if timed_out {
         stderr.text = append_status_line(
             stderr.text,
-            &format!("Claude Code runner timed out after {timeout_ms}ms."),
+            &format!("{label} runner timed out after {timeout_ms}ms."),
         );
     }
     cleanup();
@@ -912,6 +1058,7 @@ fn read_process_stream<R: Read>(
     app: AppHandle,
     channel_id: String,
     stream: &str,
+    event_name: &str,
 ) -> StreamCapture {
     let mut reader = BufReader::new(reader);
     let mut output = String::new();
@@ -930,7 +1077,7 @@ fn read_process_stream<R: Read>(
         let text = trim_line_ending(&line);
         if !text.trim().is_empty() {
             let _ = app.emit(
-                CLAUDE_STREAM_EVENT_NAME,
+                event_name,
                 ClaudeCodeStreamPayload {
                     channel_id: channel_id.clone(),
                     stream: stream.to_string(),
@@ -1367,6 +1514,58 @@ fn ensure_stream_json_args(args: &[String]) -> Result<(), String> {
             "Claude Code runner requires --bare -p --verbose --output-format stream-json."
                 .to_string(),
         )
+    }
+}
+
+fn ensure_codex_jsonl_args(args: &[String]) -> Result<(), String> {
+    if args.first().map(String::as_str) != Some("exec") {
+        return Err("Codex CLI runner requires the `exec` subcommand.".to_string());
+    }
+    if !args
+        .iter()
+        .any(|arg| arg == "--json" || arg == "--experimental-json")
+    {
+        return Err("Codex CLI runner requires JSONL output via --json.".to_string());
+    }
+    ensure_codex_sandbox_arg(args)?;
+    ensure_codex_resume_arg(args)?;
+    Ok(())
+}
+
+fn ensure_codex_sandbox_arg(args: &[String]) -> Result<(), String> {
+    let sandbox_positions: Vec<usize> = args
+        .iter()
+        .enumerate()
+        .filter_map(|(index, arg)| (arg == "--sandbox").then_some(index))
+        .collect();
+    if sandbox_positions.len() > 1 {
+        return Err("Codex CLI runner accepts at most one --sandbox value.".to_string());
+    }
+    let Some(position) = sandbox_positions.first() else {
+        return Err("Codex CLI runner requires an explicit --sandbox value.".to_string());
+    };
+    match args.get(position + 1).map(String::as_str) {
+        Some("read-only" | "workspace-write" | "danger-full-access") => Ok(()),
+        _ => Err("Codex CLI runner requires --sandbox read-only, workspace-write, or danger-full-access.".to_string()),
+    }
+}
+
+fn ensure_codex_resume_arg(args: &[String]) -> Result<(), String> {
+    let resume_positions: Vec<usize> = args
+        .iter()
+        .enumerate()
+        .filter_map(|(index, arg)| (arg == "resume").then_some(index))
+        .collect();
+    if resume_positions.len() > 1 {
+        return Err("Codex CLI runner accepts at most one resume subcommand.".to_string());
+    }
+    if let Some(position) = resume_positions.first() {
+        match args.get(position + 1).map(String::as_str) {
+            Some(value) if !value.trim().is_empty() && !value.starts_with('-') => Ok(()),
+            _ => Err("Codex CLI runner requires resume to be followed by a thread id.".to_string()),
+        }
+    } else {
+        Ok(())
     }
 }
 
@@ -3392,6 +3591,61 @@ mod tests {
         );
         assert!(normalize_claude_executable("/usr/bin/false").is_err());
         assert!(normalize_claude_executable("bash").is_err());
+    }
+
+    #[test]
+    fn validates_codex_cli_jsonl_args() {
+        let args = vec![
+            "exec".to_string(),
+            "--json".to_string(),
+            "--sandbox".to_string(),
+            "read-only".to_string(),
+            "--ephemeral".to_string(),
+        ];
+
+        assert!(ensure_codex_jsonl_args(&args).is_ok());
+        assert!(ensure_codex_jsonl_args(&["review".to_string(), "--json".to_string()]).is_err());
+        assert!(ensure_codex_jsonl_args(&["exec".to_string()]).is_err());
+        assert!(ensure_codex_jsonl_args(&[
+            "exec".to_string(),
+            "--json".to_string(),
+            "--sandbox".to_string(),
+            "network-open".to_string(),
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn validates_codex_probe_executable_boundary() {
+        assert_eq!(
+            normalize_codex_executable("codex").expect("codex executable"),
+            "codex"
+        );
+        assert!(normalize_codex_executable("/usr/bin/false").is_err());
+        assert!(normalize_codex_executable("bash").is_err());
+    }
+
+    #[test]
+    fn validates_codex_resume_arg_shape() {
+        let args = vec![
+            "exec".to_string(),
+            "--json".to_string(),
+            "--sandbox".to_string(),
+            "workspace-write".to_string(),
+            "resume".to_string(),
+            "codex-thread-1".to_string(),
+        ];
+
+        assert!(ensure_codex_jsonl_args(&args).is_ok());
+        assert!(ensure_codex_jsonl_args(&[
+            "exec".to_string(),
+            "--json".to_string(),
+            "--sandbox".to_string(),
+            "workspace-write".to_string(),
+            "resume".to_string(),
+            "--model".to_string(),
+        ])
+        .is_err());
     }
 
     #[test]

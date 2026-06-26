@@ -20,10 +20,11 @@ Implemented boundary:
 - external thread id resume metadata.
 
 This package still does not bundle Codex, copy Codex App or VS Code extension
-assets, read provider credentials, commit raw local Codex logs, or wire native
-desktop process launching. The desktop app can use the sanitized fixture runner
-to exercise multi-backend UI paths while live Codex process execution remains a
-separate bridge step.
+assets, read provider credentials, commit raw local Codex logs, or persist
+private Codex session state. The desktop app can use sanitized fixture replay
+outside Tauri and a Tauri native process boundary inside the packaged shell.
+Live Codex session continuity, approvals, and event fidelity still require
+dogfood validation before Codex becomes a recommended default route.
 
 If source from `openai/codex` is copied in a future PR, follow
 `docs/reference/licensing.md` first and preserve Apache-2.0 license and NOTICE

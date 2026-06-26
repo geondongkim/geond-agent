@@ -23,7 +23,7 @@ describe("Codex CLI metadata adapter", () => {
     expect(entry.kind).toBe("external-cli");
     expect(entry.capabilities.terminalOutput.state).toBe("supported");
     expect(entry.capabilities.toolCalls.state).toBe("unknown");
-    expect(entry.notes?.join(" ")).toContain("desktop native process launch is not wired yet");
+    expect(entry.notes?.join(" ")).toContain("Tauri native process launch boundaries exist");
   });
 
   it("uses SDK execution policy ids instead of Claude-specific permission names", () => {

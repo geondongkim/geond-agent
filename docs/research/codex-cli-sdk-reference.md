@@ -57,6 +57,10 @@ copying upstream implementation files:
   sandbox policy mapping, approval policy mapping, ephemeral local state by
   default, selectable stable/experimental JSON flags, and external thread
   resume metadata.
+- `apps/desktop` adds a Tauri native process command for user-installed `codex`
+  that validates the `exec --json` boundary, writes the prompt through stdin,
+  supports timeout/cancel through the shared process registry, and keeps Codex
+  auth/config host-mediated rather than reading provider keys from the repo.
 - `apps/desktop` can expose a Codex JSONL fixture runner mode so UI surfaces
   are no longer Claude-only.
 

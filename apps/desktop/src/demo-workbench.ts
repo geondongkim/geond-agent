@@ -9,7 +9,10 @@ import {
 } from "@geond-agent/claude-code-bridge";
 import {
   createCodexCliFixtureReplayRunner,
+  createCodexCliProcessRunner,
   type CodexCliFixtureReplayRunner,
+  type CodexCliProcessRunner,
+  type CodexCliProcessRunnerResult,
   type CodexCliRunnerResult
 } from "@geond-agent/codex-cli-bridge";
 import {
@@ -42,6 +45,7 @@ import {
   probeTauriClaudeCodeExecutable,
   type ClaudeCodeCliProbe
 } from "./claude-runner.js";
+import { createTauriCodexCliExecutor } from "./codex-runner.js";
 import { createDesktopWorkbench } from "./index.js";
 import type { DesktopWorkbenchEventStore } from "./persistence/event-store.js";
 import { createDesktopWorkbenchEventStore } from "./persistence/event-store.js";
@@ -89,7 +93,7 @@ export interface DesktopDemoDocument {
   readonly controller: WorkbenchSessionController;
   readonly runner: ClaudeCodeFixtureReplayRunner;
   readonly liveRunner: ClaudeCodeProcessRunner;
-  readonly codexRunner: CodexCliFixtureReplayRunner;
+  readonly codexRunner: CodexCliFixtureReplayRunner | CodexCliProcessRunner;
   readonly eventStore: DesktopWorkbenchEventStore;
   readonly materializedEventStore: DesktopMaterializedEventStore;
   readonly sessionIndexStore: DesktopWorkbenchSessionIndexStore;
@@ -117,7 +121,12 @@ export interface DesktopDemoDocument {
   readonly runSession: (
     mode: DesktopRunnerMode,
     request: ClaudeCodeRunnerRequest
-  ) => Promise<ClaudeCodeRunnerResult | ClaudeCodeProcessRunnerResult | CodexCliRunnerResult>;
+  ) => Promise<
+    | ClaudeCodeRunnerResult
+    | ClaudeCodeProcessRunnerResult
+    | CodexCliRunnerResult
+    | CodexCliProcessRunnerResult
+  >;
   readonly chooseWorkspace: (
     defaultPath?: string
   ) => Promise<DesktopWorkspaceDescriptor | undefined>;
@@ -183,7 +192,9 @@ export async function createDesktopDemoDocument(
   const savedEvidenceExportPreferences = await loadEvidenceExportPreferences(settingsStore);
   const runner = createClaudeCodeFixtureReplayRunner();
   const liveRunner = createClaudeCodeProcessRunner(createTauriClaudeCodeExecutor());
-  const codexRunner = createCodexCliFixtureReplayRunner();
+  const codexRunner = isTauriRuntime()
+    ? createCodexCliProcessRunner(createTauriCodexCliExecutor())
+    : createCodexCliFixtureReplayRunner();
   const claudeCliProbe = await probeTauriClaudeCodeExecutable();
   const eventStore = createDesktopWorkbenchEventStore();
   const materializedEventStore = createDesktopMaterializedEventStore();
