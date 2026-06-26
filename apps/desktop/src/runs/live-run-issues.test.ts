@@ -3,12 +3,14 @@ import { describe, expect, it } from "vitest";
 import { createUiI18n } from "@geond-agent/ui-workbench";
 
 import {
+  classifyLiveRunIssue,
   classifyClaudeLiveRunIssue,
+  collectLiveRunFailureText,
   collectClaudeLiveRunFailureText
 } from "./live-run-issues.js";
 import type { RunnerRequest, RunnerResult } from "./types.js";
 
-describe("Claude live run issue classification", () => {
+describe("live run issue classification", () => {
   it("classifies Z.ai/Anthropic route overloads as retryable provider incidents", () => {
     const issue = classifyClaudeLiveRunIssue({
       request: createRunnerRequest(),
@@ -31,10 +33,59 @@ describe("Claude live run issue classification", () => {
     });
   });
 
+  it("classifies Codex live runner provider failures without Claude-specific metadata", () => {
+    const quotaIssue = classifyLiveRunIssue({
+      request: createRunnerRequest({
+        backendAdapterId: "codex.cli.metadata",
+        providerRouteId: undefined,
+        modelProfileId: "gpt-5.1-codex",
+        modelAlias: "gpt-5.1-codex"
+      }),
+      attemptId: "attempt-codex-quota",
+      message: "Codex CLI exited with status 1. upstream 429 rate limit quota exceeded",
+      i18n: createUiI18n("en")
+    });
+
+    expect(quotaIssue).toMatchObject({
+      id: "issue-attempt-codex-quota-provider_quota",
+      kind: "provider_quota",
+      backendAdapterId: "codex.cli.metadata",
+      providerRouteId: undefined,
+      modelProfileId: "gpt-5.1-codex",
+      retryable: true,
+      suggestedAction: "retry_later",
+      routeHealth: "degraded"
+    });
+
+    const modelIssue = classifyLiveRunIssue({
+      request: createRunnerRequest({
+        backendAdapterId: "codex.cli.metadata",
+        providerRouteId: undefined,
+        modelProfileId: "geond-agent-invalid-model",
+        modelAlias: "geond-agent-invalid-model"
+      }),
+      attemptId: "attempt-codex-model",
+      message: "Codex CLI exited with status 1. provider returned 404 invalid model",
+      i18n: createUiI18n("en")
+    });
+
+    expect(modelIssue).toMatchObject({
+      id: "issue-attempt-codex-model-provider_model",
+      kind: "provider_model",
+      backendAdapterId: "codex.cli.metadata",
+      providerRouteId: undefined,
+      modelProfileId: "geond-agent-invalid-model",
+      retryable: false,
+      suggestedAction: "lower_model",
+      routeHealth: "degraded"
+    });
+  });
+
   it("classifies auth, quota, and timeout failures into stable failure kinds", () => {
     const cases = [
       ["401 invalid API key", "provider_auth", "check_key", false, "unavailable"],
       ["429 rate limit quota exceeded", "provider_quota", "retry_later", true, "degraded"],
+      ["404 invalid model geond-agent-invalid-model", "provider_model", "lower_model", false, "degraded"],
       ["request timed out with ETIMEDOUT", "provider_timeout", "retry_later", true, "unavailable"],
       ["all retries failed because provider stayed busy", "retry_exhausted", "retry_later", true, "degraded"],
       ["runner process timed out before result", "runner_timeout", "inspect_terminal", true, "unavailable"],
@@ -74,7 +125,7 @@ describe("Claude live run issue classification", () => {
   });
 
   it("collects failure evidence from normalized stream events and runner stderr", () => {
-    const failureText = collectClaudeLiveRunFailureText(
+    const failureText = collectLiveRunFailureText(
       createRunnerResult({
         events: [
           {
@@ -109,6 +160,7 @@ describe("Claude live run issue classification", () => {
     expect(failureText).toContain("temporarily overloaded");
     expect(failureText).toContain("parse warning: overloaded payload");
     expect(failureText).toContain("stderr preview overloaded");
+    expect(collectClaudeLiveRunFailureText).toBe(collectLiveRunFailureText);
   });
 });
 

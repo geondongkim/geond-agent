@@ -25,17 +25,18 @@ export function createCodexCliBackendRegistryEntry(): BackendAdapterMetadata {
       fork: unknownCapability("Fork behavior is not evaluated."),
       toolCalls: unknownCapability("Tool call JSONL shape is normalized from SDK events and needs live validation."),
       terminalOutput: supportedCapability(),
-      diffEvents: unknownCapability("Diff JSONL shape is normalized from SDK events and needs live validation."),
+      diffEvents: supportedCapability(),
       approvals: unknownCapability("Approval queue semantics need live adapter mapping."),
       modelRouting: unknownCapability("Provider/model routing depends on the installed Codex setup."),
       modelPicker: supportedCapability(),
       autoRouting: unavailableCapability("Auto routing policy is deferred."),
-      usageQuotaReporting: unknownCapability("Usage/quota metadata is normalized when Codex emits turn usage.")
+      usageQuotaReporting: supportedCapability()
     },
     notes: [
       "Runner boundary, sanitized JSONL fixture replay, and Tauri native process launch boundaries exist.",
       "No Codex source, app assets, VS Code extension bundles, credentials, or local session files are copied.",
-      "Live Codex session continuity, approval shape, and tool/diff fidelity still need dogfood validation."
+      "Live Codex success, invalid-model failure, usage, command output, and file_change events have local dogfood coverage.",
+      "Live Codex session continuity, approval shape, and MCP tool fidelity still need dogfood validation."
     ]
   };
 }

@@ -23,8 +23,11 @@ This package still does not bundle Codex, copy Codex App or VS Code extension
 assets, read provider credentials, commit raw local Codex logs, or persist
 private Codex session state. The desktop app can use sanitized fixture replay
 outside Tauri and a Tauri native process boundary inside the packaged shell.
-Live Codex session continuity, approvals, and event fidelity still require
-dogfood validation before Codex becomes a recommended default route.
+Local dogfood has validated success/failure JSONL, command output, usage
+metadata, invalid-model failure classification, and `file_change` diff events;
+see `docs/plans/codex-live-dogfood-validation.md`. Live Codex session
+continuity, approval shape, and MCP tool fidelity still require validation
+before Codex becomes a recommended default route.
 
 If source from `openai/codex` is copied in a future PR, follow
 `docs/reference/licensing.md` first and preserve Apache-2.0 license and NOTICE

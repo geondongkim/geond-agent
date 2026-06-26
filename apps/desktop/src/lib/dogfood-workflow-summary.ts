@@ -156,6 +156,7 @@ const VISUAL_REVIEW_STEPS: readonly (keyof VisualCaptureReviewState)[] = [
 const ROUTE_SWITCH_ISSUE_KINDS = new Set([
   "provider_overloaded",
   "provider_quota",
+  "provider_model",
   "provider_timeout",
   "retry_exhausted"
 ]);

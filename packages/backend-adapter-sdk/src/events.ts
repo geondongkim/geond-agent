@@ -72,6 +72,7 @@ export type WorkbenchRunnerIssueKind =
   | "provider_overloaded"
   | "provider_auth"
   | "provider_quota"
+  | "provider_model"
   | "provider_timeout"
   | "retry_exhausted"
   | "readiness_blocked"

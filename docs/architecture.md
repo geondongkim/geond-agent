@@ -184,7 +184,10 @@ product-ready. `packages/codex-cli-bridge` now uses the upstream Apache-2.0
 Codex TypeScript SDK event/exec shape as a reference for an original JSONL
 normalizer, sanitized fixture replay, stdin prompt command boundary,
 execution-policy mapping, and a Tauri native process boundary. Live Codex
-session continuity, approvals, and event fidelity still need dogfood validation.
+success/failure JSONL, usage metadata, invalid-model failure classification,
+command output, and `file_change` diff events now have local dogfood evidence.
+Codex session continuity, approval events, and MCP tool fidelity still need
+dogfood validation.
 `packages/opencode-bridge` remains metadata-only. The desktop backend picker may
 expose these candidates for catalog/readiness review, while concrete live
 runners should only be recommended after native process wiring and validation
