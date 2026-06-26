@@ -160,6 +160,8 @@ export function formatStatusLabel(i18n: UiI18n, status: string): string {
       return i18n.t("workbench.issue.kind.providerAuth");
     case "provider_quota":
       return i18n.t("workbench.issue.kind.providerQuota");
+    case "provider_model":
+      return i18n.t("workbench.issue.kind.providerModel");
     case "provider_timeout":
       return i18n.t("workbench.issue.kind.providerTimeout");
     case "retry_exhausted":

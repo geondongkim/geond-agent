@@ -15,7 +15,7 @@ export interface LiveRunIssueClassificationInput {
   readonly i18n: UiI18n;
 }
 
-export function classifyClaudeLiveRunIssue({
+export function classifyLiveRunIssue({
   request,
   attemptId,
   message,
@@ -49,7 +49,9 @@ export function classifyClaudeLiveRunIssue({
   };
 }
 
-export function collectClaudeLiveRunFailureText(result: RunnerResult): string {
+export const classifyClaudeLiveRunIssue = classifyLiveRunIssue;
+
+export function collectLiveRunFailureText(result: RunnerResult): string {
   const eventText = result.events
     .flatMap((event) => {
       switch (event.type) {
@@ -77,6 +79,8 @@ export function collectClaudeLiveRunFailureText(result: RunnerResult): string {
     .filter((value) => value.length > 0)
     .join("\n");
 }
+
+export const collectClaudeLiveRunFailureText = collectLiveRunFailureText;
 
 function classifyIssueKind(value: string): WorkbenchRunnerIssueKind | undefined {
   if (value.includes("cancelled") || value.includes("canceled")) {
@@ -120,6 +124,16 @@ function classifyIssueKind(value: string): WorkbenchRunnerIssueKind | undefined 
   }
 
   if (
+    value.includes("unknown model") ||
+    value.includes("invalid model") ||
+    value.includes("model not found") ||
+    value.includes("model_not_found") ||
+    (value.includes("404") && value.includes("model"))
+  ) {
+    return "provider_model";
+  }
+
+  if (
     value.includes("timeout") ||
     value.includes("timed out") ||
     value.includes("etimedout") ||
@@ -153,6 +167,7 @@ function isRetryableIssue(kind: WorkbenchRunnerIssueKind): boolean {
     case "runner_process":
       return true;
     case "provider_auth":
+    case "provider_model":
     case "readiness_blocked":
     case "runner_cancelled":
     case "route_reached":
@@ -170,6 +185,8 @@ function suggestedActionForIssue(
     case "provider_timeout":
     case "retry_exhausted":
       return "retry_later";
+    case "provider_model":
+      return "lower_model";
     case "provider_auth":
       return "check_key";
     case "runner_timeout":
@@ -190,6 +207,8 @@ function issueTitle(i18n: UiI18n, kind: WorkbenchRunnerIssueKind): string {
       return i18n.t("workbench.issue.kind.providerAuth");
     case "provider_quota":
       return i18n.t("workbench.issue.kind.providerQuota");
+    case "provider_model":
+      return i18n.t("workbench.issue.kind.providerModel");
     case "provider_timeout":
       return i18n.t("workbench.issue.kind.providerTimeout");
     case "retry_exhausted":
@@ -216,6 +235,8 @@ function issueMessage(i18n: UiI18n, kind: WorkbenchRunnerIssueKind): string {
       return i18n.t("workbench.issue.providerAuthMessage");
     case "provider_quota":
       return i18n.t("workbench.issue.providerQuotaMessage");
+    case "provider_model":
+      return i18n.t("workbench.issue.providerModelMessage");
     case "provider_timeout":
       return i18n.t("workbench.issue.providerTimeoutMessage");
     case "retry_exhausted":
@@ -239,6 +260,7 @@ function routeHealthForIssue(
   switch (kind) {
     case "provider_overloaded":
     case "provider_quota":
+    case "provider_model":
     case "retry_exhausted":
       return "degraded";
     case "provider_auth":

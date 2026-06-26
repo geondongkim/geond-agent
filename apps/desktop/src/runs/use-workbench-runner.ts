@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { CODEX_CLI_BACKEND_ID } from "@geond-agent/codex-cli-bridge";
 import {
   workbenchEventIdentity,
   type UiI18n,
@@ -18,6 +19,7 @@ import { createSelectionSnapshotFromRequest } from "../lib/selection-snapshot.js
 import type { ProjectedSessionListItem } from "../lib/workbench-types.js";
 import { formatMessage } from "../lib/workbench-format.js";
 import {
+  createCodexLiveRunPreludeEvents,
   createLiveRunCancelledEvents,
   createLiveRunCompletionEvents,
   createLiveRunFailureEvents,
@@ -28,12 +30,13 @@ import {
   createRunAttemptUpdatedEvent
 } from "./live-run-events.js";
 import {
-  classifyClaudeLiveRunIssue,
-  collectClaudeLiveRunFailureText
+  classifyLiveRunIssue,
+  collectLiveRunFailureText
 } from "./live-run-issues.js";
 import { formatLiveRunReadinessBlockMessage } from "./live-run-readiness.js";
 import { buildDispatchPrompt } from "./runner-prompt.js";
 import { listenToClaudeCodeStream, listenToCodexCliStream } from "./stream-listener.js";
+import type { RunnerRequest } from "./types.js";
 
 type WorkbenchRunnerResult = Awaited<ReturnType<DesktopDemoDocument["runSession"]>>;
 
@@ -111,16 +114,19 @@ export function useWorkbenchRunner({
       buildDispatchPrompt(mode, composerPrompt, i18n, {
         activeSession: controllerSnapshot.projection.activeSession
       });
-    const request = document.createRunnerRequest({
-      sessionId,
-      title,
-      prompt,
-      externalSessionId: options.externalSessionId,
-      languageSettings: runtimeSnapshot.languageSettings,
-      permissionModeOverride: options.permissionModeOverride,
-      sessionDefaults,
-      workspacePath: selectedWorkspacePath
-    });
+    const request = normalizeRunnerRequestForMode(
+      mode,
+      document.createRunnerRequest({
+        sessionId,
+        title,
+        prompt,
+        externalSessionId: options.externalSessionId,
+        languageSettings: runtimeSnapshot.languageSettings,
+        permissionModeOverride: options.permissionModeOverride,
+        sessionDefaults,
+        workspacePath: selectedWorkspacePath
+      })
+    );
     const attemptId = createRunAttemptId(mode, sessionId);
     const selectionSnapshot =
       mode === "claude-live"
@@ -214,6 +220,9 @@ export function useWorkbenchRunner({
           appendEvents(events, { markAsStreamed: true })
         );
       } else if (mode === "codex-live") {
+        await appendEvents(
+          createCodexLiveRunPreludeEvents(request, title, i18n, isResumeRun, selectionCatalog)
+        );
         unlistenStream = await listenToCodexCliStream(request, i18n, (events) =>
           appendEvents(events, { markAsStreamed: true })
         );
@@ -227,7 +236,12 @@ export function useWorkbenchRunner({
               ...createLiveRunCompletionEvents(sessionId, result)
             ]
           : mode === "codex-live"
-            ? result.events.filter((event) => !streamedEventKeys.has(workbenchEventIdentity(event)))
+            ? [
+                ...result.events.filter((event) => !streamedEventKeys.has(workbenchEventIdentity(event))),
+                ...createLiveRunCompletionEvents(sessionId, result, {
+                  commandId: "codex-cli-live-prelude"
+                })
+              ]
           : result.events;
       const exitCode = getRunnerExitCode(result);
       const attemptStatus =
@@ -237,11 +251,11 @@ export function useWorkbenchRunner({
             ? "failed"
             : "succeeded";
       const runtimeIssue =
-        mode === "claude-live" && attemptStatus === "failed"
-          ? classifyClaudeLiveRunIssue({
+        isLiveRunnerMode(mode) && attemptStatus === "failed"
+          ? classifyLiveRunIssue({
               request,
               attemptId,
-              message: collectClaudeLiveRunFailureText(result),
+              message: collectLiveRunFailureText(result),
               i18n
             })
           : undefined;
@@ -272,8 +286,8 @@ export function useWorkbenchRunner({
     } catch (error) {
       const message = error instanceof Error ? error.message : i18n.t("workbench.runner.failed");
       const runtimeIssue =
-        mode === "claude-live"
-          ? classifyClaudeLiveRunIssue({
+        isLiveRunnerMode(mode)
+          ? classifyLiveRunIssue({
               request,
               attemptId,
               message,
@@ -281,9 +295,15 @@ export function useWorkbenchRunner({
             })
           : undefined;
 
-      if (mode === "claude-live") {
+      if (isLiveRunnerMode(mode)) {
+        const isCodex = mode === "codex-live";
         const failureEvents = [
-          ...createLiveRunFailureEvents(sessionId, message),
+          ...createLiveRunFailureEvents(sessionId, message, {
+            commandId: isCodex ? "codex-cli-live-prelude" : "claude-code-live-prelude",
+            eventId: isCodex
+              ? "codex-cli-live-runner-failed"
+              : "claude-code-live-runner-failed"
+          }),
           ...(runtimeIssue ? [createRunnerIssueDetectedEvent(sessionId, runtimeIssue)] : []),
           createRunAttemptUpdatedEvent(
             sessionId,
@@ -365,6 +385,27 @@ export function useWorkbenchRunner({
     setRunnerStatus,
     startSession
   };
+}
+
+function normalizeRunnerRequestForMode<T extends RunnerRequest>(
+  mode: DesktopRunnerMode,
+  request: T
+): T {
+  if (mode !== "codex-live") {
+    return request;
+  }
+
+  return {
+    ...request,
+    backendAdapterId: CODEX_CLI_BACKEND_ID,
+    providerRouteId: undefined,
+    modelProfileId: request.modelAlias,
+    routingMode: request.routingMode ?? "manual"
+  };
+}
+
+function isLiveRunnerMode(mode: DesktopRunnerMode): mode is "claude-live" | "codex-live" {
+  return mode === "claude-live" || mode === "codex-live";
 }
 
 function createRunAttemptId(mode: DesktopRunnerMode, sessionId: string): string {

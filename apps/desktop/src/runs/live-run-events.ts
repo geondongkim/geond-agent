@@ -11,10 +11,13 @@ import {
 } from "@geond-agent/ui-workbench";
 import { redactSensitiveTextContent } from "@geond-agent/claude-code-bridge";
 
-import { createSelectionSnapshotFromRequest, describeLiveCommandPreview } from "../lib/selection-snapshot.js";
+import {
+  createSelectionSnapshotFromRequest,
+  describeCodexCommandPreview,
+  describeLiveCommandPreview
+} from "../lib/selection-snapshot.js";
 import type { DesktopRunnerMode } from "../demo-workbench.js";
 import type { RunnerRequest, RunnerResult } from "./types.js";
-import { describeCodexCommandPreview } from "../lib/selection-snapshot.js";
 
 export function createRunAttemptStartedEvent(
   request: RunnerRequest,
@@ -184,9 +187,85 @@ export function createLiveRunPreludeEvents(
   ];
 }
 
+export function createCodexLiveRunPreludeEvents(
+  request: RunnerRequest,
+  title: string,
+  i18n: UiI18n,
+  isResumeRun: boolean,
+  selectionCatalog: WorkbenchSelectionCatalog
+): readonly WorkbenchEvent[] {
+  const at = new Date().toISOString();
+  const sessionPrelude =
+    isResumeRun && request.externalSessionId
+      ? [
+          ...createWorkbenchSessionResumeEvents({
+            sessionId: request.sessionId,
+            adapterId: request.backendAdapterId ?? "codex.cli.metadata",
+            externalSessionId: request.externalSessionId,
+            at
+          }),
+          {
+            type: "selection.snapshot.updated" as const,
+            sessionId: request.sessionId,
+            selection: createSelectionSnapshotFromRequest(request, i18n, selectionCatalog),
+            at
+          }
+        ]
+      : createWorkbenchSessionStartEvents({
+          sessionId: request.sessionId,
+          title,
+          workspacePath: request.workspacePath,
+          selection: createSelectionSnapshotFromRequest(request, i18n, selectionCatalog),
+          at
+        });
+
+  return [
+    ...sessionPrelude,
+    {
+      type: "plan.updated",
+      sessionId: request.sessionId,
+      items: [
+        {
+          id: "launch-codex-cli",
+          title: i18n.t("workbench.livePlan.codexLaunch"),
+          status: "in_progress"
+        },
+        {
+          id: "normalize-codex-events",
+          title: i18n.t("workbench.livePlan.codexNormalize"),
+          status: "pending"
+        },
+        {
+          id: "inspect-codex-workbench",
+          title: i18n.t("workbench.livePlan.codexInspect"),
+          status: "pending"
+        }
+      ],
+      at
+    },
+    {
+      type: "command.output",
+      sessionId: request.sessionId,
+      commandId: "codex-cli-live-prelude",
+      stream: "status",
+      text: describeCodexCommandPreview(request),
+      status: "running",
+      at
+    },
+    {
+      type: "warning",
+      sessionId: request.sessionId,
+      id: "codex-cli-local-only-boundary",
+      message: i18n.t("workbench.liveWarning.codexLocalOnly"),
+      at
+    }
+  ];
+}
+
 export function createLiveRunCompletionEvents(
   sessionId: string,
-  result: RunnerResult
+  result: RunnerResult,
+  options: { readonly commandId?: string } = {}
 ): readonly WorkbenchEvent[] {
   const at = new Date().toISOString();
   const exitCode = getRunnerExitCode(result);
@@ -197,7 +276,7 @@ export function createLiveRunCompletionEvents(
     {
       type: "command.output",
       sessionId,
-      commandId: "claude-code-live-prelude",
+      commandId: options.commandId ?? "claude-code-live-prelude",
       stream: "status",
       text: [
         `normalized events: ${result.events.length}`,
@@ -219,7 +298,8 @@ export function createLiveRunCompletionEvents(
 
 export function createLiveRunFailureEvents(
   sessionId: string,
-  message: string
+  message: string,
+  options: { readonly commandId?: string; readonly eventId?: string } = {}
 ): readonly WorkbenchEvent[] {
   const at = new Date().toISOString();
   const redactedMessage = redactSensitiveTextContent(message);
@@ -228,7 +308,7 @@ export function createLiveRunFailureEvents(
     {
       type: "command.output",
       sessionId,
-      commandId: "claude-code-live-prelude",
+      commandId: options.commandId ?? "claude-code-live-prelude",
       stream: "stderr",
       text: redactedMessage,
       status: "failed",
@@ -237,7 +317,7 @@ export function createLiveRunFailureEvents(
     {
       type: "error",
       sessionId,
-      id: "claude-code-live-runner-failed",
+      id: options.eventId ?? "claude-code-live-runner-failed",
       message: redactedMessage,
       at
     },

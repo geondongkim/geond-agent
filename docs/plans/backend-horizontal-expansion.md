@@ -149,9 +149,10 @@ original normalizer, sanitized fixture replay, stdin prompt command boundary,
 execution-policy mapping, and Tauri native process boundary. `apps/desktop` can
 list it as a Codex JSONL runner so the UI path exercises multi-backend
 selection, replay, command preview, native launch, and cancellation without
-committing raw Codex logs or private session state. It still needs dogfood
-validation for resume continuity, approval events, tool/diff fidelity, and
-route-specific failure classification.
+committing raw Codex logs or private session state. Local dogfood now covers
+success/failure JSONL, invalid-model route classification, usage metadata,
+command output, and `file_change` diff events. It still needs dogfood
+validation for resume continuity, approval events, and MCP tool fidelity.
 
 `packages/opencode-bridge` is the next metadata-only consumer. It records the
 OpenCode-specific questions that matter before a real runner exists: selected

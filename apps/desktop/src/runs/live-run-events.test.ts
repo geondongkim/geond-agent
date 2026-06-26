@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createUiI18n } from "@geond-agent/ui-workbench";
 
 import {
+  createCodexLiveRunPreludeEvents,
   createLiveRunCancelledEvents,
   createLiveRunCompletionEvents,
   createLiveRunFailureEvents,
@@ -62,6 +63,45 @@ describe("desktop live run event factories", () => {
     });
   });
 
+  it("creates a Codex live prelude with Codex selection and command preview events", () => {
+    const events = createCodexLiveRunPreludeEvents(
+      createRunnerRequest({
+        backendAdapterId: "codex.cli.metadata",
+        providerRouteId: undefined,
+        modelAlias: "gpt-5.1-codex",
+        modelProfileId: "gpt-5.1-codex"
+      }),
+      "Codex run",
+      createUiI18n("en"),
+      false,
+      createDesktopWorkbenchCatalog()
+    );
+
+    expect(events.map((event) => event.type)).toEqual([
+      "session.lifecycle",
+      "plan.updated",
+      "command.output",
+      "warning"
+    ]);
+    expect(events[0]).toMatchObject({
+      type: "session.lifecycle",
+      sessionId: "workbench-session-1",
+      lifecycle: "started",
+      selection: {
+        backendAdapterId: "codex.cli.metadata",
+        modelProfileId: "gpt-5.1-codex"
+      }
+    });
+    const commandEvent = events[2];
+    expect(commandEvent).toMatchObject({
+      type: "command.output",
+      commandId: "codex-cli-live-prelude"
+    });
+    expect(commandEvent?.type === "command.output" ? commandEvent.text : "").toContain(
+      "codex exec --json"
+    );
+  });
+
   it("summarizes completion, failure, and cancel states as normalized workbench events", () => {
     expect(
       createLiveRunCompletionEvents("workbench-session-1", createRunnerResult({ exitCode: 0 }))[1]
@@ -69,11 +109,22 @@ describe("desktop live run event factories", () => {
     expect(
       createLiveRunCompletionEvents("workbench-session-1", createRunnerResult({ exitCode: 2 }))[1]
     ).toMatchObject({ type: "session.lifecycle", lifecycle: "failed" });
+    expect(
+      createLiveRunCompletionEvents("workbench-session-1", createRunnerResult({ exitCode: 0 }), {
+        commandId: "codex-cli-live-prelude"
+      })[0]
+    ).toMatchObject({ type: "command.output", commandId: "codex-cli-live-prelude" });
     expect(createLiveRunFailureEvents("workbench-session-1", "boom").map((event) => event.type)).toEqual([
       "command.output",
       "error",
       "session.lifecycle"
     ]);
+    expect(
+      createLiveRunFailureEvents("workbench-session-1", "boom", {
+        commandId: "codex-cli-live-prelude",
+        eventId: "codex-cli-live-runner-failed"
+      })[1]
+    ).toMatchObject({ type: "error", id: "codex-cli-live-runner-failed" });
     expect(
       createLiveRunReadinessBlockedEvents("workbench-session-1", "route blocked")[1]
     ).toMatchObject({

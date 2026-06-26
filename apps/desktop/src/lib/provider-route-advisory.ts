@@ -6,6 +6,7 @@ import type {
 const FALLBACK_WORTHY_ISSUES = new Set([
   "provider_overloaded",
   "provider_quota",
+  "provider_model",
   "provider_timeout",
   "retry_exhausted"
 ]);

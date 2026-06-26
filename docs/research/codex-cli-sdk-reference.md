@@ -61,6 +61,9 @@ copying upstream implementation files:
   that validates the `exec --json` boundary, writes the prompt through stdin,
   supports timeout/cancel through the shared process registry, and keeps Codex
   auth/config host-mediated rather than reading provider keys from the repo.
+- `docs/plans/codex-live-dogfood-validation.md` records local dogfood evidence
+  for Codex success/failure JSONL, usage metadata, invalid-model classification,
+  command output, and `file_change` diff events without committing raw logs.
 - `apps/desktop` can expose a Codex JSONL fixture runner mode so UI surfaces
   are no longer Claude-only.
 

@@ -181,6 +181,7 @@ export type UiMessageKey =
   | "workbench.issue.kind.providerOverloaded"
   | "workbench.issue.kind.providerAuth"
   | "workbench.issue.kind.providerQuota"
+  | "workbench.issue.kind.providerModel"
   | "workbench.issue.kind.providerTimeout"
   | "workbench.issue.kind.retryExhausted"
   | "workbench.issue.kind.readinessBlocked"
@@ -191,6 +192,7 @@ export type UiMessageKey =
   | "workbench.issue.providerOverloadedMessage"
   | "workbench.issue.providerAuthMessage"
   | "workbench.issue.providerQuotaMessage"
+  | "workbench.issue.providerModelMessage"
   | "workbench.issue.providerTimeoutMessage"
   | "workbench.issue.retryExhaustedMessage"
   | "workbench.issue.runnerProcessMessage"
@@ -280,7 +282,11 @@ export type UiMessageKey =
   | "workbench.livePlan.launch"
   | "workbench.livePlan.normalize"
   | "workbench.livePlan.inspect"
+  | "workbench.livePlan.codexLaunch"
+  | "workbench.livePlan.codexNormalize"
+  | "workbench.livePlan.codexInspect"
   | "workbench.liveWarning.localOnly"
+  | "workbench.liveWarning.codexLocalOnly"
   | "workbench.liveWarning.selectionLocalOnly"
   | "workbench.liveWarning.parseFailed"
   | "workbench.liveWarning.listenerFailed"
@@ -801,6 +807,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.issue.kind.providerOverloaded": "Provider overloaded",
     "workbench.issue.kind.providerAuth": "Provider auth issue",
     "workbench.issue.kind.providerQuota": "Provider quota issue",
+    "workbench.issue.kind.providerModel": "Provider model issue",
     "workbench.issue.kind.providerTimeout": "Provider timeout",
     "workbench.issue.kind.retryExhausted": "Retry exhausted",
     "workbench.issue.kind.readinessBlocked": "Readiness blocked",
@@ -811,6 +818,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.issue.providerOverloadedMessage": "The selected provider route is overloaded. Retry later, lower the model, or switch route; OpenAI-compatible advisory fallback may still be available.",
     "workbench.issue.providerAuthMessage": "The selected provider route rejected authentication. Check local-only key presence and route settings.",
     "workbench.issue.providerQuotaMessage": "The selected provider route reported quota or rate limit pressure. Retry later, lower the model, or switch route.",
+    "workbench.issue.providerModelMessage": "The selected model is unavailable on this route. Choose a supported model, lower the model, or switch route.",
     "workbench.issue.providerTimeoutMessage": "The selected provider route timed out. Retry later or inspect terminal output for network details.",
     "workbench.issue.retryExhaustedMessage": "The live route exhausted its retry budget. Wait for provider recovery before retrying or manually switch route.",
     "workbench.issue.runnerProcessMessage": "The local runner process failed before a provider-specific issue could be classified. Inspect terminal output.",
@@ -900,14 +908,18 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.livePlan.launch": "Launch Claude Code stream-json runner",
     "workbench.livePlan.normalize": "Normalize stream-json records into WorkbenchEvent state",
     "workbench.livePlan.inspect": "Review terminal, diff, approvals, and warnings",
+    "workbench.livePlan.codexLaunch": "Launch Codex CLI JSONL runner",
+    "workbench.livePlan.codexNormalize": "Normalize Codex JSONL records into WorkbenchEvent state",
+    "workbench.livePlan.codexInspect": "Review Codex terminal, diff, tool, and warning evidence",
     "workbench.liveWarning.localOnly": "Live execution keeps provider credentials and raw Claude logs outside committed workbench state.",
+    "workbench.liveWarning.codexLocalOnly": "Codex live execution keeps provider credentials and raw Codex logs outside committed workbench state.",
     "workbench.liveWarning.selectionLocalOnly": "Live runner selection is a local snapshot; provider credentials are not stored in UI state.",
     "workbench.liveWarning.parseFailed": "Unable to parse Claude Code stream-json line.",
     "workbench.liveWarning.listenerFailed": "Unable to attach to Claude Code stream.",
     "workbench.runner.fixtureReady": "Fixture runner ready.",
     "workbench.runner.startingFixture": "Starting local fixture runner...",
     "workbench.runner.startingClaude": "Starting Claude Code stream-json runner...",
-    "workbench.runner.startingCodex": "Starting Codex CLI JSONL fixture runner...",
+    "workbench.runner.startingCodex": "Starting Codex CLI JSONL runner...",
     "workbench.runner.resumingClaude": "Resuming Claude Code session...",
     "workbench.runner.appendedEvents": "Appended {count} events from {executable} stream-json {mode} run #{index}.",
     "workbench.runner.failed": "Runner failed.",
@@ -1418,6 +1430,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.issue.kind.providerOverloaded": "프로바이더 과부하",
     "workbench.issue.kind.providerAuth": "프로바이더 인증 문제",
     "workbench.issue.kind.providerQuota": "프로바이더 할당량 문제",
+    "workbench.issue.kind.providerModel": "프로바이더 모델 문제",
     "workbench.issue.kind.providerTimeout": "프로바이더 시간 초과",
     "workbench.issue.kind.retryExhausted": "재시도 소진",
     "workbench.issue.kind.readinessBlocked": "준비 상태 차단",
@@ -1428,6 +1441,7 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.issue.providerOverloadedMessage": "선택한 프로바이더 경로가 과부하 상태입니다. 나중에 재시도하거나 모델을 낮추거나 경로를 전환하세요. OpenAI-compatible 자문 fallback은 가능할 수 있습니다.",
     "workbench.issue.providerAuthMessage": "선택한 프로바이더 경로가 인증을 거절했습니다. 로컬 전용 키 존재 여부와 경로 설정을 확인하세요.",
     "workbench.issue.providerQuotaMessage": "선택한 프로바이더 경로가 할당량 또는 rate limit 압박을 보고했습니다. 나중에 재시도하거나 모델을 낮추거나 경로를 전환하세요.",
+    "workbench.issue.providerModelMessage": "선택한 모델을 이 경로에서 사용할 수 없습니다. 지원 모델을 고르거나 모델을 낮추거나 경로를 전환하세요.",
     "workbench.issue.providerTimeoutMessage": "선택한 프로바이더 경로가 시간 초과됐습니다. 나중에 재시도하거나 터미널 출력에서 네트워크 세부 정보를 확인하세요.",
     "workbench.issue.retryExhaustedMessage": "live 경로의 재시도 한도가 소진됐습니다. 프로바이더가 회복될 때까지 기다린 뒤 재시도하거나 수동으로 경로를 전환하세요.",
     "workbench.issue.runnerProcessMessage": "프로바이더 문제로 분류하기 전에 로컬 실행 프로세스가 실패했습니다. 터미널 출력을 확인하세요.",
@@ -1517,14 +1531,18 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.livePlan.launch": "Claude Code stream-json runner 시작",
     "workbench.livePlan.normalize": "stream-json 레코드를 WorkbenchEvent 상태로 정규화",
     "workbench.livePlan.inspect": "터미널, 변경 사항, 승인, 경고 검토",
+    "workbench.livePlan.codexLaunch": "Codex CLI JSONL runner 시작",
+    "workbench.livePlan.codexNormalize": "Codex JSONL 레코드를 WorkbenchEvent 상태로 정규화",
+    "workbench.livePlan.codexInspect": "Codex 터미널, 변경 사항, 도구, 경고 근거 검토",
     "workbench.liveWarning.localOnly": "Live 실행은 프로바이더 인증 정보와 원본 Claude 로그를 커밋되는 워크벤치 상태 밖에 둡니다.",
+    "workbench.liveWarning.codexLocalOnly": "Codex live 실행은 프로바이더 인증 정보와 원본 Codex 로그를 커밋되는 워크벤치 상태 밖에 둡니다.",
     "workbench.liveWarning.selectionLocalOnly": "Live runner 선택은 로컬 스냅샷이며, 프로바이더 인증 정보는 UI 상태에 저장하지 않습니다.",
     "workbench.liveWarning.parseFailed": "Claude Code stream-json 라인을 파싱하지 못했습니다.",
     "workbench.liveWarning.listenerFailed": "Claude Code 스트림에 연결하지 못했습니다.",
     "workbench.runner.fixtureReady": "Fixture runner 준비됨.",
     "workbench.runner.startingFixture": "로컬 fixture runner 시작 중...",
     "workbench.runner.startingClaude": "Claude Code stream-json runner 시작 중...",
-    "workbench.runner.startingCodex": "Codex CLI JSONL fixture runner 시작 중...",
+    "workbench.runner.startingCodex": "Codex CLI JSONL runner 시작 중...",
     "workbench.runner.resumingClaude": "Claude Code 세션 이어쓰기 중...",
     "workbench.runner.appendedEvents": "{executable} stream-json {mode} 실행 #{index}에서 이벤트 {count}개를 추가했습니다.",
     "workbench.runner.failed": "실행기가 실패했습니다.",
