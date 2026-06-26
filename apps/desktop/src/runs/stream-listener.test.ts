@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import { createClaudeCodeStreamJsonNormalizer } from "@geond-agent/claude-code-bridge";
 import { createUiI18n } from "@geond-agent/ui-workbench";
 
-import { createEventsFromStreamPayload } from "./stream-listener.js";
+import {
+  createEventsFromCodexStreamPayload,
+  createEventsFromStreamPayload
+} from "./stream-listener.js";
 import type { RunnerRequest } from "./types.js";
 
 describe("desktop Claude Code stream listener helpers", () => {
@@ -155,6 +158,74 @@ describe("desktop Claude Code stream listener helpers", () => {
     expect(events[0]).toMatchObject({
       type: "warning",
       id: "claude-code-stream-json-live-parse-7"
+    });
+  });
+
+  it("normalizes Codex stdout JSONL records under the workbench session id", () => {
+    const events = createEventsFromCodexStreamPayload(
+      {
+        channelId: "workbench-session-1",
+        stream: "stdout",
+        text: JSON.stringify({
+          type: "item.completed",
+          item: {
+            id: "codex-message-1",
+            type: "agent_message",
+            text: "Codex live output"
+          }
+        }),
+        sequence: 2
+      },
+      createRunnerRequest({
+        backendAdapterId: "codex.cli.metadata",
+        modelAlias: "gpt-5.1-codex"
+      }),
+      createUiI18n("en")
+    );
+
+    expect(events[0]).toMatchObject({
+      type: "assistant.text.completed",
+      sessionId: "workbench-session-1",
+      text: "Codex live output"
+    });
+  });
+
+  it("maps Codex stderr chunks to redacted command output previews", () => {
+    const token = ["sk", "f".repeat(28)].join("-");
+    const events = createEventsFromCodexStreamPayload(
+      {
+        channelId: "workbench-session-1",
+        stream: "stderr",
+        text: `codex diagnostic ${token}`,
+        sequence: 1
+      },
+      createRunnerRequest(),
+      createUiI18n("en")
+    );
+
+    expect(events[0]).toMatchObject({
+      type: "command.output",
+      commandId: "codex-cli-stream-stderr",
+      text: "codex diagnostic [redacted]"
+    });
+    expect(JSON.stringify(events)).not.toContain(token);
+  });
+
+  it("turns Codex live JSON parse failures into warnings", () => {
+    const events = createEventsFromCodexStreamPayload(
+      {
+        channelId: "workbench-session-1",
+        stream: "stdout",
+        text: "{not-json}",
+        sequence: 9
+      },
+      createRunnerRequest(),
+      createUiI18n("en")
+    );
+
+    expect(events[0]).toMatchObject({
+      type: "warning",
+      id: "codex-cli-jsonl-live-parse-9"
     });
   });
 });

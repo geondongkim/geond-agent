@@ -146,9 +146,12 @@ runtime code.
 SDK. It does not launch Codex or copy Codex source, but it now follows the
 upstream Apache-2.0 Codex TypeScript SDK thread/turn/item JSONL shape for an
 original normalizer, sanitized fixture replay, stdin prompt command boundary,
-and execution-policy mapping. `apps/desktop` can list it as a Codex JSONL
-fixture runner so the UI path exercises multi-backend selection and replay
-without pretending native live process execution is complete.
+execution-policy mapping, and Tauri native process boundary. `apps/desktop` can
+list it as a Codex JSONL runner so the UI path exercises multi-backend
+selection, replay, command preview, native launch, and cancellation without
+committing raw Codex logs or private session state. It still needs dogfood
+validation for resume continuity, approval events, tool/diff fidelity, and
+route-specific failure classification.
 
 `packages/opencode-bridge` is the next metadata-only consumer. It records the
 OpenCode-specific questions that matter before a real runner exists: selected

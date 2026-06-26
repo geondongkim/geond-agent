@@ -286,7 +286,8 @@ export function createLiveRunReadinessBlockedEvents(
 export function createLiveRunCancelledEvents(
   sessionId: string,
   i18n: UiI18n,
-  cancelled: boolean
+  cancelled: boolean,
+  options: { readonly commandId?: string; readonly eventIdPrefix?: string } = {}
 ): readonly WorkbenchEvent[] {
   const at = new Date().toISOString();
   const message = cancelled
@@ -297,7 +298,7 @@ export function createLiveRunCancelledEvents(
     {
       type: "command.output",
       sessionId,
-      commandId: "claude-code-live-prelude",
+      commandId: options.commandId ?? "claude-code-live-prelude",
       stream: cancelled ? "status" : "stderr",
       text: message,
       status: cancelled ? "interrupted" : "failed",
@@ -307,8 +308,8 @@ export function createLiveRunCancelledEvents(
       type: cancelled ? "warning" : "error",
       sessionId,
       id: cancelled
-        ? "claude-code-live-runner-cancel-requested"
-        : "claude-code-live-runner-cancel-failed",
+        ? `${options.eventIdPrefix ?? "claude-code-live"}-runner-cancel-requested`
+        : `${options.eventIdPrefix ?? "claude-code-live"}-runner-cancel-failed`,
       message,
       at
     }

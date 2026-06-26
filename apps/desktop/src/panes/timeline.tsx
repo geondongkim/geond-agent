@@ -400,7 +400,7 @@ export function TimelinePane({
                 variant="outline"
                 className="gap-2"
                 onClick={() => void cancelActiveRun()}
-                disabled={activeRunMode !== "claude-live"}
+                disabled={activeRunMode !== "claude-live" && activeRunMode !== "codex-live"}
               >
                 <Square size={14} />
                 {i18n.t("workbench.actions.cancelRun")}

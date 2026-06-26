@@ -95,7 +95,7 @@ export function CommandStrip({
           <Button
             variant="outline"
             onClick={() => void cancelActiveRun()}
-            disabled={activeRunMode !== "claude-live"}
+            disabled={activeRunMode !== "claude-live" && activeRunMode !== "codex-live"}
           >
             {i18n.t("workbench.actions.cancelRun")}
           </Button>
