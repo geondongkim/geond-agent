@@ -367,6 +367,10 @@ body {
     @apply flex items-center gap-2;
   }
 
+  .session-source-badge {
+    @apply inline-flex h-5 items-center rounded-md bg-white/10 px-1.5 text-[10px] font-medium text-[color:var(--inverse-soft)];
+  }
+
   .session-card-actions {
     @apply flex items-center gap-1 opacity-0 transition-opacity;
   }

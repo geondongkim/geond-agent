@@ -19,6 +19,7 @@ export function WorkspaceSessionList({
   onArchiveSession,
   onRestoreSession,
   onSelect,
+  onSelectNativeSession,
   onSelectWorkspace,
   onStartNewChat,
   onToggleWorkspaceFavorite
@@ -32,6 +33,7 @@ export function WorkspaceSessionList({
   readonly onArchiveSession: (id: string) => void;
   readonly onRestoreSession: (id: string) => void;
   readonly onSelect: (sessionId: string) => void;
+  readonly onSelectNativeSession?: (source: "claude" | "codex", id: string) => void;
   readonly onSelectWorkspace: (path: string) => void;
   readonly onStartNewChat: (workspacePath: string) => void;
   readonly onToggleWorkspaceFavorite: (path: string, label: string) => void;
@@ -64,6 +66,7 @@ export function WorkspaceSessionList({
                 group={group}
                 i18n={i18n}
                 onSelect={onSelect}
+                onSelectNativeSession={onSelectNativeSession}
                 onSelectWorkspace={onSelectWorkspace}
                 onStartNewChat={onStartNewChat}
                 onToggleWorkspaceFavorite={onToggleWorkspaceFavorite}
@@ -83,6 +86,7 @@ export function WorkspaceSessionList({
                     group={group}
                     i18n={i18n}
                     onSelect={onSelect}
+                    onSelectNativeSession={onSelectNativeSession}
                     onSelectWorkspace={onSelectWorkspace}
                     onStartNewChat={onStartNewChat}
                     onToggleWorkspaceFavorite={onToggleWorkspaceFavorite}
@@ -132,6 +136,7 @@ function WorkspaceSessionGroupView({
   group,
   i18n,
   onSelect,
+  onSelectNativeSession,
   onSelectWorkspace,
   onStartNewChat,
   onToggleWorkspaceFavorite,
@@ -142,6 +147,7 @@ function WorkspaceSessionGroupView({
   readonly group: WorkspaceSessionGroup;
   readonly i18n: UiI18n;
   readonly onSelect: (sessionId: string) => void;
+  readonly onSelectNativeSession?: (source: "claude" | "codex", id: string) => void;
   readonly onSelectWorkspace: (path: string) => void;
   readonly onStartNewChat: (workspacePath: string) => void;
   readonly onToggleWorkspaceFavorite: (path: string, label: string) => void;
@@ -217,20 +223,39 @@ function WorkspaceSessionGroupView({
 
       <div className="workspace-session-card-list">
         {group.sessions.length ? (
-          group.sessions.map((session) => (
-            <SessionCard
-              key={session.id}
-              session={session}
-              active={session.id === activeSessionId}
-              i18n={i18n}
-              onSelect={() => {
-                onSelectWorkspace(group.path);
+          group.sessions.map((session) => {
+            const isNative = session.source && session.source !== "app";
+            const handleSelect = () => {
+              onSelectWorkspace(group.path);
+              if (isNative && onSelectNativeSession) {
+                const match = session.id.match(/^native:(claude|codex):(.+)$/);
+                if (match) {
+                  const [, source, id] = match;
+                  if (id) {
+                    onSelectNativeSession(source as "claude" | "codex", id);
+                  } else {
+                    onSelect(session.id);
+                  }
+                } else {
+                  onSelect(session.id);
+                }
+              } else {
                 onSelect(session.id);
-              }}
-              onDelete={() => onDeleteSession(session.id)}
-              onArchive={() => onArchiveSession(session.id)}
-            />
-          ))
+              }
+            };
+
+            return (
+              <SessionCard
+                key={session.id}
+                session={session}
+                active={session.id === activeSessionId}
+                i18n={i18n}
+                onSelect={handleSelect}
+                onDelete={!isNative ? () => onDeleteSession(session.id) : undefined}
+                onArchive={!isNative ? () => onArchiveSession(session.id) : undefined}
+              />
+            );
+          })
         ) : (
           <p className="workspace-session-empty">
             {i18n.t("workbench.sessionSidebar.noSessions")}

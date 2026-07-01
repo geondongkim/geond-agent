@@ -47,6 +47,9 @@ export type UiMessageKey =
   | "workbench.sessionSidebar.nativeClaude"
   | "workbench.sessionSidebar.nativeCodex"
   | "workbench.sessionSidebar.nativeSessions"
+  | "workbench.sessionSidebar.sourceClaude"
+  | "workbench.sessionSidebar.sourceCodex"
+  | "workbench.sessionSidebar.sourceApp"
   | "workbench.timeline.title"
   | "workbench.timeline.empty"
   | "workbench.chat.activityCount"
@@ -682,6 +685,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.sessionSidebar.nativeClaude": "Claude Code",
     "workbench.sessionSidebar.nativeCodex": "Codex",
     "workbench.sessionSidebar.nativeSessions": "Native sessions",
+    "workbench.sessionSidebar.sourceClaude": "Claude",
+    "workbench.sessionSidebar.sourceCodex": "Codex",
+    "workbench.sessionSidebar.sourceApp": "Local",
     "workbench.timeline.title": "Event timeline",
     "workbench.timeline.empty": "No events yet.",
     "workbench.chat.activityCount": "{count} activity",
@@ -1317,6 +1323,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.sessionSidebar.nativeClaude": "Claude Code",
     "workbench.sessionSidebar.nativeCodex": "Codex",
     "workbench.sessionSidebar.nativeSessions": "네이티브 세션",
+    "workbench.sessionSidebar.sourceClaude": "Claude",
+    "workbench.sessionSidebar.sourceCodex": "Codex",
+    "workbench.sessionSidebar.sourceApp": "로컬",
     "workbench.timeline.title": "이벤트 타임라인",
     "workbench.timeline.empty": "아직 이벤트가 없습니다.",
     "workbench.chat.activityCount": "활동 {count}건",
