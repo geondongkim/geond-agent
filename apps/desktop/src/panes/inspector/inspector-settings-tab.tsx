@@ -8,7 +8,6 @@ import type {
 } from "@geond-agent/ui-workbench";
 import type { ReactNode } from "react";
 
-import { TabsContent } from "../../components/ui/tabs.js";
 import { SettingsRow } from "../../components/workbench/settings-row.js";
 import { SettingsSelect } from "../../components/workbench/settings-select.js";
 import type { ClaudeCodeCliProbe } from "../../claude-runner.js";
@@ -78,8 +77,7 @@ export function InspectorSettingsTab({
   });
 
   return (
-    <TabsContent value="settings" className="border-0 bg-transparent p-0">
-      <div className="settings-sections">
+    <div className="settings-sections">
         <SettingsSection title={i18n.t("workbench.settings.firstRunSection")}>
           <SettingsRow
             label={i18n.t("workbench.settings.firstRunSection")}
@@ -205,8 +203,7 @@ export function InspectorSettingsTab({
             detail={persistenceNotes.join(" ")}
           />
         </SettingsSection>
-      </div>
-    </TabsContent>
+    </div>
   );
 }
 

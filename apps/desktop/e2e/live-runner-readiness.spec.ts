@@ -10,11 +10,18 @@ import {
 test("Claude live runner blocks before launch when route readiness is missing", async ({ page }) => {
   const errors = collectConsoleErrors(page);
   await resetWorkbench(page);
-  await showWorkspacePanel(page);
 
-  await page.getByRole("tab", { name: "Settings" }).click();
-  await page.getByLabel("Runner mode").selectOption("claude-live");
+  // Settings is no longer an inspector tab and the overlay is opened via the
+  // left session-rail "Settings" button. Set the runner mode to claude-live
+  // through localStorage (the same key updateRunnerMode persists to) and reload
+  // so the app initializes with the live runner selected.
+  await page.evaluate(() => {
+    window.localStorage.setItem("geond-agent.workbench.runner-mode", "claude-live");
+  });
+  await page.reload();
   await expectLocalStorage(page, "geond-agent.workbench.runner-mode", "claude-live", "equals");
+
+  await showWorkspacePanel(page);
 
   await page.getByLabel("Agent command").fill("Run a local readiness smoke check.");
   await page.getByRole("button", { name: "Dispatch" }).click();
