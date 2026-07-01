@@ -2,6 +2,8 @@ import type { UiI18n } from "@geond-agent/ui-workbench";
 import { Settings } from "lucide-react";
 
 import { WorkspaceSessionList } from "../components/workbench/workspace-session-list.js";
+import { NativeSessionsSection } from "../components/workbench/native-sessions-section.js";
+import type { NativeSessionRecord } from "../native-sessions.js";
 import { cn } from "../lib/cn.js";
 import type { WorkspaceSessionGroup } from "../lib/workspace-session-groups.js";
 import type { ProjectedSessionListItem } from "../lib/workbench-types.js";
@@ -16,10 +18,15 @@ export function SessionRailPane({
   archivedSessions,
   chooseWorkspace,
   i18n,
+  nativeClaudeSessions,
+  nativeCodexSessions,
   onDeleteSession,
   onArchiveSession,
   onOpenSettings,
+  onRefreshNativeSessions,
   onRestoreSession,
+  onSelectNativeSession,
+  onResumeNativeSession,
   onStartNewChat,
   projection,
   selectSession,
@@ -34,10 +41,15 @@ export function SessionRailPane({
   readonly archivedSessions: readonly ProjectedSessionListItem[];
   readonly chooseWorkspace: () => void;
   readonly i18n: UiI18n;
+  readonly nativeClaudeSessions: readonly NativeSessionRecord[];
+  readonly nativeCodexSessions: readonly NativeSessionRecord[];
   readonly onDeleteSession: (id: string) => void;
   readonly onArchiveSession: (id: string) => void;
   readonly onOpenSettings: () => void;
+  readonly onRefreshNativeSessions: () => void;
   readonly onRestoreSession: (id: string) => void;
+  readonly onSelectNativeSession: (source: "claude" | "codex", id: string) => void;
+  readonly onResumeNativeSession: (source: "claude" | "codex", id: string) => void;
   readonly onStartNewChat: (workspacePath?: string) => void;
   readonly projection: Projection;
   readonly selectSession: (sessionId: string) => void;
@@ -93,6 +105,15 @@ export function SessionRailPane({
         onStartNewChat={onStartNewChat}
         onToggleWorkspaceFavorite={toggleWorkspaceFavorite}
         onRestoreSession={onRestoreSession}
+      />
+
+      <NativeSessionsSection
+        nativeClaudeSessions={nativeClaudeSessions}
+        nativeCodexSessions={nativeCodexSessions}
+        i18n={i18n}
+        onSelectNativeSession={onSelectNativeSession}
+        onResumeNativeSession={onResumeNativeSession}
+        onRefreshNativeSessions={onRefreshNativeSessions}
       />
 
       <section className="backend-status-section">
