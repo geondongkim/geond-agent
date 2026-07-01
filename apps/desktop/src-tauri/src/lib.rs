@@ -678,14 +678,17 @@ fn resolve_executable(name: &str) -> Option<PathBuf> {
 /// Builds a PATH value that prepends the candidate directories to the inherited
 /// PATH, so a spawned CLI (and its subprocesses such as node) resolve their own
 /// dependencies even under a minimal GUI-launch environment.
-fn augmented_path() -> String {
+fn build_augmented_path(
+    candidate_dirs: &[PathBuf],
+    inherited: Option<std::ffi::OsString>,
+) -> String {
     let mut entries: Vec<PathBuf> = Vec::new();
-    for dir in candidate_executable_dirs() {
-        if dir.is_dir() && !entries.contains(&dir) {
-            entries.push(dir);
+    for dir in candidate_dirs {
+        if dir.is_dir() && !entries.contains(dir) {
+            entries.push(dir.clone());
         }
     }
-    if let Some(path) = env::var_os("PATH") {
+    if let Some(path) = inherited {
         for dir in env::split_paths(&path) {
             if !entries.contains(&dir) {
                 entries.push(dir);
@@ -695,6 +698,10 @@ fn augmented_path() -> String {
     env::join_paths(&entries)
         .map(|joined| joined.to_string_lossy().into_owned())
         .unwrap_or_else(|_| "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin".to_string())
+}
+
+fn augmented_path() -> String {
+    build_augmented_path(&candidate_executable_dirs(), env::var_os("PATH"))
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -4848,17 +4855,33 @@ mod tests {
 
     #[test]
     fn augmented_path_prepends_candidate_dirs_before_inherited() {
-        let path = augmented_path();
+        // Use temp dirs so the test does not depend on platform-specific paths
+        // like /opt/homebrew/bin (macOS-only, absent on the Linux CI runner).
+        let dir_a = env::temp_dir().join(format!("geond-agent-path-a-{}", std::process::id()));
+        let dir_b = env::temp_dir().join(format!("geond-agent-path-b-{}", std::process::id()));
+        fs::create_dir_all(&dir_a).expect("create dir a");
+        fs::create_dir_all(&dir_b).expect("create dir b");
+        let inherited = std::ffi::OsString::from("/usr/bin:/bin");
+
+        let path = build_augmented_path(&[dir_a.clone(), dir_b.clone()], Some(inherited));
+        fs::remove_dir_all(&dir_a).ok();
+        fs::remove_dir_all(&dir_b).ok();
+
         let entries: Vec<PathBuf> = env::split_paths(&path).collect();
-        let homebrew_pos = entries
+        let a_pos = entries
             .iter()
-            .position(|entry| entry.as_path() == Path::new("/opt/homebrew/bin"))
-            .expect("homebrew bin in augmented PATH");
-        let local_pos = entries
+            .position(|entry| entry.as_path() == dir_a.as_path())
+            .expect("candidate dir_a prepended");
+        let b_pos = entries
             .iter()
-            .position(|entry| entry.as_path() == Path::new("/usr/local/bin"))
-            .expect("usr local bin in augmented PATH");
-        assert!(homebrew_pos < local_pos);
+            .position(|entry| entry.as_path() == dir_b.as_path())
+            .expect("candidate dir_b prepended");
+        let inherited_pos = entries
+            .iter()
+            .position(|entry| entry.as_path() == Path::new("/usr/bin"))
+            .expect("inherited PATH present after candidates");
+        assert!(a_pos < b_pos, "candidate order preserved");
+        assert!(b_pos < inherited_pos, "candidates prepended before inherited PATH");
     }
 
     #[test]
