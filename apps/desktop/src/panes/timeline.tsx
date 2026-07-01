@@ -34,6 +34,7 @@ import { getComposerPlaceholder } from "../runs/runner-prompt.js";
 import { ChatTranscript } from "./chat-transcript.js";
 
 export function TimelinePane({
+  activeIsNative,
   activeSession,
   activeRunMode,
   activeSessionPinned,
@@ -44,6 +45,7 @@ export function TimelinePane({
   composerPrompt,
   deleteActiveSession,
   i18n,
+  onResumeActiveNativeSession,
   pendingApprovals,
   resumeActiveSession,
   retryActiveSession,
@@ -58,6 +60,7 @@ export function TimelinePane({
   togglePinnedSession,
   openSettings
 }: {
+  readonly activeIsNative: boolean;
   readonly activeSession?: ProjectedActiveSession;
   readonly activeRunMode?: DesktopRunnerMode;
   readonly activeSessionPinned: boolean;
@@ -68,6 +71,7 @@ export function TimelinePane({
   readonly composerPrompt: string;
   readonly deleteActiveSession: () => void;
   readonly i18n: UiI18n;
+  readonly onResumeActiveNativeSession: () => void;
   readonly pendingApprovals: readonly ProjectedActiveSession["approvals"][number][];
   readonly resumeActiveSession: () => void;
   readonly retryActiveSession: () => void;
@@ -179,7 +183,25 @@ export function TimelinePane({
         sessionKey={activeSession?.id}
       />
 
-      <div className="composer-dock">
+      {activeIsNative ? (
+        <div className="composer-dock">
+          <div className="native-session-banner">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold">
+                {i18n.t("workbench.actions.continueNativeSession")}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-[color:var(--ink-soft)]">
+                This is a read-only view of a native session. Continue the conversation to start a new session.
+              </p>
+            </div>
+            <Button className="gap-2" onClick={onResumeActiveNativeSession}>
+              <RotateCcw size={14} />
+              {i18n.t("workbench.actions.continueNativeSession")}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="composer-dock">
         <div className="composer-header">
           <div className="min-w-0">
             <label className="muted-meta" htmlFor="agent-command">
@@ -372,6 +394,7 @@ export function TimelinePane({
           </div>
         </div>
       </div>
+      )}
     </section>
   );
 }

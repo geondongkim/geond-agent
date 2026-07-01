@@ -18,6 +18,7 @@ import {
 import type { DesktopDemoDocument, DesktopRunnerMode } from "../demo-workbench.js";
 import type { DesktopWorkspaceDescriptor } from "../workspace.js";
 import type { StartWorkbenchSession } from "../runs/use-workbench-runner.js";
+import { readNativeSession } from "../native-sessions.js";
 import {
   createRecentContextItem,
   mergeRecentContextItem,
@@ -456,6 +457,58 @@ export function useWorkbenchActions({
     setArchivedSessionIds(saved);
   };
 
+  const selectNativeSession = async (source: "claude" | "codex", id: string) => {
+    const targetWorkspace =
+      activeSession?.workspacePath ??
+      (workspacePath === "__all__" ? document.activeWorkspace.path : workspacePath);
+
+    const events = await readNativeSession(source, id, targetWorkspace);
+    const sessionId = `native:${source}:${id}`;
+
+    setControllerSnapshot(document.controller.loadSessionEvents(sessionId, events));
+  };
+
+  const resumeNativeSession = async (source: "claude" | "codex", id: string) => {
+    const targetWorkspace =
+      activeSession?.workspacePath ??
+      (workspacePath === "__all__" ? document.activeWorkspace.path : workspacePath);
+
+    const newAppSessionId = `local-session-${Date.now()}`;
+    const now = new Date().toISOString();
+
+    // Create session start events
+    const startEvents: readonly WorkbenchEvent[] = createWorkbenchSessionStartEvents({
+      sessionId: newAppSessionId,
+      title: source === "claude" ? "Claude Code Resume" : "Codex Resume",
+      workspacePath: targetWorkspace,
+      at: now
+    });
+
+    // Create adapter linked event
+    const adapterLinkedEvent: WorkbenchEvent = {
+      type: "session.adapter.linked",
+      sessionId: newAppSessionId,
+      adapterId: source === "claude" ? "claude-code.external-cli-acp" : "codex.cli.metadata",
+      externalSessionId: id,
+      at: now
+    };
+
+    const allEvents = [...startEvents, adapterLinkedEvent];
+
+    await document.eventStore.append(allEvents);
+    setControllerSnapshot(
+      document.controller.appendEvents(allEvents, { activateSessionId: newAppSessionId })
+    );
+
+    // Start the session with the appropriate runner
+    const runnerMode = source === "claude" ? "claude-live" : "codex-live";
+    await startSession(runnerMode, {
+      resumeSessionId: newAppSessionId,
+      externalSessionId: id,
+      trigger: "manual_resume"
+    });
+  };
+
   return {
     attachFileContext,
     attachRecentContext,
@@ -467,7 +520,9 @@ export function useWorkbenchActions({
     deleteSession,
     resolveApproval,
     resumeActiveSession,
+    resumeNativeSession,
     retryActiveSession,
+    selectNativeSession,
     selectSession,
     startNewSession,
     startSelectedRunner,

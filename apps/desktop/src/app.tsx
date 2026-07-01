@@ -17,6 +17,7 @@ import { InspectorPane } from "./panes/inspector.js";
 import { SessionRailPane } from "./panes/session-rail.js";
 import { SettingsPanel } from "./panes/settings-panel.js";
 import { TimelinePane } from "./panes/timeline.js";
+import { listNativeSessions, type NativeSessionRecord } from "./native-sessions.js";
 import {
   createInspectorEvidenceSignature,
   createMaterializedInspectorSessionReadModel,
@@ -77,6 +78,9 @@ export function App({ document }: AppProps) {
     useState<EvidenceExportPreferences>(document.evidenceExportPreferences);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
+  const [nativeClaudeSessions, setNativeClaudeSessions] = useState<readonly NativeSessionRecord[]>([]);
+  const [nativeCodexSessions, setNativeCodexSessions] = useState<readonly NativeSessionRecord[]>([]);
+  const [nativeSessionsRefreshKey, setNativeSessionsRefreshKey] = useState(0);
   const [materializedInspectorData, setMaterializedInspectorData] = useState<
     InspectorSessionReadModel | undefined
   >(() => createProjectionInspectorSessionReadModel(document.initialControllerSnapshot.projection.activeSession));
@@ -148,6 +152,22 @@ export function App({ document }: AppProps) {
     activeSessionListItem?.resumable && activeExternalSession && !runnerBusy
   );
   const canFollowUpApprovals = canResumeActiveSession && runnerMode === "claude-live";
+
+  // Check if active session is a native read-only view
+  const activeIsNative = activeSession?.id?.startsWith("native:") ?? false;
+  const activeNativeSource = activeIsNative ? activeSession?.id?.split(":")[1] as "claude" | "codex" : undefined;
+  const activeNativeId = activeIsNative ? activeSession?.id?.split(":")[2] : undefined;
+
+  const resumeActiveNativeSession = () => {
+    if (!activeNativeSource || !activeNativeId) {
+      return;
+    }
+    void resumeNativeSession(activeNativeSource, activeNativeId);
+  };
+
+  const refreshNativeSessions = () => {
+    setNativeSessionsRefreshKey((key) => key + 1);
+  };
   const visibleSideChatDrafts = useMemo(
     () => filterSideChatDraftsForSession(sideChatDrafts, activeSession?.id),
     [activeSession?.id, sideChatDrafts]
@@ -229,7 +249,9 @@ export function App({ document }: AppProps) {
     deleteSession,
     resolveApproval,
     resumeActiveSession,
+    resumeNativeSession,
     retryActiveSession,
+    selectNativeSession,
     selectSession,
     startNewSession,
     startSelectedRunner,
@@ -419,6 +441,26 @@ export function App({ document }: AppProps) {
     };
   }, [activeSession?.id, document, inspectorEvidenceSignature]);
 
+  // Load native sessions when workspace or refresh key changes
+  useEffect(() => {
+    const targetWorkspace = workspacePath === "__all__" ? document.activeWorkspace.path : workspacePath;
+
+    void (async () => {
+      try {
+        const [claudeSessions, codexSessions] = await Promise.all([
+          listNativeSessions(targetWorkspace, "claude"),
+          listNativeSessions(targetWorkspace, "codex")
+        ]);
+        setNativeClaudeSessions(claudeSessions);
+        setNativeCodexSessions(codexSessions);
+      } catch (error) {
+        console.error("Failed to load native sessions:", error);
+        setNativeClaudeSessions([]);
+        setNativeCodexSessions([]);
+      }
+    })();
+  }, [document.activeWorkspace.path, workspacePath, nativeSessionsRefreshKey]);
+
   function openInspectorTab(tab: string) {
     if (tab === "settings") {
       openSettings();
@@ -503,10 +545,15 @@ export function App({ document }: AppProps) {
               archivedSessions={archivedSessions}
               chooseWorkspace={chooseWorkspace}
               i18n={i18n}
+              nativeClaudeSessions={nativeClaudeSessions}
+              nativeCodexSessions={nativeCodexSessions}
               onDeleteSession={deleteSession}
               onArchiveSession={archiveSession}
               onOpenSettings={openSettings}
+              onRefreshNativeSessions={refreshNativeSessions}
               onRestoreSession={unarchiveSession}
+              onSelectNativeSession={selectNativeSession}
+              onResumeNativeSession={resumeNativeSession}
               onStartNewChat={createNewChat}
               projection={projection}
               selectSession={selectSession}
@@ -519,6 +566,7 @@ export function App({ document }: AppProps) {
           ) : null}
 
           <TimelinePane
+            activeIsNative={activeIsNative}
             activeRunMode={activeRunMode}
             activeSession={activeSession}
             activeSessionPinned={activeSessionPinned}
@@ -529,6 +577,7 @@ export function App({ document }: AppProps) {
             composerPrompt={composerPrompt}
             deleteActiveSession={deleteActiveSession}
             i18n={i18n}
+            onResumeActiveNativeSession={resumeActiveNativeSession}
             pendingApprovals={pendingApprovals}
             resumeActiveSession={resumeActiveSession}
             retryActiveSession={retryActiveSession}

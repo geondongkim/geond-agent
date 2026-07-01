@@ -44,6 +44,9 @@ export type UiMessageKey =
   | "workbench.sessionSidebar.status"
   | "workbench.sessionSidebar.pendingApprovals"
   | "workbench.sessionSidebar.archived"
+  | "workbench.sessionSidebar.nativeClaude"
+  | "workbench.sessionSidebar.nativeCodex"
+  | "workbench.sessionSidebar.nativeSessions"
   | "workbench.timeline.title"
   | "workbench.timeline.empty"
   | "workbench.chat.activityCount"
@@ -260,6 +263,8 @@ export type UiMessageKey =
   | "workbench.actions.runClaudeSession"
   | "workbench.actions.runCodexSession"
   | "workbench.actions.resumeSession"
+  | "workbench.actions.continueNativeSession"
+  | "workbench.actions.refreshNativeSessions"
   | "workbench.actions.retryRun"
   | "workbench.actions.cancelRun"
   | "workbench.actions.settings"
@@ -674,6 +679,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.sessionSidebar.status": "Status",
     "workbench.sessionSidebar.pendingApprovals": "Pending approvals",
     "workbench.sessionSidebar.archived": "Archived",
+    "workbench.sessionSidebar.nativeClaude": "Claude Code",
+    "workbench.sessionSidebar.nativeCodex": "Codex",
+    "workbench.sessionSidebar.nativeSessions": "Native sessions",
     "workbench.timeline.title": "Event timeline",
     "workbench.timeline.empty": "No events yet.",
     "workbench.chat.activityCount": "{count} activity",
@@ -893,6 +901,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.runClaudeSession": "Run Claude session",
     "workbench.actions.runCodexSession": "Run Codex session",
     "workbench.actions.resumeSession": "Resume session",
+    "workbench.actions.continueNativeSession": "Continue conversation",
+    "workbench.actions.refreshNativeSessions": "Refresh",
     "workbench.actions.retryRun": "Retry run",
     "workbench.actions.cancelRun": "Cancel run",
     "workbench.actions.settings": "Settings",
@@ -1304,6 +1314,9 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.sessionSidebar.status": "상태",
     "workbench.sessionSidebar.pendingApprovals": "대기 중 승인",
     "workbench.sessionSidebar.archived": "보관됨",
+    "workbench.sessionSidebar.nativeClaude": "Claude Code",
+    "workbench.sessionSidebar.nativeCodex": "Codex",
+    "workbench.sessionSidebar.nativeSessions": "네이티브 세션",
     "workbench.timeline.title": "이벤트 타임라인",
     "workbench.timeline.empty": "아직 이벤트가 없습니다.",
     "workbench.chat.activityCount": "활동 {count}건",
@@ -1523,6 +1536,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.runClaudeSession": "Claude 세션 실행",
     "workbench.actions.runCodexSession": "Codex 세션 실행",
     "workbench.actions.resumeSession": "세션 이어쓰기",
+    "workbench.actions.continueNativeSession": "대화 이어하기",
+    "workbench.actions.refreshNativeSessions": "새로고침",
     "workbench.actions.retryRun": "실행 재시도",
     "workbench.actions.cancelRun": "실행 취소",
     "workbench.actions.settings": "설정",
