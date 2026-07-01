@@ -318,3 +318,108 @@ describe("projectWorkbenchEvents", () => {
     expect(projection.activeSession?.title).toBe("Session A");
   });
 });
+
+describe("chat transcript projection", () => {
+  it("groups events into user/assistant turns and consolidates deltas", () => {
+    const events = [
+      ...createWorkbenchSessionStartEvents({
+        sessionId: "chat-1",
+        title: "Chat",
+        workspacePath: "/workspace",
+        at: "2026-07-01T00:00:00.000Z"
+      }),
+      {
+        type: "user.message" as const,
+        sessionId: "chat-1",
+        messageId: "u1",
+        text: "Hello there",
+        at: "2026-07-01T00:00:01.000Z"
+      },
+      {
+        type: "assistant.text.delta" as const,
+        sessionId: "chat-1",
+        messageId: "m1",
+        text: "Hi ",
+        at: "2026-07-01T00:00:02.000Z"
+      },
+      {
+        type: "assistant.text.delta" as const,
+        sessionId: "chat-1",
+        messageId: "m1",
+        text: "there!",
+        at: "2026-07-01T00:00:03.000Z"
+      },
+      {
+        type: "tool.call.started" as const,
+        sessionId: "chat-1",
+        toolCall: { id: "t1", name: "Read", status: "succeeded" as const, inputSummary: "file.ts" },
+        at: "2026-07-01T00:00:04.000Z"
+      },
+      {
+        type: "assistant.text.completed" as const,
+        sessionId: "chat-1",
+        messageId: "m1",
+        text: "Hi there!",
+        at: "2026-07-01T00:00:05.000Z"
+      }
+    ];
+
+    const projection = projectWorkbenchEvents(events, undefined, { activeSessionId: "chat-1" });
+    const turns = projection.activeSession?.messages ?? [];
+
+    expect(turns.map((turn) => turn.kind)).toEqual(["user", "assistant"]);
+    expect(turns[0]).toMatchObject({ kind: "user", text: "Hello there" });
+    const assistant = turns.find((turn) => turn.kind === "assistant");
+    if (!assistant || assistant.kind !== "assistant") {
+      throw new Error("expected assistant turn");
+    }
+    const message = assistant.messages[0];
+    if (!message) {
+      throw new Error("expected assistant message");
+    }
+    // deltas consolidated into a single finalized message (no per-delta cards)
+    expect(assistant.messages).toHaveLength(1);
+    expect(message.text).toBe("Hi there!");
+    expect(message.streaming).toBe(false);
+    expect(assistant.activity.map((entry) => entry.kind)).toEqual(["tool"]);
+    expect(assistant.streaming).toBe(false);
+  });
+
+  it("marks an assistant message streaming until a completed event arrives", () => {
+    const events = [
+      ...createWorkbenchSessionStartEvents({
+        sessionId: "chat-2",
+        title: "Chat",
+        workspacePath: "/workspace",
+        at: "2026-07-01T00:00:00.000Z"
+      }),
+      {
+        type: "user.message" as const,
+        sessionId: "chat-2",
+        text: "ping",
+        at: "2026-07-01T00:00:01.000Z"
+      },
+      {
+        type: "assistant.text.delta" as const,
+        sessionId: "chat-2",
+        messageId: "m1",
+        text: "po",
+        at: "2026-07-01T00:00:02.000Z"
+      }
+    ];
+
+    const projection = projectWorkbenchEvents(events, undefined, { activeSessionId: "chat-2" });
+    const turns = projection.activeSession?.messages ?? [];
+    const assistant = turns.find((turn) => turn.kind === "assistant");
+    if (!assistant || assistant.kind !== "assistant") {
+      throw new Error("expected assistant turn");
+    }
+    const message = assistant.messages[0];
+    if (!message) {
+      throw new Error("expected assistant message");
+    }
+    expect(message.text).toBe("po");
+    expect(message.streaming).toBe(true);
+    expect(assistant.streaming).toBe(true);
+  });
+});

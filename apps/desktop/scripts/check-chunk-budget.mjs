@@ -10,11 +10,12 @@ const budgets = [
   { label: "react vendor chunk", pattern: /^react-vendor-[A-Za-z0-9_-]+\.js$/, maxBytes: 240 * 1024 },
   { label: "icon vendor chunk", pattern: /^icon-vendor-[A-Za-z0-9_-]+\.js$/, maxBytes: 56 * 1024 },
   { label: "ui vendor chunk", pattern: /^ui-vendor-[A-Za-z0-9_-]+\.js$/, maxBytes: 72 * 1024 },
+  { label: "markdown vendor chunk", pattern: /^markdown-vendor-[A-Za-z0-9_-]+\.js$/, maxBytes: 300 * 1024 },
   { label: "misc vendor chunk", pattern: /^vendor-[A-Za-z0-9_-]+\.js$/, maxBytes: 120 * 1024 },
   { label: "desktop stylesheet", pattern: /^index-[A-Za-z0-9_-]+\.css$/, maxBytes: 96 * 1024 }
 ];
 
-const totalJavaScriptBudget = 860 * 1024;
+const totalJavaScriptBudget = 900 * 1024;
 
 if (!existsSync(assetsDir)) {
   fail(`Missing desktop build assets at ${assetsDir}. Run pnpm --filter @geond-agent/desktop build first.`);

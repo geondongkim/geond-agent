@@ -117,9 +117,11 @@ export function createLiveRunPreludeEvents(
   title: string,
   i18n: UiI18n,
   isResumeRun: boolean,
-  selectionCatalog: WorkbenchSelectionCatalog
+  selectionCatalog: WorkbenchSelectionCatalog,
+  options: { readonly userMessageText?: string } = {}
 ): readonly WorkbenchEvent[] {
   const at = new Date().toISOString();
+  const userMessageText = options.userMessageText?.trim();
   const sessionPrelude =
     isResumeRun && request.externalSessionId
       ? [
@@ -143,9 +145,20 @@ export function createLiveRunPreludeEvents(
           selection: createSelectionSnapshotFromRequest(request, i18n, selectionCatalog),
           at
         });
+  const userMessageEvents: readonly WorkbenchEvent[] = userMessageText
+    ? [
+        {
+          type: "user.message" as const,
+          sessionId: request.sessionId,
+          text: userMessageText,
+          at
+        }
+      ]
+    : [];
 
   return [
     ...sessionPrelude,
+    ...userMessageEvents,
     {
       type: "plan.updated",
       sessionId: request.sessionId,
@@ -192,9 +205,11 @@ export function createCodexLiveRunPreludeEvents(
   title: string,
   i18n: UiI18n,
   isResumeRun: boolean,
-  selectionCatalog: WorkbenchSelectionCatalog
+  selectionCatalog: WorkbenchSelectionCatalog,
+  options: { readonly userMessageText?: string } = {}
 ): readonly WorkbenchEvent[] {
   const at = new Date().toISOString();
+  const userMessageText = options.userMessageText?.trim();
   const sessionPrelude =
     isResumeRun && request.externalSessionId
       ? [
@@ -218,9 +233,20 @@ export function createCodexLiveRunPreludeEvents(
           selection: createSelectionSnapshotFromRequest(request, i18n, selectionCatalog),
           at
         });
+  const userMessageEvents: readonly WorkbenchEvent[] = userMessageText
+    ? [
+        {
+          type: "user.message" as const,
+          sessionId: request.sessionId,
+          text: userMessageText,
+          at
+        }
+      ]
+    : [];
 
   return [
     ...sessionPrelude,
+    ...userMessageEvents,
     {
       type: "plan.updated",
       sessionId: request.sessionId,

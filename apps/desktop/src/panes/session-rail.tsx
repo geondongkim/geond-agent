@@ -1,8 +1,10 @@
 import type { UiI18n } from "@geond-agent/ui-workbench";
+import { Settings } from "lucide-react";
 
 import { WorkspaceSessionList } from "../components/workbench/workspace-session-list.js";
 import { cn } from "../lib/cn.js";
 import type { WorkspaceSessionGroup } from "../lib/workspace-session-groups.js";
+import type { ProjectedSessionListItem } from "../lib/workbench-types.js";
 import { backendTone, formatStatusLabel } from "../lib/workbench-format.js";
 import type { DesktopDemoDocument } from "../demo-workbench.js";
 
@@ -11,8 +13,14 @@ type Projection = DesktopDemoDocument["initialControllerSnapshot"]["projection"]
 export function SessionRailPane({
   activeSessionId,
   activeSessionTitle,
+  archivedSessions,
   chooseWorkspace,
   i18n,
+  onDeleteSession,
+  onArchiveSession,
+  onOpenSettings,
+  onRestoreSession,
+  onStartNewChat,
   projection,
   selectSession,
   sessionQuery,
@@ -23,8 +31,14 @@ export function SessionRailPane({
 }: {
   readonly activeSessionId?: string;
   readonly activeSessionTitle?: string;
+  readonly archivedSessions: readonly ProjectedSessionListItem[];
   readonly chooseWorkspace: () => void;
   readonly i18n: UiI18n;
+  readonly onDeleteSession: (id: string) => void;
+  readonly onArchiveSession: (id: string) => void;
+  readonly onOpenSettings: () => void;
+  readonly onRestoreSession: (id: string) => void;
+  readonly onStartNewChat: (workspacePath?: string) => void;
   readonly projection: Projection;
   readonly selectSession: (sessionId: string) => void;
   readonly sessionQuery: string;
@@ -35,11 +49,22 @@ export function SessionRailPane({
 }) {
   return (
     <aside className="session-rail">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h2 className="panel-title">{i18n.t("workbench.sessionSidebar.title")}</h2>
-        <span className="font-mono text-[11px] text-[color:var(--ink-muted)]">
-          {projection.sessions.length}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[11px] text-[color:var(--ink-muted)]">
+            {projection.sessions.length}
+          </span>
+          <button
+            type="button"
+            className="workspace-add-button"
+            onClick={onOpenSettings}
+            title={i18n.t("workbench.actions.settings")}
+            aria-label={i18n.t("workbench.actions.settings")}
+          >
+            <Settings size={14} />
+          </button>
+        </div>
       </div>
 
       <div className="rail-card">
@@ -57,12 +82,17 @@ export function SessionRailPane({
 
       <WorkspaceSessionList
         activeSessionId={activeSessionId}
+        archivedSessions={archivedSessions}
         chooseWorkspace={chooseWorkspace}
         groups={workspaceSessionGroups}
         i18n={i18n}
+        onDeleteSession={onDeleteSession}
+        onArchiveSession={onArchiveSession}
         onSelect={selectSession}
         onSelectWorkspace={setWorkspacePath}
+        onStartNewChat={onStartNewChat}
         onToggleWorkspaceFavorite={toggleWorkspaceFavorite}
+        onRestoreSession={onRestoreSession}
       />
 
       <section className="backend-status-section">

@@ -12,7 +12,6 @@ import {
   Globe2,
   MessageSquare,
   Server,
-  Settings,
   Terminal,
   Zap
 } from "lucide-react";
@@ -23,7 +22,6 @@ import type { ProjectedSessionListItem } from "../lib/workbench-types.js";
 import { formatProviderSummary, formatRunnerModeLabel } from "../lib/workbench-format.js";
 import { InspectorBrowserTab } from "./inspector/inspector-browser-tab.js";
 import { InspectorFilesTab } from "./inspector/inspector-files-tab.js";
-import { InspectorSettingsTab } from "./inspector/inspector-settings-tab.js";
 import { InspectorSideChatTab } from "./inspector/inspector-side-chat-tab.js";
 import { InspectorTerminalTab } from "./inspector/inspector-terminal-tab.js";
 import { InspectorReviewTab } from "./inspector/inspector-review-tab.js";
@@ -80,7 +78,8 @@ export function InspectorPane({
   updateAgentResponseLanguage,
   updateRunnerMode,
   updateSessionDefaults,
-  updateUiLanguage
+  updateUiLanguage,
+  openSettings
 }: {
   readonly activeExternalSession?: ProjectedActiveSession["externalSessions"][string];
   readonly activeRunMode?: DesktopRunnerMode;
@@ -130,6 +129,7 @@ export function InspectorPane({
   readonly updateRunnerMode: (mode: DesktopRunnerMode) => void;
   readonly updateSessionDefaults: (patch: Partial<WorkbenchSessionDefaults>) => void;
   readonly updateUiLanguage: (language: string) => void;
+  readonly openSettings: () => void;
 }) {
   return (
     <aside className="inspector-surface">
@@ -210,10 +210,6 @@ export function InspectorPane({
               <MessageSquare size={14} />
               {i18n.t("workbench.workspacePanel.chat")}
             </TabsTrigger>
-            <TabsTrigger value="settings" className="workspace-tab">
-              <Settings size={14} />
-              {i18n.t("workbench.workspacePanel.settings")}
-            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -227,6 +223,7 @@ export function InspectorPane({
             i18n={i18n}
             ignoredRecordCount={ignoredRecordCount}
             inspectorData={inspectorData}
+            openSettings={openSettings}
             providerRouteOptions={providerRouteOptions}
             resolveApproval={resolveApproval}
             runtimeSnapshot={runtimeSnapshot}
@@ -277,32 +274,6 @@ export function InspectorPane({
             i18n={i18n}
             removeSideChatDraft={removeSideChatDraft}
             setComposerPrompt={setComposerPrompt}
-          />
-        ) : null}
-        {inspectorTab === "settings" ? (
-          <InspectorSettingsTab
-            agentLanguageOptions={agentLanguageOptions}
-            backendOptions={backendOptions}
-            bridgeCommand={bridgeCommand}
-            claudeCliProbe={claudeCliProbe}
-            composerEnterBehaviorOptions={composerEnterBehaviorOptions}
-            followUpPolicyOptions={followUpPolicyOptions}
-            i18n={i18n}
-            modelAliasOptions={modelAliasOptions}
-            permissionModeOptions={permissionModeOptions}
-            persistenceNotes={persistenceNotes}
-            providerRouteOptions={providerRouteOptions}
-            reviewDeliveryOptions={reviewDeliveryOptions}
-            routingModeOptions={routingModeOptions}
-            runtimeSnapshot={runtimeSnapshot}
-            runnerMode={runnerMode}
-            selectionReadiness={activeSession?.selection?.readiness}
-            sessionDefaults={sessionDefaults}
-            settingsLabels={settingsLabels}
-            updateAgentResponseLanguage={updateAgentResponseLanguage}
-            updateRunnerMode={updateRunnerMode}
-            updateSessionDefaults={updateSessionDefaults}
-            updateUiLanguage={updateUiLanguage}
           />
         ) : null}
       </Tabs>

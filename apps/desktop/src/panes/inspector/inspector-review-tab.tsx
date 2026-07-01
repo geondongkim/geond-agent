@@ -64,6 +64,7 @@ export function InspectorReviewTab({
   i18n,
   ignoredRecordCount,
   inspectorData,
+  openSettings,
   providerRouteOptions,
   resolveApproval,
   runtimeSnapshot,
@@ -79,6 +80,7 @@ export function InspectorReviewTab({
   readonly i18n: UiI18n;
   readonly ignoredRecordCount: number;
   readonly inspectorData?: InspectorSessionReadModel;
+  readonly openSettings: () => void;
   readonly providerRouteOptions: readonly WorkbenchCatalogOption[];
   readonly resolveApproval: (approvalId: string, decision: ApprovalDecision) => void;
   readonly runtimeSnapshot: WorkbenchRuntimeSnapshot;
@@ -190,9 +192,9 @@ export function InspectorReviewTab({
                       <FallbackRouteButton
                         i18n={i18n}
                         issue={issue}
+                        openSettings={openSettings}
                         providerRouteOptions={providerRouteOptions}
                         selectedProviderRouteId={sessionDefaults.defaultProviderRouteId}
-                        setInspectorTab={setInspectorTab}
                         updateSessionDefaults={updateSessionDefaults}
                       />
                     </div>
@@ -272,7 +274,7 @@ export function InspectorReviewTab({
                       <Button
                         variant="ghost"
                         className="gap-2"
-                        onClick={() => setInspectorTab("settings")}
+                        onClick={openSettings}
                       >
                         <Settings size={14} />
                         {i18n.t("workbench.recovery.openSettings")}
@@ -420,10 +422,10 @@ export function InspectorReviewTab({
                       </p>
                       <RouteHealthFallbackButton
                         i18n={i18n}
+                        openSettings={openSettings}
                         providerRouteId={health.providerRouteId}
                         providerRouteOptions={providerRouteOptions}
                         selectedProviderRouteId={sessionDefaults.defaultProviderRouteId}
-                        setInspectorTab={setInspectorTab}
                         updateSessionDefaults={updateSessionDefaults}
                       />
                     </div>
@@ -857,16 +859,16 @@ export function InspectorReviewTab({
 function FallbackRouteButton({
   i18n,
   issue,
+  openSettings,
   providerRouteOptions,
   selectedProviderRouteId,
-  setInspectorTab,
   updateSessionDefaults
 }: {
   readonly i18n: UiI18n;
   readonly issue: ProjectedActiveSession["runnerIssues"][number];
+  readonly openSettings: () => void;
   readonly providerRouteOptions: readonly WorkbenchCatalogOption[];
   readonly selectedProviderRouteId: string;
-  readonly setInspectorTab: (tab: string) => void;
   readonly updateSessionDefaults: (patch: Partial<WorkbenchSessionDefaults>) => void;
 }) {
   const fallbackRoute = findAdvisoryProviderRouteFallback({
@@ -891,7 +893,7 @@ function FallbackRouteButton({
         disabled={fallbackAlreadySelected}
         onClick={() => {
           void updateSessionDefaults({ defaultProviderRouteId: fallbackRoute.value });
-          setInspectorTab("settings");
+          openSettings();
         }}
       >
         {fallbackAlreadySelected
@@ -906,17 +908,17 @@ function FallbackRouteButton({
 
 function RouteHealthFallbackButton({
   i18n,
+  openSettings,
   providerRouteId,
   providerRouteOptions,
   selectedProviderRouteId,
-  setInspectorTab,
   updateSessionDefaults
 }: {
   readonly i18n: UiI18n;
+  readonly openSettings: () => void;
   readonly providerRouteId: string;
   readonly providerRouteOptions: readonly WorkbenchCatalogOption[];
   readonly selectedProviderRouteId: string;
-  readonly setInspectorTab: (tab: string) => void;
   readonly updateSessionDefaults: (patch: Partial<WorkbenchSessionDefaults>) => void;
 }) {
   const fallbackRoute = findAlternateProviderRouteOption({
@@ -941,7 +943,7 @@ function RouteHealthFallbackButton({
         disabled={fallbackAlreadySelected}
         onClick={() => {
           void updateSessionDefaults({ defaultProviderRouteId: fallbackRoute.value });
-          setInspectorTab("settings");
+          openSettings();
         }}
       >
         {fallbackAlreadySelected

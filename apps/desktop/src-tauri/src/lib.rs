@@ -311,6 +311,7 @@ pub fn run() {
             write_evidence_capture_artifact,
             write_raw_visual_capture_png,
             capture_raw_visual_png,
+            read_local_provider_environment,
             probe_claude_code_executable,
             run_claude_code_stream_json,
             cancel_claude_code_stream,
@@ -630,6 +631,121 @@ fn capture_raw_visual_png(
     capture_raw_visual_png_file(path)
 }
 
+/// Directories searched for user-installed CLIs (claude/codex) so that a GUI
+/// launch from Dock/Finder — which does not inherit the login shell PATH — can
+/// still resolve them. Apple Silicon Homebrew, Intel/manual Homebrew, and the
+/// user's local bin are the conventional install locations on macOS.
+fn candidate_executable_dirs() -> Vec<PathBuf> {
+    let mut dirs = vec![
+        PathBuf::from("/opt/homebrew/bin"),
+        PathBuf::from("/usr/local/bin"),
+    ];
+    if let Ok(home) = env::var("HOME") {
+        if !home.is_empty() {
+            dirs.push(PathBuf::from(home).join(".local/bin"));
+        }
+    }
+    dirs
+}
+
+fn resolve_executable_in(name: &str, dirs: &[PathBuf]) -> Option<PathBuf> {
+    for dir in dirs {
+        let candidate = dir.join(name);
+        if candidate.is_file() {
+            return Some(candidate);
+        }
+    }
+    None
+}
+
+/// Resolves a bare executable name (e.g. "claude") to an absolute path by
+/// scanning candidate directories first, then the inherited PATH. Returns None
+/// if no matching file is found, leaving the caller to fall back to the bare
+/// name.
+fn resolve_executable(name: &str) -> Option<PathBuf> {
+    if let Some(found) = resolve_executable_in(name, &candidate_executable_dirs()) {
+        return Some(found);
+    }
+    if let Some(path) = env::var_os("PATH") {
+        let path_dirs: Vec<PathBuf> = env::split_paths(&path).collect();
+        if let Some(found) = resolve_executable_in(name, &path_dirs) {
+            return Some(found);
+        }
+    }
+    None
+}
+
+/// Builds a PATH value that prepends the candidate directories to the inherited
+/// PATH, so a spawned CLI (and its subprocesses such as node) resolve their own
+/// dependencies even under a minimal GUI-launch environment.
+fn augmented_path() -> String {
+    let mut entries: Vec<PathBuf> = Vec::new();
+    for dir in candidate_executable_dirs() {
+        if dir.is_dir() && !entries.contains(&dir) {
+            entries.push(dir);
+        }
+    }
+    if let Some(path) = env::var_os("PATH") {
+        for dir in env::split_paths(&path) {
+            if !entries.contains(&dir) {
+                entries.push(dir);
+            }
+        }
+    }
+    env::join_paths(&entries)
+        .map(|joined| joined.to_string_lossy().into_owned())
+        .unwrap_or_else(|_| "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin".to_string())
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct LocalProviderEnvironmentRequest {
+    #[serde(default)]
+    cwd: Option<String>,
+}
+
+/// Provider-environment metadata exposed to the renderer. Reports API-key
+/// *presence* as booleans only — the secret value never leaves the Rust side
+/// (where it is used solely to build the ephemeral Claude Code settings).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LocalProviderEnvironmentMetadata {
+    has_zai_api_key: bool,
+    has_anthropic_auth_token: bool,
+    has_anthropic_api_key: bool,
+    anthropic_base_url: Option<String>,
+    anthropic_default_haiku_model: Option<String>,
+    anthropic_default_sonnet_model: Option<String>,
+    anthropic_default_opus_model: Option<String>,
+}
+
+fn build_local_provider_environment(
+    cwd: Option<&Path>,
+) -> Result<LocalProviderEnvironmentMetadata, String> {
+    let values = allowed_local_env(cwd)?;
+    Ok(LocalProviderEnvironmentMetadata {
+        has_zai_api_key: values.contains_key("ZAI_API_KEY"),
+        has_anthropic_auth_token: values.contains_key("ANTHROPIC_AUTH_TOKEN"),
+        has_anthropic_api_key: values.contains_key("ANTHROPIC_API_KEY"),
+        anthropic_base_url: values.get("ANTHROPIC_BASE_URL").cloned(),
+        anthropic_default_haiku_model: values.get("ANTHROPIC_DEFAULT_HAIKU_MODEL").cloned(),
+        anthropic_default_sonnet_model: values
+            .get("ANTHROPIC_DEFAULT_SONNET_MODEL")
+            .cloned(),
+        anthropic_default_opus_model: values.get("ANTHROPIC_DEFAULT_OPUS_MODEL").cloned(),
+    })
+}
+
+/// Exposes API-key presence (never the secret) plus non-secret Z.ai routing
+/// config read from the workspace `.env.local`. The renderer uses this so the
+/// provider config's `hasApiKey` flag can clear the live readiness gate.
+#[tauri::command]
+fn read_local_provider_environment(
+    request: LocalProviderEnvironmentRequest,
+) -> Result<LocalProviderEnvironmentMetadata, String> {
+    build_local_provider_environment(request.cwd.as_deref().map(Path::new))
+}
+
 #[tauri::command]
 fn probe_claude_code_executable(
     request: Option<ClaudeCodeProbeRequest>,
@@ -640,7 +756,11 @@ fn probe_claude_code_executable(
             .as_deref()
             .unwrap_or("claude"),
     )?;
-    let output = Command::new(&executable).arg("--version").output();
+    let resolved =
+        resolve_executable(&executable).unwrap_or_else(|| PathBuf::from(&executable));
+    let mut probe = Command::new(resolved);
+    probe.arg("--version").env("PATH", augmented_path());
+    let output = probe.output();
 
     match output {
         Ok(output) => {
@@ -791,7 +911,9 @@ fn build_claude_command(request: &ClaudeCodeCommandRequest) -> Result<BuiltClaud
     let cwd = request.cwd.as_deref().map(PathBuf::from);
     let local_env = allowed_local_env(cwd.as_deref())?;
     let settings_files = write_claude_settings_files(&local_env)?;
-    let mut command = Command::new(&request.executable);
+    let resolved_executable = resolve_executable(&request.executable)
+        .unwrap_or_else(|| PathBuf::from(&request.executable));
+    let mut command = Command::new(resolved_executable);
     if let Some(settings_path) = &settings_files.settings_path {
         command.arg("--settings").arg(settings_path);
     }
@@ -803,6 +925,7 @@ fn build_claude_command(request: &ClaudeCodeCommandRequest) -> Result<BuiltClaud
     for (key, value) in claude_process_env(&local_env) {
         command.env(key, value);
     }
+    command.env("PATH", augmented_path());
 
     Ok(BuiltClaudeCommand {
         command,
@@ -4714,6 +4837,107 @@ mod tests {
         fs::remove_dir_all(root).expect("remove temp env dir");
 
         assert!(error.contains("Malformed .env.local line 2"));
+    }
+
+    #[test]
+    fn candidate_executable_dirs_include_homebrew_paths() {
+        let dirs = candidate_executable_dirs();
+        assert!(dirs.contains(&PathBuf::from("/opt/homebrew/bin")));
+        assert!(dirs.contains(&PathBuf::from("/usr/local/bin")));
+    }
+
+    #[test]
+    fn augmented_path_prepends_candidate_dirs_before_inherited() {
+        let path = augmented_path();
+        let entries: Vec<PathBuf> = env::split_paths(&path).collect();
+        let homebrew_pos = entries
+            .iter()
+            .position(|entry| entry.as_path() == Path::new("/opt/homebrew/bin"))
+            .expect("homebrew bin in augmented PATH");
+        let local_pos = entries
+            .iter()
+            .position(|entry| entry.as_path() == Path::new("/usr/local/bin"))
+            .expect("usr local bin in augmented PATH");
+        assert!(homebrew_pos < local_pos);
+    }
+
+    #[test]
+    fn resolve_executable_in_finds_file_in_candidate_dir() {
+        let root = env::temp_dir().join(format!(
+            "geond-agent-resolve-test-{}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("create temp dir");
+        let claude_path = root.join("claude");
+        fs::write(&claude_path, "#!/bin/sh\necho claude\n").expect("write fake claude");
+
+        let found =
+            resolve_executable_in("claude", std::slice::from_ref(&root)).expect("resolve claude");
+        assert_eq!(found, claude_path);
+        assert!(resolve_executable_in("missing", std::slice::from_ref(&root)).is_none());
+
+        fs::remove_dir_all(root).expect("remove temp dir");
+    }
+
+    #[test]
+    fn read_local_provider_environment_reports_presence_without_secret() {
+        let root = env::temp_dir().join(format!(
+            "geond-agent-env-meta-test-{}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("create temp env dir");
+        fs::write(
+            root.join(LOCAL_ENV_FILE_NAME),
+            [
+                format!("{}=super-secret-zai-key", "ZAI_API_KEY"),
+                format!("{}=https://api.z.ai/api/anthropic", "ANTHROPIC_BASE_URL"),
+                format!("{}=glm-4.7", "ANTHROPIC_DEFAULT_SONNET_MODEL"),
+                format!("{}=glm-5.2", "ANTHROPIC_DEFAULT_OPUS_MODEL"),
+                "IGNORED_ENV=must-not-leak".to_string(),
+            ]
+            .join("\n"),
+        )
+        .expect("write temp env");
+
+        let metadata = build_local_provider_environment(Some(&root)).expect("provider metadata");
+        fs::remove_dir_all(root).expect("remove temp env dir");
+
+        assert!(metadata.has_zai_api_key);
+        assert!(metadata.has_anthropic_auth_token);
+        assert!(!metadata.has_anthropic_api_key);
+        assert_eq!(
+            metadata.anthropic_base_url.as_deref(),
+            Some("https://api.z.ai/api/anthropic")
+        );
+        assert_eq!(
+            metadata.anthropic_default_sonnet_model.as_deref(),
+            Some("glm-4.7")
+        );
+        assert_eq!(
+            metadata.anthropic_default_opus_model.as_deref(),
+            Some("glm-5.2")
+        );
+
+        let serialized = serde_json::to_string(&metadata).expect("serialize metadata");
+        assert!(!serialized.contains("super-secret-zai-key"));
+        assert!(!serialized.contains("must-not-leak"));
+    }
+
+    #[test]
+    fn read_local_provider_environment_reports_missing_when_no_env_file() {
+        let root = env::temp_dir().join(format!(
+            "geond-agent-env-missing-test-{}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("create temp env dir");
+
+        let metadata = build_local_provider_environment(Some(&root)).expect("provider metadata");
+        fs::remove_dir_all(root).expect("remove temp env dir");
+
+        assert!(!metadata.has_zai_api_key);
+        assert!(!metadata.has_anthropic_auth_token);
+        assert_eq!(metadata.anthropic_base_url, None);
+        assert_eq!(metadata.anthropic_default_sonnet_model, None);
     }
 
     #[test]

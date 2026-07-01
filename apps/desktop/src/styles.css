@@ -241,6 +241,30 @@ body {
     @apply text-[color:var(--ink-soft)];
   }
 
+  .workspace-new-chat-button {
+    @apply grid h-7 w-7 place-items-center rounded-md text-[color:var(--ink-muted)] transition-colors hover:bg-white/[0.055] hover:text-[color:var(--ink)];
+  }
+
+  .workspace-session-unfiled {
+    @apply mt-4 rounded-lg border border-dashed border-white/10 px-2 py-2;
+  }
+
+  .workspace-session-unfiled .unfiled-title {
+    @apply mb-1 text-[11px] uppercase;
+  }
+
+  .workspace-session-archived {
+    @apply mt-4 rounded-lg border border-dashed border-white/10 px-2 py-2;
+  }
+
+  .workspace-session-archived summary {
+    @apply mb-1 cursor-pointer list-none text-[11px] uppercase hover:text-[color:var(--ink-soft)];
+  }
+
+  .workspace-session-archived summary::-webkit-details-marker {
+    display: none;
+  }
+
   .workspace-session-card-list {
     @apply mt-1.5 space-y-1.5;
   }
@@ -293,6 +317,18 @@ body {
 
   .session-card-idle {
     @apply bg-transparent text-[color:var(--inverse)] hover:bg-white/[0.035];
+  }
+
+  .session-card-row {
+    @apply flex items-center gap-2;
+  }
+
+  .session-card-actions {
+    @apply flex items-center gap-1 opacity-0 transition-opacity;
+  }
+
+  .session-card-row:hover .session-card-actions {
+    @apply opacity-100;
   }
 
   .plan-strip {
@@ -449,6 +485,97 @@ body {
 
   .timeline-markdown pre code {
     @apply border-0 bg-transparent p-0 text-[12px] leading-5 text-[color:var(--inverse-soft)];
+  }
+
+  .timeline-markdown table {
+    @apply w-full border-collapse text-xs;
+  }
+  .timeline-markdown th,
+  .timeline-markdown td {
+    @apply border border-white/10 px-2 py-1 text-left;
+  }
+  .timeline-markdown th {
+    @apply bg-white/[0.04] font-semibold text-[color:var(--ink)];
+  }
+  .timeline-markdown a {
+    @apply text-[color:var(--accent)] underline underline-offset-2;
+  }
+
+  .md-code-block {
+    @apply my-3 overflow-hidden rounded-lg border border-white/10 bg-black/30;
+  }
+  .md-code-header {
+    @apply flex items-center justify-between border-b border-white/10 bg-white/[0.03] px-3 py-1.5;
+  }
+  .md-code-lang {
+    @apply font-mono text-[11px] uppercase text-[color:var(--ink-muted)];
+  }
+  .md-code-copy {
+    @apply rounded px-2 py-0.5 text-[11px] text-[color:var(--ink-soft)] transition-colors hover:bg-white/[0.06] hover:text-[color:var(--ink)];
+  }
+  .md-code-block pre {
+    @apply m-0 overflow-auto rounded-none border-0 bg-transparent p-3;
+  }
+  .md-code-block pre code {
+    @apply border-0 bg-transparent p-0 text-[12px] leading-5;
+  }
+
+  .chat-transcript-scroll {
+    @apply mx-auto min-h-0 w-full max-w-[980px] flex-1 overflow-auto px-2 py-3;
+  }
+  .chat-transcript {
+    @apply flex flex-col gap-5;
+  }
+  .chat-turn {
+    @apply flex flex-col;
+  }
+  .chat-turn-user {
+    @apply items-end;
+  }
+  .chat-turn-assistant {
+    @apply items-start;
+  }
+  .chat-turn-body {
+    @apply max-w-[88%] text-sm leading-7;
+  }
+  .chat-turn-user .chat-turn-body {
+    @apply rounded-2xl rounded-br-sm bg-white/[0.075] px-4 py-2.5 text-[color:var(--ink)];
+  }
+  .chat-turn-assistant .chat-turn-body {
+    @apply w-full max-w-full;
+  }
+  .chat-user-text {
+    @apply whitespace-pre-wrap break-words;
+  }
+  .chat-assistant-message {
+    @apply text-[color:var(--ink-soft)];
+  }
+  .chat-activity-group {
+    @apply mt-2 rounded-lg border border-white/10 bg-white/[0.02];
+  }
+  .chat-activity-summary {
+    @apply cursor-pointer list-none px-3 py-2 text-xs text-[color:var(--ink-muted)] transition-colors hover:bg-white/[0.03];
+  }
+  .chat-activity-summary::-webkit-details-marker {
+    display: none;
+  }
+  .chat-activity-list {
+    @apply flex flex-col gap-2 border-t border-white/10 px-3 py-2;
+  }
+  .chat-activity-item {
+    @apply flex flex-col gap-0.5 text-xs;
+  }
+  .chat-activity-kind {
+    @apply text-[10px] font-semibold uppercase text-[color:var(--ink-muted)];
+  }
+  .chat-activity-title {
+    @apply font-medium text-[color:var(--ink-soft)];
+  }
+  .chat-activity-body {
+    @apply max-h-[240px] overflow-auto whitespace-pre-wrap rounded bg-black/30 p-2 font-mono text-[11px] text-[color:var(--inverse-soft)];
+  }
+  .chat-transcript-empty {
+    @apply py-10 text-center text-sm text-[color:var(--ink-muted)];
   }
 
   .streaming-cursor {
@@ -780,6 +907,26 @@ body {
 
   .command-palette-item {
     @apply flex w-full items-center justify-between gap-3 rounded-md px-3 py-2.5 text-left text-[color:var(--ink)] transition-colors hover:bg-white/5 focus:bg-white/10 focus:outline-none disabled:cursor-not-allowed disabled:hover:bg-transparent;
+  }
+
+  .settings-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm;
+  }
+
+  .settings-overlay-card {
+    @apply w-full max-w-[640px] max-h-[85vh] overflow-auto rounded-xl border border-white/15 bg-[#171b19] p-0 text-[color:var(--ink)] shadow-[0_28px_90px_rgba(0,0,0,0.55)];
+  }
+
+  .settings-overlay-header {
+    @apply sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/10 bg-[#171b19]/95 px-4 py-3 backdrop-blur-sm;
+  }
+
+  .settings-overlay-close {
+    @apply grid h-8 w-8 shrink-0 place-items-center rounded-md bg-black/20 text-[color:var(--inverse-soft)] transition-colors hover:bg-white/[0.06] hover:text-[color:var(--inverse)];
+  }
+
+  .settings-overlay-body {
+    @apply p-4;
   }
 }
 

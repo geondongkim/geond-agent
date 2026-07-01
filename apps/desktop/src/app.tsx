@@ -15,6 +15,7 @@ import { WorkbenchErrorBoundary } from "./components/workbench/workbench-error-b
 import { AppBar } from "./panes/app-bar.js";
 import { InspectorPane } from "./panes/inspector.js";
 import { SessionRailPane } from "./panes/session-rail.js";
+import { SettingsPanel } from "./panes/settings-panel.js";
 import { TimelinePane } from "./panes/timeline.js";
 import {
   createInspectorEvidenceSignature,
@@ -60,6 +61,7 @@ export function App({ document }: AppProps) {
   );
   const [selectedWorkspaces, setSelectedWorkspaces] = useState(document.workspaces);
   const [pinnedSessionIds, setPinnedSessionIds] = useState(document.pinnedSessionIds);
+  const [archivedSessionIds, setArchivedSessionIds] = useState(document.archivedSessionIds);
   const [sessionQuery, setSessionQuery] = useState("");
   const [layoutPreference, setLayoutPreference] = useState(document.layoutPreference);
   const [runnerMode, setRunnerMode] = useState<DesktopRunnerMode>(document.runnerMode);
@@ -74,6 +76,7 @@ export function App({ document }: AppProps) {
   const [evidenceExportPreferences, setEvidenceExportPreferences] =
     useState<EvidenceExportPreferences>(document.evidenceExportPreferences);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
   const [materializedInspectorData, setMaterializedInspectorData] = useState<
     InspectorSessionReadModel | undefined
   >(() => createProjectionInspectorSessionReadModel(document.initialControllerSnapshot.projection.activeSession));
@@ -98,12 +101,14 @@ export function App({ document }: AppProps) {
     activeSession,
     activeSessionListItem,
     activeSessionPinned,
+    archivedSessions,
     pendingApprovals,
     workspaceSessionGroups,
     workspaceOptions
   } = useWorkbenchDerivedState({
     i18n,
     pinnedSessionIds,
+    archivedSessionIds,
     projection,
     recentContextItems,
     selectedWorkspaces,
@@ -217,14 +222,19 @@ export function App({ document }: AppProps) {
     attachFileContext,
     attachRecentContext,
     attachWorkspaceContext,
+    archiveSession,
     chooseWorkspace,
+    createNewChat,
     deleteActiveSession,
+    deleteSession,
     resolveApproval,
     resumeActiveSession,
     retryActiveSession,
     selectSession,
+    startNewSession,
     startSelectedRunner,
     togglePinnedSession,
+    unarchiveSession,
     updateAgentResponseLanguage,
     updateSessionDefaults,
     updateUiLanguage
@@ -232,12 +242,14 @@ export function App({ document }: AppProps) {
     activeExternalSession,
     activeSession,
     activeSessionPinned,
+    archivedSessionIds,
     document,
     i18n,
     pinnedSessionIds,
     runnerBusy,
     runnerMode,
     sessionDefaults,
+    setArchivedSessionIds,
     setControllerSnapshot,
     setPinnedSessionIds,
     setRecentContextItems,
@@ -256,7 +268,7 @@ export function App({ document }: AppProps) {
         label: i18n.t("workbench.commandPalette.newSession"),
         detail: formatRunnerModeLabel(i18n, runnerMode),
         disabled: runnerBusy,
-        run: startSelectedRunner
+        run: startNewSession
       },
       {
         id: "choose-workspace",
@@ -318,7 +330,7 @@ export function App({ document }: AppProps) {
         id: "show-settings",
         label: i18n.t("workbench.commandPalette.showSettings"),
         detail: i18n.t("workbench.workspacePanel.settings"),
-        run: () => openInspectorTab("settings")
+        run: openSettings
       },
       {
         id: "toggle-left",
@@ -408,10 +420,22 @@ export function App({ document }: AppProps) {
   }, [activeSession?.id, document, inspectorEvidenceSignature]);
 
   function openInspectorTab(tab: string) {
+    if (tab === "settings") {
+      openSettings();
+      return;
+    }
     updateLayoutPreference({
       inspectorTab: tab,
       rightPanelOpen: true
     });
+  }
+
+  function openSettings() {
+    setSettingsPanelOpen(true);
+  }
+
+  function closeSettings() {
+    setSettingsPanelOpen(false);
   }
 
   function setInspectorTab(tab: string) {
@@ -476,8 +500,14 @@ export function App({ document }: AppProps) {
             <SessionRailPane
               activeSessionId={activeSession?.id}
               activeSessionTitle={activeSession?.title}
+              archivedSessions={archivedSessions}
               chooseWorkspace={chooseWorkspace}
               i18n={i18n}
+              onDeleteSession={deleteSession}
+              onArchiveSession={archiveSession}
+              onOpenSettings={openSettings}
+              onRestoreSession={unarchiveSession}
+              onStartNewChat={createNewChat}
               projection={projection}
               selectSession={selectSession}
               sessionQuery={sessionQuery}
@@ -508,8 +538,10 @@ export function App({ document }: AppProps) {
             sessionDefaults={sessionDefaults}
             setComposerPrompt={setComposerPrompt}
             setInspectorTab={openInspectorTab}
+            startNewSession={startNewSession}
             startSelectedRunner={startSelectedRunner}
             togglePinnedSession={togglePinnedSession}
+            openSettings={openSettings}
           />
 
           {rightPanelOpen ? (
@@ -567,6 +599,7 @@ export function App({ document }: AppProps) {
                 updateRunnerMode={updateRunnerMode}
                 updateSessionDefaults={updateSessionDefaults}
                 updateUiLanguage={updateUiLanguage}
+                openSettings={openSettings}
               />
             </WorkbenchErrorBoundary>
           ) : null}
@@ -578,6 +611,33 @@ export function App({ document }: AppProps) {
         onClose={() => setCommandPaletteOpen(false)}
         open={commandPaletteOpen}
       />
+      {settingsPanelOpen ? (
+        <SettingsPanel
+          agentLanguageOptions={agentLanguageOptions}
+          backendOptions={backendOptions}
+          bridgeCommand={document.bridgeCommand}
+          claudeCliProbe={document.claudeCliProbe}
+          composerEnterBehaviorOptions={composerEnterBehaviorOptions}
+          followUpPolicyOptions={followUpPolicyOptions}
+          i18n={i18n}
+          modelAliasOptions={modelAliasOptions}
+          permissionModeOptions={permissionModeOptions}
+          persistenceNotes={document.persistence.notes}
+          providerRouteOptions={providerRouteOptions}
+          reviewDeliveryOptions={reviewDeliveryOptions}
+          routingModeOptions={routingModeOptions}
+          runtimeSnapshot={runtimeSnapshot}
+          runnerMode={runnerMode}
+          selectionReadiness={activeSession?.selection?.readiness}
+          sessionDefaults={sessionDefaults}
+          settingsLabels={settingsLabels}
+          updateAgentResponseLanguage={updateAgentResponseLanguage}
+          updateRunnerMode={updateRunnerMode}
+          updateSessionDefaults={updateSessionDefaults}
+          updateUiLanguage={updateUiLanguage}
+          onClose={closeSettings}
+        />
+      ) : null}
     </main>
   );
 }

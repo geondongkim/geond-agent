@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useState } from "react";
 import type { UiI18n, WorkbenchSessionDefaults } from "@geond-agent/ui-workbench";
 import {
   AlertTriangle,
@@ -7,6 +6,7 @@ import {
   Paperclip,
   Pin,
   PinOff,
+  Plus,
   RefreshCcw,
   RotateCcw,
   Send,
@@ -18,8 +18,6 @@ import {
 } from "lucide-react";
 
 import { Button } from "../components/ui/button.js";
-import { EmptyState } from "../components/workbench/empty-state.js";
-import { TimelineEventCard } from "../components/workbench/timeline-event-card.js";
 import { cn } from "../lib/cn.js";
 import type { ProjectedActiveSession } from "../lib/workbench-types.js";
 import {
@@ -33,12 +31,7 @@ import {
 } from "../lib/workbench-format.js";
 import type { DesktopRunnerMode } from "../demo-workbench.js";
 import { getComposerPlaceholder } from "../runs/runner-prompt.js";
-import {
-  EXPANDED_TIMELINE_INITIAL_VISIBLE_EVENTS,
-  createExpandedTimelineRenderWindow,
-  createTimelineRenderWindow,
-  getNextExpandedTimelineBudget
-} from "../lib/timeline-window.js";
+import { ChatTranscript } from "./chat-transcript.js";
 
 export function TimelinePane({
   activeSession,
@@ -60,8 +53,10 @@ export function TimelinePane({
   sessionDefaults,
   setComposerPrompt,
   setInspectorTab,
+  startNewSession,
   startSelectedRunner,
-  togglePinnedSession
+  togglePinnedSession,
+  openSettings
 }: {
   readonly activeSession?: ProjectedActiveSession;
   readonly activeRunMode?: DesktopRunnerMode;
@@ -82,39 +77,18 @@ export function TimelinePane({
   readonly sessionDefaults: WorkbenchSessionDefaults;
   readonly setComposerPrompt: (prompt: string) => void;
   readonly setInspectorTab: (tab: string) => void;
+  readonly startNewSession: () => void;
   readonly startSelectedRunner: () => void;
   readonly togglePinnedSession: () => void;
+  readonly openSettings: () => void;
 }) {
   const contextAttachments = activeSession?.contextAttachments ?? [];
-  const timelineEntries = activeSession?.timeline ?? [];
-  const [timelineExpanded, setTimelineExpanded] = useState(false);
-  const [expandedTimelineBudget, setExpandedTimelineBudget] = useState(
-    EXPANDED_TIMELINE_INITIAL_VISIBLE_EVENTS
-  );
-  const compactTimelineWindow = useMemo(
-    () => createTimelineRenderWindow(timelineEntries),
-    [timelineEntries]
-  );
-  const expandedTimelineWindow = useMemo(
-    () =>
-      createExpandedTimelineRenderWindow(timelineEntries, {
-        budget: expandedTimelineBudget
-      }),
-    [expandedTimelineBudget, timelineEntries]
-  );
-  const timelineWindow = timelineExpanded ? expandedTimelineWindow : compactTimelineWindow;
-  const canToggleTimelineWindow = compactTimelineWindow.hiddenMiddleCount > 0;
   const visibleContextAttachments = contextAttachments.slice(-3);
   const hiddenContextAttachmentCount = Math.max(
     contextAttachments.length - visibleContextAttachments.length,
     0
   );
   const recoveryState = getRecoveryState(activeSession, canResumeActiveSession, runnerBusy);
-
-  useEffect(() => {
-    setTimelineExpanded(false);
-    setExpandedTimelineBudget(EXPANDED_TIMELINE_INITIAL_VISIBLE_EVENTS);
-  }, [activeSession?.id]);
 
   return (
     <section className="timeline-surface">
@@ -170,7 +144,7 @@ export function TimelinePane({
               <Terminal size={14} />
               {i18n.t("workbench.recovery.openTerminal")}
             </Button>
-            <Button variant="outline" className="gap-2" onClick={() => setInspectorTab("settings")}>
+            <Button variant="outline" className="gap-2" onClick={openSettings}>
               <Settings size={14} />
               {i18n.t("workbench.recovery.openSettings")}
             </Button>
@@ -199,46 +173,11 @@ export function TimelinePane({
         </div>
       ) : null}
 
-      <div className="event-stream pt-3">
-        {timelineEntries.length ? (
-          <>
-            {canToggleTimelineWindow && timelineExpanded ? (
-              <TimelineWindowDivider
-                compactTimelineWindow={compactTimelineWindow}
-                expandedTimelineWindow={expandedTimelineWindow}
-                i18n={i18n}
-                increaseBudget={() =>
-                  setExpandedTimelineBudget((budget) => getNextExpandedTimelineBudget(budget))
-                }
-                timelineExpanded={timelineExpanded}
-                timelineEntries={timelineEntries}
-                toggle={() => setTimelineExpanded((current) => !current)}
-              />
-            ) : null}
-            {timelineWindow.headEntries.map((entry) => (
-              <TimelineEventCard key={entry.id} entry={entry} i18n={i18n} />
-            ))}
-            {canToggleTimelineWindow && !timelineExpanded ? (
-              <TimelineWindowDivider
-                compactTimelineWindow={compactTimelineWindow}
-                expandedTimelineWindow={expandedTimelineWindow}
-                i18n={i18n}
-                increaseBudget={() =>
-                  setExpandedTimelineBudget((budget) => getNextExpandedTimelineBudget(budget))
-                }
-                timelineExpanded={timelineExpanded}
-                timelineEntries={timelineEntries}
-                toggle={() => setTimelineExpanded((current) => !current)}
-              />
-            ) : null}
-            {timelineWindow.tailEntries.map((entry) => (
-              <TimelineEventCard key={entry.id} entry={entry} i18n={i18n} />
-            ))}
-          </>
-        ) : (
-          <EmptyState text={i18n.t("workbench.timeline.empty")} />
-        )}
-      </div>
+      <ChatTranscript
+        turns={activeSession?.messages ?? []}
+        i18n={i18n}
+        sessionKey={activeSession?.id}
+      />
 
       <div className="composer-dock">
         <div className="composer-header">
@@ -254,7 +193,7 @@ export function TimelinePane({
           <button
             type="button"
             className="composer-settings-button"
-            onClick={() => setInspectorTab("settings")}
+            onClick={openSettings}
           >
             <Settings size={14} />
             {i18n.t("workbench.composer.routeSettings")}
@@ -352,7 +291,7 @@ export function TimelinePane({
             <button
               type="button"
               className="composer-tool-pill"
-              onClick={() => setInspectorTab("settings")}
+              onClick={openSettings}
             >
               <Bot size={14} />
               <span className="muted-meta">{i18n.t("workbench.composer.model")}</span>
@@ -361,7 +300,7 @@ export function TimelinePane({
             <button
               type="button"
               className="composer-tool-pill"
-              onClick={() => setInspectorTab("settings")}
+              onClick={openSettings}
             >
               <ShieldCheck size={14} />
               <span className="muted-meta">{i18n.t("workbench.composer.permission")}</span>
@@ -369,6 +308,15 @@ export function TimelinePane({
             </button>
           </div>
           <div className="composer-actions">
+            <Button
+              variant="ghost"
+              aria-label={i18n.t("workbench.actions.newSession")}
+              title={i18n.t("workbench.actions.newSession")}
+              onClick={startNewSession}
+              disabled={runnerBusy}
+            >
+              <Plus size={15} />
+            </Button>
             <Button
               variant="ghost"
               aria-label={
@@ -425,67 +373,6 @@ export function TimelinePane({
         </div>
       </div>
     </section>
-  );
-}
-
-function TimelineWindowDivider({
-  compactTimelineWindow,
-  expandedTimelineWindow,
-  i18n,
-  increaseBudget,
-  timelineExpanded,
-  timelineEntries,
-  toggle
-}: {
-  readonly compactTimelineWindow: ReturnType<typeof createTimelineRenderWindow>;
-  readonly expandedTimelineWindow: ReturnType<typeof createExpandedTimelineRenderWindow>;
-  readonly i18n: UiI18n;
-  readonly increaseBudget: () => void;
-  readonly timelineExpanded: boolean;
-  readonly timelineEntries: readonly ProjectedActiveSession["timeline"][number][];
-  readonly toggle: () => void;
-}) {
-  return (
-    <div className="timeline-window-divider" role="status" aria-live="polite">
-      <span>
-        {timelineExpanded
-          ? expandedTimelineWindow.hardCapReached
-            ? formatMessage(i18n.t("workbench.timeline.hardCapReached"), {
-                total: timelineEntries.length,
-                visible: expandedTimelineWindow.visibleCount
-              })
-            : formatMessage(i18n.t("workbench.timeline.showingExpanded"), {
-                total: timelineEntries.length,
-                visible: expandedTimelineWindow.visibleCount
-              })
-          : formatMessage(i18n.t("workbench.timeline.windowed"), {
-              hidden: compactTimelineWindow.hiddenMiddleCount,
-              total: compactTimelineWindow.totalCount,
-              visible: compactTimelineWindow.visibleCount
-            })}
-      </span>
-      <span className="timeline-window-actions">
-        {timelineExpanded && expandedTimelineWindow.canIncreaseBudget ? (
-          <button
-            type="button"
-            className="timeline-window-toggle"
-            onClick={increaseBudget}
-          >
-            {i18n.t("workbench.timeline.loadMore")}
-          </button>
-        ) : null}
-        <button
-          type="button"
-          aria-expanded={timelineExpanded}
-          className="timeline-window-toggle"
-          onClick={toggle}
-        >
-          {timelineExpanded
-            ? i18n.t("workbench.timeline.showCompact")
-            : i18n.t("workbench.timeline.expand")}
-        </button>
-      </span>
-    </div>
   );
 }
 

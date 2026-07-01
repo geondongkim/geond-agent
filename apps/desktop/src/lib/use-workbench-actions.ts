@@ -9,6 +9,7 @@ import type {
   WorkbenchSessionControllerSnapshot,
   WorkbenchSessionDefaults
 } from "@geond-agent/ui-workbench";
+import { createWorkbenchSessionStartEvents } from "@geond-agent/ui-workbench";
 import {
   buildClaudeCodeApprovalFollowUpPrompt,
   selectClaudeCodeApprovalFollowUpPermissionMode
@@ -29,12 +30,14 @@ export interface UseWorkbenchActionsOptions {
   readonly activeExternalSession?: ProjectedActiveSession["externalSessions"][string];
   readonly activeSession?: ProjectedActiveSession;
   readonly activeSessionPinned: boolean;
+  readonly archivedSessionIds: readonly string[];
   readonly document: DesktopDemoDocument;
   readonly i18n: UiI18n;
   readonly pinnedSessionIds: readonly string[];
   readonly runnerBusy: boolean;
   readonly runnerMode: DesktopRunnerMode;
   readonly sessionDefaults: WorkbenchSessionDefaults;
+  readonly setArchivedSessionIds: Dispatch<SetStateAction<readonly string[]>>;
   readonly setControllerSnapshot: Dispatch<SetStateAction<WorkbenchSessionControllerSnapshot>>;
   readonly setPinnedSessionIds: Dispatch<SetStateAction<readonly string[]>>;
   readonly setRecentContextItems: Dispatch<SetStateAction<readonly RecentContextItem[]>>;
@@ -51,12 +54,14 @@ export function useWorkbenchActions({
   activeExternalSession,
   activeSession,
   activeSessionPinned,
+  archivedSessionIds,
   document,
   i18n,
   pinnedSessionIds,
   runnerBusy,
   runnerMode,
   sessionDefaults,
+  setArchivedSessionIds,
   setControllerSnapshot,
   setPinnedSessionIds,
   setRecentContextItems,
@@ -75,6 +80,32 @@ export function useWorkbenchActions({
     })();
   };
 
+  const createNewChat = (requestedWorkspacePath?: string) => {
+    void (async () => {
+      // Codex-style: a per-workspace "new chat" creates an empty placeholder
+      // session scoped to that workspace and activates it. The first message
+      // populates it (see the pristine-session reuse in use-workbench-runner).
+      const targetWorkspace =
+        requestedWorkspacePath ??
+        activeSession?.workspacePath ??
+        (workspacePath === "__all__" ? document.activeWorkspace.path : workspacePath);
+      const sessionId = `local-session-${Date.now()}`;
+      const events: readonly WorkbenchEvent[] = createWorkbenchSessionStartEvents({
+        sessionId,
+        title: i18n.t("workbench.actions.newChat"),
+        workspacePath: targetWorkspace,
+        at: new Date().toISOString()
+      });
+      await document.eventStore.append(events);
+      setControllerSnapshot(
+        document.controller.appendEvents(events, { activateSessionId: sessionId })
+      );
+      if (targetWorkspace && targetWorkspace !== "__unknown__") {
+        setWorkspacePath(targetWorkspace);
+      }
+    });
+  };
+
   const rememberRecentContext = (item: RecentContextItem | undefined) => {
     if (!item) {
       return;
@@ -88,6 +119,22 @@ export function useWorkbenchActions({
   };
 
   const startSelectedRunner = () => {
+    // Chat-like continuation: when the active session has a live backend
+    // session linked, a new message resumes that conversation (claude --resume
+    // / codex thread) on the SAME session id, instead of minting a new session
+    // per message. Use the explicit "new session" action to start fresh.
+    if (activeSession && activeExternalSession && !runnerBusy) {
+      void startSession(runnerMode, {
+        resumeSessionId: activeSession.id,
+        externalSessionId: activeExternalSession.externalSessionId,
+        trigger: "manual_resume"
+      });
+      return;
+    }
+    void startSession(runnerMode);
+  };
+
+  const startNewSession = () => {
     void startSession(runnerMode);
   };
 
@@ -129,22 +176,31 @@ export function useWorkbenchActions({
     setControllerSnapshot(document.controller.setPinnedSessionIds(savedPinnedSessionIds));
   };
 
+  const deleteSession = async (sessionId: string) => {
+    const nextPinnedSessionIds = pinnedSessionIds.filter(
+      (id) => id !== sessionId
+    );
+    const nextArchivedSessionIds = archivedSessionIds.filter(
+      (id) => id !== sessionId
+    );
+    const [, savedPinnedSessionIds, savedArchivedSessionIds] = await Promise.all([
+      document.eventStore.deleteSession(sessionId),
+      document.savePinnedSessionIds(nextPinnedSessionIds),
+      document.saveArchivedSessionIds(nextArchivedSessionIds)
+    ]);
+
+    setPinnedSessionIds(savedPinnedSessionIds);
+    setArchivedSessionIds(savedArchivedSessionIds);
+    setControllerSnapshot(document.controller.deleteSession(sessionId));
+  };
+
   const deleteActiveSession = async () => {
     if (!activeSession || runnerBusy) {
       return;
     }
 
     const deletedSession = activeSession;
-    const nextPinnedSessionIds = pinnedSessionIds.filter(
-      (sessionId) => sessionId !== deletedSession.id
-    );
-    const [, savedPinnedSessionIds] = await Promise.all([
-      document.eventStore.deleteSession(deletedSession.id),
-      document.savePinnedSessionIds(nextPinnedSessionIds)
-    ]);
-
-    setPinnedSessionIds(savedPinnedSessionIds);
-    setControllerSnapshot(document.controller.deleteSession(deletedSession.id));
+    await deleteSession(deletedSession.id);
     setRunnerStatus(
       formatMessage(i18n.t("workbench.session.deleted"), {
         title: deletedSession.title
@@ -384,18 +440,39 @@ export function useWorkbenchActions({
     setSessionDefaults(nextDefaults);
   };
 
+  const archiveSession = async (sessionId: string) => {
+    if (archivedSessionIds.includes(sessionId)) {
+      return;
+    }
+
+    const nextArchivedSessionIds = [...archivedSessionIds, sessionId];
+    const saved = await document.saveArchivedSessionIds(nextArchivedSessionIds);
+    setArchivedSessionIds(saved);
+  };
+
+  const unarchiveSession = async (sessionId: string) => {
+    const nextArchivedSessionIds = archivedSessionIds.filter((id) => id !== sessionId);
+    const saved = await document.saveArchivedSessionIds(nextArchivedSessionIds);
+    setArchivedSessionIds(saved);
+  };
+
   return {
     attachFileContext,
     attachRecentContext,
     attachWorkspaceContext,
+    archiveSession,
     chooseWorkspace,
+    createNewChat,
     deleteActiveSession,
+    deleteSession,
     resolveApproval,
     resumeActiveSession,
     retryActiveSession,
     selectSession,
+    startNewSession,
     startSelectedRunner,
     togglePinnedSession,
+    unarchiveSession,
     updateAgentResponseLanguage,
     updateSessionDefaults,
     updateUiLanguage
