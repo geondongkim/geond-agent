@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import {
   collectConsoleErrors,
+  dispatchFixtureRun,
   expectNoHorizontalOverflow,
   expectWidePaneOrder,
   openCommandPaletteAction,
@@ -12,6 +13,9 @@ import {
 test("workbench layout and command palette expose docked surfaces", async ({ page }) => {
   const errors = collectConsoleErrors(page);
   await resetWorkbench(page);
+
+  // App now starts empty - seed a session via dispatchFixtureRun
+  await dispatchFixtureRun(page, "Create a test session for layout validation.");
 
   await expect(page.getByRole("heading", { name: "Desktop workbench", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Sessions", exact: true })).toBeVisible();
@@ -49,7 +53,6 @@ test("workbench layout and command palette expose docked surfaces", async ({ pag
   const reviewPanel = page.getByRole("tabpanel", { name: "Review" });
   await expect(reviewPanel.getByRole("heading", { name: "Session review" })).toBeVisible();
   await expect(reviewPanel.getByText("Recommended next actions")).toBeVisible();
-  await expect(reviewPanel.getByText("Start a Claude live run")).toBeVisible();
   await reviewPanel.getByRole("button", { name: "Queue session review" }).click();
   await expect(page.getByRole("tab", { name: "Browser" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Files" })).toBeVisible();

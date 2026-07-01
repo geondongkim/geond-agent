@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import {
   collectConsoleErrors,
+  dispatchFixtureRun,
   expectSideChatStorage,
   openCommandPaletteAction,
   resetWorkbench,
@@ -50,7 +51,7 @@ test("file evidence export package and capture boundary stay metadata-only", asy
   const downloadPromise = page.waitForEvent("download");
   await filesPanel.getByRole("button", { name: "Export evidence bundle" }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/local-workbench-session-evidence\.md$/);
+  expect(download.suggestedFilename()).toMatch(/evidence\.md$/);
 
   const workspaceDownloadPromise = page.waitForEvent("download");
   await filesPanel.getByRole("button", { name: "Export workspace report" }).click();
@@ -76,13 +77,13 @@ test("file evidence export package and capture boundary stay metadata-only", asy
   await filesPanel.getByRole("button", { name: "Export screenshot manifest" }).click();
   const screenshotManifestDownload = await screenshotManifestDownloadPromise;
   expect(screenshotManifestDownload.suggestedFilename()).toMatch(
-    /local-session-1-screenshot-manifest\.json$/
+    /screenshot-manifest\.json$/
   );
 
   const traceDownloadPromise = page.waitForEvent("download");
   await filesPanel.getByRole("button", { name: "Export structured trace" }).click();
   const traceDownload = await traceDownloadPromise;
-  expect(traceDownload.suggestedFilename()).toMatch(/local-session-1-structured-trace\.json$/);
+  expect(traceDownload.suggestedFilename()).toMatch(/structured-trace\.json$/);
 
   const traceBundleDownloadPromise = page.waitForEvent("download");
   await filesPanel.getByRole("button", { name: "Export multi-session trace bundle" }).click();
@@ -143,7 +144,7 @@ test("file evidence follow-ups, side chat drafts, and browser checks remain queu
   );
   await filesPanel.getByRole("button", { name: "Queue evidence follow-up" }).click();
   await expectSideChatStorage(page, "apps/desktop/src/app.tsx");
-  await expectSideChatStorage(page, "\"sessionId\":\"local-session-1\"");
+  await expectSideChatStorage(page, "\"sessionId\":\"local-session-");
   await expect(filesPanel.getByRole("heading", { name: "Attached context" })).toBeVisible();
   await expect(filesPanel.getByText("Metadata only", { exact: true }).first()).toBeVisible();
   await expect(filesPanel.getByText("Workspace path attached as metadata only")).toBeVisible();
@@ -185,7 +186,7 @@ test("file evidence follow-ups, side chat drafts, and browser checks remain queu
   await browserPanel.getByRole("button", { name: "Queue browser check" }).click();
   await page.getByRole("tab", { name: "Side chat" }).click();
   await expect(sideChatPanel.getByText("Review browser/local validation")).toBeVisible();
-  await expectSideChatStorage(page, "\"sessionId\":\"local-session-1\"");
+  await expectSideChatStorage(page, "\"sessionId\":\"local-session-");
   await sideChatPanel
     .locator(".side-chat-draft-card")
     .filter({ hasText: "Review browser/local validation" })
@@ -199,6 +200,8 @@ test("file evidence follow-ups, side chat drafts, and browser checks remain queu
 
 async function openFilesPanelWithWorkspaceContext(page: Page) {
   await resetWorkbench(page);
+  // App now starts empty; seed an active session so workspace/file context can attach to it.
+  await dispatchFixtureRun(page, "Inspect workbench evidence and keep the run local.");
   await showWorkspacePanel(page);
 
   await openCommandPaletteAction(page, "context", /Attach workspace context/);

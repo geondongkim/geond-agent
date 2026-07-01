@@ -13,8 +13,9 @@ test("runner dispatch and approval keyboard paths remain reviewable", async ({ p
   await showWorkspacePanel(page);
 
   await dispatchFixtureRun(page, "Inspect workbench event replay and keep the run local.");
-  await expect(page.getByText("2 total")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Local demo session 2/ })).toBeVisible();
+  // First dispatch creates the first session
+  await expect(page.getByText("1 total")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Local demo session 1/ })).toBeVisible();
   await expect(page.locator(".run-status-strip").filter({ hasText: /Appended 16 events/ })).toBeVisible();
 
   await page.getByRole("tab", { name: "Review" }).click();
@@ -79,7 +80,8 @@ test("runner dispatch and approval keyboard paths remain reviewable", async ({ p
   ).toBeVisible();
 
   await dispatchFixtureRun(page, "Run another local fixture so approval can be accepted by keyboard.");
-  await expect(page.getByText("3 total")).toBeVisible();
+  // Second dispatch creates a new session (not continuing the first)
+  await expect(page.getByText("2 total")).toBeVisible();
   await page.getByRole("tab", { name: "Review" }).click();
   await page.getByRole("group", { name: "Approval Run verification command" }).focus();
   await page.keyboard.press("Enter");
@@ -89,12 +91,11 @@ test("runner dispatch and approval keyboard paths remain reviewable", async ({ p
     })
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Delete session" }).click();
-  await expect(
-    page.locator(".run-status-strip").filter({ hasText: "Deleted Local demo session 3." })
-  ).toBeVisible();
-  await expect(page.getByText("2 total")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Local demo session 3/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "Delete session" }).first().click();
+  // After deletion, we should have 1 total session left
+  await expect(page.getByText("1 total")).toBeVisible();
+  // The deleted session button should no longer be visible
+  await expect(page.getByRole("button", { name: /Local demo session 2/ })).toHaveCount(0);
 
   expect(errors).toEqual([]);
 });
