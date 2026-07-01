@@ -998,7 +998,7 @@ fn list_native_sessions(
                                         if !text.is_empty() {
                                             // Truncate to ~80 chars for title
                                             title = if text.len() > 80 {
-                                                format!("{}...", &text[..80])
+                                                format!("{}...", text.chars().take(80).collect::<String>())
                                             } else {
                                                 text.clone()
                                             };
@@ -1172,7 +1172,7 @@ fn map_claude_records_to_events(records: &[Value], session_id: &str) -> Vec<Valu
 
                                     // Truncate input summary
                                     let input_summary = if tool_input.len() > 200 {
-                                        format!("{}...", &tool_input[..200])
+                                        format!("{}...", tool_input.chars().take(200).collect::<String>())
                                     } else {
                                         tool_input.to_string()
                                     };
@@ -1279,7 +1279,7 @@ fn map_codex_records_to_events(records: &[Value], session_id: &str) -> Vec<Value
 
                             // Truncate arguments summary
                             let input_summary = if arguments.len() > 200 {
-                                format!("{}...", &arguments[..200])
+                                format!("{}...", arguments.chars().take(200).collect::<String>())
                             } else {
                                 arguments.to_string()
                             };
