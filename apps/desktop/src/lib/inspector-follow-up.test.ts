@@ -175,7 +175,8 @@ describe("inspector follow-up drafts", () => {
           }
         ],
         notices: [],
-        timeline: []
+        timeline: [],
+        messages: []
       }
     });
 

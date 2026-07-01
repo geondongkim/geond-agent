@@ -17,6 +17,23 @@ export default defineConfig({
           if (id.includes("/lucide-react/")) {
             return "icon-vendor";
           }
+          // Markdown rendering stack (react-markdown + remark/rehype/micromark
+          // pipeline + highlight.js core languages). Isolated into its own chunk
+          // so the generic vendor budget stays small.
+          if (
+            id.includes("/react-markdown/") ||
+            id.includes("/remark-") ||
+            id.includes("/remark/") ||
+            id.includes("/rehype-") ||
+            id.includes("/micromark") ||
+            id.includes("/mdast") ||
+            id.includes("/hast") ||
+            id.includes("/unist-util") ||
+            id.includes("/vfile") ||
+            id.includes("/highlight.js/")
+          ) {
+            return "markdown-vendor";
+          }
           return "vendor";
         }
       }

@@ -38,12 +38,15 @@ export type UiMessageKey =
   | "workbench.sessionSidebar.noSessions"
   | "workbench.sessionSidebar.workspaces"
   | "workbench.sessionSidebar.workspace"
+  | "workbench.sessionSidebar.unfiled"
   | "workbench.sessionSidebar.backend"
   | "workbench.sessionSidebar.language"
   | "workbench.sessionSidebar.status"
   | "workbench.sessionSidebar.pendingApprovals"
+  | "workbench.sessionSidebar.archived"
   | "workbench.timeline.title"
   | "workbench.timeline.empty"
+  | "workbench.chat.activityCount"
   | "workbench.timeline.windowed"
   | "workbench.timeline.expand"
   | "workbench.timeline.showFull"
@@ -252,6 +255,8 @@ export type UiMessageKey =
   | "workbench.shell.title"
   | "workbench.shell.subtitle"
   | "workbench.actions.newDemoSession"
+  | "workbench.actions.newSession"
+  | "workbench.actions.newChat"
   | "workbench.actions.runClaudeSession"
   | "workbench.actions.runCodexSession"
   | "workbench.actions.resumeSession"
@@ -261,6 +266,8 @@ export type UiMessageKey =
   | "workbench.actions.chooseWorkspace"
   | "workbench.actions.pinSession"
   | "workbench.actions.unpinSession"
+  | "workbench.actions.archive"
+  | "workbench.actions.unarchive"
   | "workbench.actions.deleteSession"
   | "workbench.actions.showSessions"
   | "workbench.actions.hideSessions"
@@ -660,13 +667,16 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.sessionSidebar.search": "Search sessions",
     "workbench.sessionSidebar.noSessions": "No matching sessions.",
     "workbench.sessionSidebar.workspaces": "Workspaces",
+    "workbench.sessionSidebar.unfiled": "No workspace",
     "workbench.sessionSidebar.workspace": "Workspace",
     "workbench.sessionSidebar.backend": "Backend",
     "workbench.sessionSidebar.language": "UI / Agent",
     "workbench.sessionSidebar.status": "Status",
     "workbench.sessionSidebar.pendingApprovals": "Pending approvals",
+    "workbench.sessionSidebar.archived": "Archived",
     "workbench.timeline.title": "Event timeline",
     "workbench.timeline.empty": "No events yet.",
+    "workbench.chat.activityCount": "{count} activity",
     "workbench.timeline.windowed":
       "Showing {visible} of {total} events. {hidden} middle events are compacted for performance.",
     "workbench.timeline.expand": "Expand timeline",
@@ -878,6 +888,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.shell.title": "Desktop workbench",
     "workbench.shell.subtitle": "Local native workbench with session selection, Claude Code runner boundaries, persisted settings, and normalized event storage.",
     "workbench.actions.newDemoSession": "New demo session",
+    "workbench.actions.newSession": "New session",
+    "workbench.actions.newChat": "New chat",
     "workbench.actions.runClaudeSession": "Run Claude session",
     "workbench.actions.runCodexSession": "Run Codex session",
     "workbench.actions.resumeSession": "Resume session",
@@ -887,6 +899,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.chooseWorkspace": "Choose workspace",
     "workbench.actions.pinSession": "Pin session",
     "workbench.actions.unpinSession": "Unpin session",
+    "workbench.actions.archive": "Archive",
+    "workbench.actions.unarchive": "Unarchive",
     "workbench.actions.deleteSession": "Delete session",
     "workbench.actions.showSessions": "Show sessions",
     "workbench.actions.hideSessions": "Hide sessions",
@@ -1283,13 +1297,16 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.sessionSidebar.search": "세션 검색",
     "workbench.sessionSidebar.noSessions": "일치하는 세션이 없습니다.",
     "workbench.sessionSidebar.workspaces": "워크스페이스",
+    "workbench.sessionSidebar.unfiled": "워크스페이스 없음",
     "workbench.sessionSidebar.workspace": "워크스페이스",
     "workbench.sessionSidebar.backend": "백엔드",
     "workbench.sessionSidebar.language": "UI / 응답 언어",
     "workbench.sessionSidebar.status": "상태",
     "workbench.sessionSidebar.pendingApprovals": "대기 중 승인",
+    "workbench.sessionSidebar.archived": "보관됨",
     "workbench.timeline.title": "이벤트 타임라인",
     "workbench.timeline.empty": "아직 이벤트가 없습니다.",
+    "workbench.chat.activityCount": "활동 {count}건",
     "workbench.timeline.windowed":
       "전체 {total}개 중 {visible}개 이벤트를 표시합니다. 중간 {hidden}개는 성능을 위해 접었습니다.",
     "workbench.timeline.expand": "타임라인 확장",
@@ -1501,6 +1518,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.shell.title": "데스크톱 워크벤치",
     "workbench.shell.subtitle": "세션 선택, Claude Code 실행 경계, 저장되는 설정, 정규화 이벤트 저장소를 갖춘 로컬 네이티브 워크벤치입니다.",
     "workbench.actions.newDemoSession": "새 데모 세션",
+    "workbench.actions.newSession": "새 세션",
+    "workbench.actions.newChat": "새 채팅",
     "workbench.actions.runClaudeSession": "Claude 세션 실행",
     "workbench.actions.runCodexSession": "Codex 세션 실행",
     "workbench.actions.resumeSession": "세션 이어쓰기",
@@ -1510,6 +1529,8 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.actions.chooseWorkspace": "워크스페이스 선택",
     "workbench.actions.pinSession": "세션 고정",
     "workbench.actions.unpinSession": "고정 해제",
+    "workbench.actions.archive": "보관",
+    "workbench.actions.unarchive": "보관 해제",
     "workbench.actions.deleteSession": "세션 삭제",
     "workbench.actions.showSessions": "세션 패널 열기",
     "workbench.actions.hideSessions": "세션 패널 닫기",

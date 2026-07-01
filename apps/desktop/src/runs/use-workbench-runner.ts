@@ -98,9 +98,20 @@ export function useWorkbenchRunner({
 
     const isResumeRun = Boolean(options.resumeSessionId && options.externalSessionId);
     const nextIndex = controllerSnapshot.events.length + 1;
-    const sessionId = options.resumeSessionId ?? `local-session-${Date.now()}`;
-    const existingSession = projectionSessions.find((session) => session.id === sessionId);
     const activeProjectedSession = controllerSnapshot.projection.activeSession;
+    // A pristine active session (e.g. an empty "new chat" placeholder that has
+    // never run) is reused as the target of the first run, so the placeholder
+    // becomes the real session instead of being abandoned for a new id.
+    const pristineActiveSessionId =
+      activeProjectedSession &&
+      activeProjectedSession.runAttempts.length === 0 &&
+      Object.keys(activeProjectedSession.externalSessions).length === 0 &&
+      activeProjectedSession.messages.length === 0
+        ? activeProjectedSession.id
+        : undefined;
+    const sessionId =
+      options.resumeSessionId ?? pristineActiveSessionId ?? `local-session-${Date.now()}`;
+    const existingSession = projectionSessions.find((session) => session.id === sessionId);
     const title =
       existingSession?.title ??
       formatMessage(i18n.t("workbench.session.defaultTitle"), {
@@ -114,6 +125,10 @@ export function useWorkbenchRunner({
       buildDispatchPrompt(mode, composerPrompt, i18n, {
         activeSession: controllerSnapshot.projection.activeSession
       });
+    // The user-facing message shown as a chat turn. Approval follow-ups emit a
+    // generated continuation prompt, not a user message, so they are excluded.
+    const userMessageText =
+      options.trigger === "approval_follow_up" ? undefined : composerPrompt;
     const request = normalizeRunnerRequestForMode(
       mode,
       document.createRunnerRequest({
@@ -199,7 +214,8 @@ export function useWorkbenchRunner({
           title,
           i18n,
           isResumeRun,
-          selectionCatalog
+          selectionCatalog,
+          { userMessageText }
         );
         await appendEvents(preludeEvents);
 
@@ -221,7 +237,9 @@ export function useWorkbenchRunner({
         );
       } else if (mode === "codex-live") {
         await appendEvents(
-          createCodexLiveRunPreludeEvents(request, title, i18n, isResumeRun, selectionCatalog)
+          createCodexLiveRunPreludeEvents(request, title, i18n, isResumeRun, selectionCatalog, {
+            userMessageText
+          })
         );
         unlistenStream = await listenToCodexCliStream(request, i18n, (events) =>
           appendEvents(events, { markAsStreamed: true })

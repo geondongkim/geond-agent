@@ -242,6 +242,13 @@ export type WorkbenchEvent =
       readonly at?: string;
     }
   | {
+      readonly type: "user.message";
+      readonly sessionId: string;
+      readonly messageId?: string;
+      readonly text: string;
+      readonly at?: string;
+    }
+  | {
       readonly type: "assistant.text.delta";
       readonly sessionId: string;
       readonly messageId: string;

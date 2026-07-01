@@ -31,6 +31,14 @@ export function workbenchEventIdentity(event: WorkbenchEvent): string {
         event.attachment.path ?? "",
         event.at ?? ""
       ].join(":");
+    case "user.message":
+      return [
+        event.type,
+        event.sessionId,
+        event.messageId ?? "",
+        event.at ?? "",
+        event.text
+      ].join(":");
     case "assistant.text.delta":
       return [event.type, event.sessionId, event.messageId, event.at ?? "", event.text].join(":");
     case "assistant.text.completed":

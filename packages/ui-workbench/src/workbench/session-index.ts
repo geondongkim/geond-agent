@@ -89,6 +89,11 @@ export function applyWorkbenchSessionIndexEvent(
         ...session,
         updatedAt
       });
+    case "user.message":
+      return putSessionIndexEntry(index, {
+        ...session,
+        updatedAt
+      });
     case "approval.requested": {
       const pendingApprovalIds = appendUnique(
         session.pendingApprovalIds,

@@ -14,6 +14,7 @@ type Projection = DesktopDemoDocument["initialControllerSnapshot"]["projection"]
 export function useWorkbenchDerivedState({
   i18n,
   pinnedSessionIds,
+  archivedSessionIds,
   projection,
   recentContextItems,
   selectedWorkspaces,
@@ -23,6 +24,7 @@ export function useWorkbenchDerivedState({
 }: {
   readonly i18n: UiI18n;
   readonly pinnedSessionIds: readonly string[];
+  readonly archivedSessionIds: readonly string[];
   readonly projection: Projection;
   readonly recentContextItems: readonly RecentContextItem[];
   readonly selectedWorkspaces: readonly DesktopWorkspaceDescriptor[];
@@ -44,6 +46,21 @@ export function useWorkbenchDerivedState({
   const activeExternalSession = activeSession
     ? getExternalSessionLink(activeSession, sessionDefaults.defaultBackendAdapterId)
     : undefined;
+  const nonArchivedSessions = useMemo(
+    () => projection.sessions.filter((session) => !archivedSessionIds.includes(session.id)),
+    [projection.sessions, archivedSessionIds]
+  );
+  const archivedSessions = useMemo(
+    () => archivedSessionIds
+      .map((id) => projection.sessions.find((session) => session.id === id))
+      .filter((session): session is NonNullable<typeof projection.sessions[0]> => session !== undefined)
+      .sort((a, b) => {
+        const aTime = a.updatedAt ? Date.parse(a.updatedAt) : 0;
+        const bTime = b.updatedAt ? Date.parse(b.updatedAt) : 0;
+        return bTime - aTime;
+      }),
+    [archivedSessionIds, projection.sessions]
+  );
   const workspaceOptions = useMemo(() => {
     const options = new Map<string, WorkspaceSessionOption>();
     const upsertWorkspace = (workspace: WorkspaceSessionOption) => {
@@ -73,14 +90,14 @@ export function useWorkbenchDerivedState({
   const workspaceSessionGroups = useMemo(
     () =>
       createWorkspaceSessionGroups({
-        sessions: projection.sessions,
+        sessions: nonArchivedSessions,
         pinnedSessionIds,
         selectedWorkspacePath: workspacePath,
         sessionQuery,
         unknownWorkspaceLabel: i18n.t("workbench.status.unknown"),
         workspaceOptions
       }),
-    [i18n, pinnedSessionIds, projection.sessions, sessionQuery, workspaceOptions, workspacePath]
+    [i18n, pinnedSessionIds, nonArchivedSessions, sessionQuery, workspaceOptions, workspacePath]
   );
 
   return {
@@ -88,6 +105,7 @@ export function useWorkbenchDerivedState({
     activeSession,
     activeSessionListItem,
     activeSessionPinned,
+    archivedSessions,
     pendingApprovals,
     workspaceSessionGroups,
     workspaceOptions

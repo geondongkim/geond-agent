@@ -132,6 +132,11 @@ export function applyWorkbenchEvent(
         },
         updatedAt: event.at ?? session.updatedAt
       });
+    case "user.message":
+      return putSession(state, {
+        ...session,
+        updatedAt: event.at ?? session.updatedAt
+      });
     case "assistant.text.delta": {
       const previous = session.assistantMessages[event.messageId] ?? {
         id: event.messageId,

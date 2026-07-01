@@ -50,6 +50,70 @@ export interface WorkbenchTimelineEntry {
   readonly status?: string;
 }
 
+/**
+ * Chat-centric transcript model. Events are grouped into conversational turns:
+ * a user turn (the user's message) followed by an assistant turn (one or more
+ * streamed assistant messages plus collapsed activity such as tool calls,
+ * commands, diffs, plan/usage, and warnings). This is rendered by the chat
+ * transcript pane; the flat `timeline` is kept for the inspector/debug view.
+ */
+export type ChatActivityKind = Exclude<
+  WorkbenchTimelineEntryKind,
+  "session" | "adapter" | "selection" | "context" | "assistant"
+>;
+
+export interface ChatActivityEntry {
+  readonly id: string;
+  readonly kind: ChatActivityKind;
+  readonly at?: string;
+  readonly title: string;
+  readonly body?: string;
+  readonly status?: string;
+}
+
+export interface ChatAssistantMessage {
+  readonly messageId: string;
+  readonly text: string;
+  readonly streaming: boolean;
+  readonly at?: string;
+}
+
+export interface ChatUserTurn {
+  readonly kind: "user";
+  readonly id: string;
+  readonly text: string;
+  readonly at?: string;
+}
+
+export interface ChatAssistantTurn {
+  readonly kind: "assistant";
+  readonly id: string;
+  readonly messages: readonly ChatAssistantMessage[];
+  readonly activity: readonly ChatActivityEntry[];
+  readonly streaming: boolean;
+  readonly at?: string;
+}
+
+export type ChatTurn = ChatUserTurn | ChatAssistantTurn;
+
+const CHAT_ACTIVITY_KINDS: readonly ChatActivityKind[] = [
+  "plan",
+  "tool",
+  "command",
+  "diff",
+  "usage",
+  "artifact",
+  "run",
+  "issue",
+  "approval",
+  "warning",
+  "error"
+];
+
+function isChatActivityKind(kind: WorkbenchTimelineEntryKind): kind is ChatActivityKind {
+  return (CHAT_ACTIVITY_KINDS as readonly string[]).includes(kind);
+}
+
 export interface ProjectedSessionListItem {
   readonly id: string;
   readonly title: string;
@@ -178,6 +242,7 @@ export interface ProjectedWorkbenchSession {
   readonly approvals: readonly WorkbenchSessionSnapshot["approvals"][string][];
   readonly notices: WorkbenchSessionSnapshot["notices"];
   readonly timeline: readonly WorkbenchTimelineEntry[];
+  readonly messages: readonly ChatTurn[];
 }
 
 export interface WorkbenchProjection {
@@ -347,8 +412,113 @@ function projectActiveSession(
     liveRunGuidance: projectLiveRunGuidance(runAttempts, runnerIssues, liveRunContinuity),
     approvals: Object.values(session.approvals),
     notices: session.notices,
-    timeline: events.map(projectTimelineEntry).filter((entry): entry is WorkbenchTimelineEntry => entry !== undefined)
+    timeline: events.map(projectTimelineEntry).filter((entry): entry is WorkbenchTimelineEntry => entry !== undefined),
+    messages: projectChatTranscript(events)
   };
+}
+
+/**
+ * Groups a session's events into conversational chat turns (user/assistant).
+ * Assistant text deltas for the same messageId are accumulated into a single
+ * streaming message and finalized on `assistant.text.completed`, eliminating
+ * the per-delta card noise of the flat timeline. Non-conversational events
+ * (tool calls, commands, diffs, plan/usage, warnings) attach as collapsed
+ * activity to the surrounding assistant turn.
+ */
+function projectChatTranscript(events: readonly WorkbenchEvent[]): readonly ChatTurn[] {
+  type MutableMessage = { messageId: string; text: string; streaming: boolean; at?: string };
+  type MutableAssistantTurn = {
+    id: string;
+    messages: MutableMessage[];
+    activity: ChatActivityEntry[];
+    at?: string;
+  };
+
+  const turns: ChatTurn[] = [];
+  let assistant: MutableAssistantTurn | null = null;
+
+  const ensureAssistantTurn = (at?: string): MutableAssistantTurn => {
+    if (!assistant) {
+      assistant = {
+        id: `assistant-turn-${turns.length}-${at ?? "unknown"}`,
+        messages: [],
+        activity: [],
+        at
+      };
+    }
+    return assistant;
+  };
+
+  const flushAssistantTurn = () => {
+    if (!assistant) {
+      return;
+    }
+    const snapshot = assistant;
+    turns.push({
+      kind: "assistant",
+      id: snapshot.id,
+      messages: snapshot.messages.map((message) => ({ ...message })),
+      activity: snapshot.activity,
+      streaming: snapshot.messages.some((message) => message.streaming),
+      at: snapshot.at
+    });
+    assistant = null;
+  };
+
+  for (const event of events) {
+    if (event.type === "user.message") {
+      flushAssistantTurn();
+      turns.push({
+        kind: "user",
+        id: `user-${event.messageId ?? event.at ?? turns.length}`,
+        text: event.text,
+        at: event.at
+      });
+      continue;
+    }
+
+    if (event.type === "assistant.text.delta") {
+      const turn = ensureAssistantTurn(event.at);
+      let message = turn.messages.find((entry) => entry.messageId === event.messageId);
+      if (!message) {
+        message = { messageId: event.messageId, text: "", streaming: true, at: event.at };
+        turn.messages.push(message);
+      }
+      message.text = `${message.text}${event.text}`;
+      message.streaming = true;
+      continue;
+    }
+
+    if (event.type === "assistant.text.completed") {
+      const turn = ensureAssistantTurn(event.at);
+      let message = turn.messages.find((entry) => entry.messageId === event.messageId);
+      if (!message) {
+        message = { messageId: event.messageId, text: event.text ?? "", streaming: false, at: event.at };
+        turn.messages.push(message);
+      } else {
+        if (event.text !== undefined) {
+          message.text = event.text;
+        }
+        message.streaming = false;
+      }
+      continue;
+    }
+
+    const entry = projectTimelineEntry(event);
+    if (entry && isChatActivityKind(entry.kind)) {
+      ensureAssistantTurn(entry.at).activity.push({
+        id: entry.id,
+        kind: entry.kind,
+        at: entry.at,
+        title: entry.title,
+        body: entry.body,
+        status: entry.status
+      });
+    }
+  }
+
+  flushAssistantTurn();
+  return turns;
 }
 
 export function deriveRunAttemptStreamQuality(

@@ -20,10 +20,13 @@ import {
   createWorkbenchSessionController,
   buildWorkbenchSessionIndex,
   loadWorkbenchPinnedSessionIds,
+  loadWorkbenchArchivedSessionIds,
   saveWorkbenchSessionDefaults,
   saveWorkbenchPinnedSessionIds,
+  saveWorkbenchArchivedSessionIds,
   validateWorkbenchSessionDefaults,
   createWorkbenchSessionIndexFromEntries,
+  createEmptyWorkbenchSessionIndex,
   type AgentResponseLanguage,
   type LocalSettingsStore,
   type UiI18n,
@@ -47,6 +50,7 @@ import {
 } from "./claude-runner.js";
 import { createTauriCodexCliExecutor } from "./codex-runner.js";
 import { createDesktopWorkbench } from "./index.js";
+import { readLocalProviderEnvironment } from "./provider-env.js";
 import type { DesktopWorkbenchEventStore } from "./persistence/event-store.js";
 import { createDesktopWorkbenchEventStore } from "./persistence/event-store.js";
 import type { DesktopMaterializedEventStore } from "./persistence/materialized-event-store.js";
@@ -116,6 +120,7 @@ export interface DesktopDemoDocument {
   readonly claudeCliProbe: ClaudeCodeCliProbe;
   readonly ignoredRecordCount: number;
   readonly pinnedSessionIds: readonly string[];
+  readonly archivedSessionIds: readonly string[];
   readonly initialControllerSnapshot: WorkbenchSessionControllerSnapshot;
   readonly createRunnerRequest: (options: CreateRunnerRequestOptions) => ClaudeCodeRunnerRequest;
   readonly runSession: (
@@ -155,6 +160,9 @@ export interface DesktopDemoDocument {
   readonly savePinnedSessionIds: (
     sessionIds: readonly string[]
   ) => Promise<readonly string[]>;
+  readonly saveArchivedSessionIds: (
+    sessionIds: readonly string[]
+  ) => Promise<readonly string[]>;
 }
 
 export interface CreateRunnerRequestOptions {
@@ -179,10 +187,14 @@ export async function createDesktopDemoDocument(
     ...listedWorkspaces
   ]);
   const activeWorkspace = savedWorkspace ?? workspaces[0] ?? FALLBACK_WORKSPACE;
+  const providerEnvironment = isTauriRuntime()
+    ? await readLocalProviderEnvironment(activeWorkspace.path)
+    : undefined;
   const workbench = await createDesktopWorkbench({
     settingsStore,
     systemLocales: navigator.languages,
-    workspacePath: activeWorkspace.path
+    workspacePath: activeWorkspace.path,
+    environment: providerEnvironment
   });
   const runtimeSnapshot = workbench.ui.getSnapshot();
   const savedRunnerMode = await loadSavedRunnerMode(settingsStore);
@@ -199,36 +211,30 @@ export async function createDesktopDemoDocument(
   const eventStore = createDesktopWorkbenchEventStore();
   const materializedEventStore = createDesktopMaterializedEventStore();
   const sessionIndexStore = createDesktopWorkbenchSessionIndexStore();
-  const initialSessionId = "local-session-1";
   const persistedSessions = await sessionIndexStore.list();
-  const initialDocument =
-    persistedSessions.length > 0
-      ? await createPersistedSessionDocument({
-          eventStore,
-          persistedSessions
-        })
-      : await createInitialFixtureDocument({
-          activeWorkspace,
-          eventStore,
-          initialSessionId,
-          i18n: runtimeSnapshot.i18n,
-          languageSettings: runtimeSnapshot.languageSettings,
-          runner,
-          sessionDefaults: workbench.sessionDefaults
-        });
+
+  // Clean up pristine (empty) sessions
+  const cleanedPersistedSessions = await cleanupPristineSessions({
+    eventStore,
+    persistedSessions
+  });
+
+  const initialDocument = cleanedPersistedSessions.length > 0
+    ? await createPersistedSessionDocument({
+        eventStore,
+        persistedSessions: cleanedPersistedSessions
+      })
+    : createEmptyInitialDocument();
   sessionIndexStore.replaceMemoryIndex(initialDocument.sessionIndex);
   const savedPinnedSessionIds = await loadWorkbenchPinnedSessionIds(settingsStore);
-  const pinnedSessionIds =
-    savedPinnedSessionIds.length > 0
-      ? savedPinnedSessionIds
-      : initialDocument.activeSessionId === initialSessionId
-        ? [initialSessionId]
-        : [];
+  const pinnedSessionIds = savedPinnedSessionIds.length > 0 ? savedPinnedSessionIds : [];
+  const savedArchivedSessionIds = await loadWorkbenchArchivedSessionIds(settingsStore);
+  const archivedSessionIds = savedArchivedSessionIds.length > 0 ? savedArchivedSessionIds : [];
   const controller = createWorkbenchSessionController({
     initialEvents: initialDocument.events,
     initialSessionIndex: initialDocument.sessionIndex,
     pinnedSessionIds,
-    activeSessionId: initialDocument.activeSessionId
+    activeSessionId: initialDocument.activeSessionId ?? undefined
   });
 
   return {
@@ -261,6 +267,7 @@ export async function createDesktopDemoDocument(
     claudeCliProbe,
     ignoredRecordCount: initialDocument.ignoredRecordCount,
     pinnedSessionIds,
+    archivedSessionIds,
     initialControllerSnapshot: controller.getSnapshot(),
     createRunnerRequest,
     runSession: (mode, request) =>
@@ -298,7 +305,9 @@ export async function createDesktopDemoDocument(
       return validated.defaults;
     },
     savePinnedSessionIds: (sessionIds) =>
-      saveWorkbenchPinnedSessionIds(settingsStore, sessionIds)
+      saveWorkbenchPinnedSessionIds(settingsStore, sessionIds),
+    saveArchivedSessionIds: (sessionIds) =>
+      saveWorkbenchArchivedSessionIds(settingsStore, sessionIds)
   };
 }
 
@@ -388,6 +397,69 @@ function mergeWorkspaces(
   return [...merged.values()];
 }
 
+async function cleanupPristineSessions(options: {
+  readonly eventStore: DesktopWorkbenchEventStore;
+  readonly persistedSessions: readonly WorkbenchSessionIndexEntry[];
+}): Promise<readonly WorkbenchSessionIndexEntry[]> {
+  const result: WorkbenchSessionIndexEntry[] = [];
+
+  for (const entry of options.persistedSessions) {
+    try {
+      // Step 1: Filter candidates using session index data
+      const isCandidate =
+        (entry.lifecycle === "started" || entry.lifecycle === "created") &&
+        entry.pendingApprovalCount === 0 &&
+        entry.warningCount === 0 &&
+        entry.errorCount === 0;
+
+      if (!isCandidate) {
+        // Non-candidates always survive
+        result.push(entry);
+        continue;
+      }
+
+      // Step 2: For candidates, check event types to determine if pristine
+      const events = await options.eventStore.list(entry.id);
+      const hasSignificantEvents = events.some(event =>
+        event.type === "run.attempt.started" ||
+        event.type === "assistant.text.delta" ||
+        event.type === "assistant.text.completed" ||
+        event.type === "user.message" ||
+        event.type === "session.adapter.linked"
+      );
+
+      if (hasSignificantEvents) {
+        // Candidates with significant events survive
+        result.push(entry);
+      } else {
+        // Pristine candidates are deleted
+        await options.eventStore.deleteSession(entry.id);
+      }
+    } catch (error) {
+      // Skip this session on error but continue processing others
+      console.error(`Failed to inspect session ${entry.id}:`, error);
+      // On error, keep the session to be safe
+      result.push(entry);
+    }
+  }
+
+  return result;
+}
+
+function createEmptyInitialDocument(): {
+  readonly events: readonly WorkbenchEvent[];
+  readonly sessionIndex: WorkbenchSessionIndexSnapshot;
+  readonly ignoredRecordCount: number;
+  readonly activeSessionId: string | undefined;
+} {
+  return {
+    events: [],
+    sessionIndex: createEmptyWorkbenchSessionIndex(),
+    ignoredRecordCount: 0,
+    activeSessionId: undefined
+  };
+}
+
 async function createPersistedSessionDocument(options: {
   readonly eventStore: DesktopWorkbenchEventStore;
   readonly persistedSessions: readonly WorkbenchSessionIndexEntry[];
@@ -395,51 +467,17 @@ async function createPersistedSessionDocument(options: {
   readonly events: readonly WorkbenchEvent[];
   readonly sessionIndex: WorkbenchSessionIndexSnapshot;
   readonly ignoredRecordCount: number;
-  readonly activeSessionId: string;
+  readonly activeSessionId: string | undefined;
 }> {
   const sessionIndex = createWorkbenchSessionIndexFromEntries(options.persistedSessions);
-  const activeSessionId = options.persistedSessions[0]?.id ?? "local-session-1";
-  const events = await options.eventStore.list(activeSessionId);
+  const activeSessionId = options.persistedSessions[0]?.id;
+  const events = activeSessionId ? await options.eventStore.list(activeSessionId) : [];
 
   return {
     events,
     sessionIndex,
     ignoredRecordCount: 0,
     activeSessionId
-  };
-}
-
-async function createInitialFixtureDocument(options: {
-  readonly activeWorkspace: DesktopWorkspaceDescriptor;
-  readonly eventStore: DesktopWorkbenchEventStore;
-  readonly initialSessionId: string;
-  readonly i18n: UiI18n;
-  readonly languageSettings: WorkbenchLanguageSettings;
-  readonly runner: ClaudeCodeFixtureReplayRunner;
-  readonly sessionDefaults: WorkbenchSessionDefaults;
-}): Promise<{
-  readonly events: readonly WorkbenchEvent[];
-  readonly sessionIndex: WorkbenchSessionIndexSnapshot;
-  readonly ignoredRecordCount: number;
-  readonly activeSessionId: string;
-}> {
-  const initialRun = await options.runner.run(
-    createRunnerRequest({
-      sessionId: options.initialSessionId,
-      title: options.i18n.t("workbench.session.initialTitle"),
-      prompt: options.i18n.t("workbench.session.initialPrompt"),
-      languageSettings: options.languageSettings,
-      sessionDefaults: options.sessionDefaults,
-      workspacePath: options.activeWorkspace.path
-    })
-  );
-  await options.eventStore.append(initialRun.events);
-
-  return {
-    events: initialRun.events,
-    sessionIndex: buildWorkbenchSessionIndex(initialRun.events),
-    ignoredRecordCount: initialRun.ignoredRecords.length,
-    activeSessionId: options.initialSessionId
   };
 }
 
