@@ -281,6 +281,17 @@ pub struct WorkbenchRunAttemptRecord {
 
 type ProcessHandle = Arc<Mutex<Child>>;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct NativeSessionRecord {
+    id: String,
+    source: String,
+    title: String,
+    updated_at: Option<String>,
+    message_count: usize,
+    workspace_path: Option<String>,
+}
+
 struct BuiltClaudeCommand {
     command: Command,
     settings_path: Option<PathBuf>,
@@ -317,7 +328,9 @@ pub fn run() {
             cancel_claude_code_stream,
             probe_codex_cli_executable,
             run_codex_cli_jsonl,
-            cancel_codex_cli_stream
+            cancel_codex_cli_stream,
+            list_native_sessions,
+            read_native_session
         ])
         .run(tauri::generate_context!())
         .expect("error while running geond-agent desktop");
@@ -893,6 +906,559 @@ fn run_codex_cli_jsonl(
 #[tauri::command]
 fn cancel_codex_cli_stream(channel_id: String) -> Result<bool, String> {
     cancel_registered_process(&channel_id, "Codex CLI")
+}
+
+/// Encodes a cwd path for Claude native session storage by replacing `/` with `-`
+fn encode_claude_cwd(path: &str) -> String {
+    path.replace('/', "-")
+}
+
+/// Gets the home directory from environment
+fn home_dir() -> Option<PathBuf> {
+    env::var("HOME").ok().map(PathBuf::from)
+}
+
+#[tauri::command]
+fn list_native_sessions(
+    workspace_path: Option<String>,
+    source: String,
+) -> Result<Vec<NativeSessionRecord>, String> {
+    let home = home_dir();
+    if home.is_none() {
+        return Ok(vec![]);
+    }
+    let home = home.unwrap();
+
+    match source.as_str() {
+        "claude" => {
+            if workspace_path.is_none() {
+                return Ok(vec![]);
+            }
+            let encoded = encode_claude_cwd(workspace_path.as_ref().unwrap());
+            let claude_projects_dir = home.join(".claude").join("projects").join(&encoded);
+
+            if !claude_projects_dir.exists() {
+                return Ok(vec![]);
+            }
+
+            let mut sessions = Vec::new();
+
+            // List all .jsonl files in the Claude project directory
+            let entries = fs::read_dir(&claude_projects_dir).map_err(to_string)?;
+            for entry in entries {
+                let entry = entry.map_err(to_string)?;
+                let path = entry.path();
+
+                // Skip directories and non-jsonl files
+                if path.is_dir() || path.extension().and_then(|s| s.to_str()) != Some("jsonl") {
+                    continue;
+                }
+
+                // Extract session ID from filename (without .jsonl extension)
+                let file_stem = path.file_stem()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("unknown");
+                let session_id = file_stem.to_string();
+
+                // Get file modification time as updated_at
+                let metadata = fs::metadata(&path).map_err(to_string)?;
+                let modified = metadata.modified().map_err(to_string)?;
+                let secs_since_epoch = modified.duration_since(UNIX_EPOCH).map_err(to_string)?.as_secs();
+                let updated_at = Some(secs_since_epoch.to_string());
+
+                // Read the file to extract title and count messages
+                let file_content = fs::read_to_string(&path).map_err(to_string)?;
+                let mut title = String::from("Claude session");
+                let mut message_count = 0;
+
+                for line in file_content.lines() {
+                    if let Ok(record) = serde_json::from_str::<Value>(line) {
+                        let record_type = record.get("type").and_then(|t| t.as_str()).unwrap_or("");
+
+                        // Count user and assistant messages
+                        if record_type == "user" || record_type == "assistant" {
+                            message_count += 1;
+
+                            // Extract title from first user message
+                            if title == "Claude session" && record_type == "user" {
+                                if let Some(message) = record.get("message") {
+                                    if let Some(content) = message.get("content") {
+                                        let text = if let Some(s) = content.as_str() {
+                                            s.to_string()
+                                        } else if let Some(arr) = content.as_array() {
+                                            arr.iter()
+                                                .filter_map(|block| block.get("text"))
+                                                .filter_map(|t| t.as_str())
+                                                .collect::<Vec<_>>()
+                                                .join(" ")
+                                        } else {
+                                            String::new()
+                                        };
+
+                                        if !text.is_empty() {
+                                            // Truncate to ~80 chars for title
+                                            title = if text.len() > 80 {
+                                                format!("{}...", &text[..80])
+                                            } else {
+                                                text.clone()
+                                            };
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                sessions.push(NativeSessionRecord {
+                    id: session_id,
+                    source: "claude".to_string(),
+                    title,
+                    updated_at,
+                    message_count,
+                    workspace_path: workspace_path.clone(),
+                });
+            }
+
+            // Sort by updated_at descending
+            sessions.sort_by(|a, b| {
+                b.updated_at
+                    .as_ref()
+                    .unwrap_or(&String::new())
+                    .cmp(a.updated_at.as_ref().unwrap_or(&String::new()))
+            });
+
+            Ok(sessions)
+        }
+        "codex" => {
+            // Read the Codex session index
+            let codex_index_path = home.join(".codex").join("session_index.jsonl");
+
+            if !codex_index_path.exists() {
+                return Ok(vec![]);
+            }
+
+            let mut sessions = Vec::new();
+            let index_content = fs::read_to_string(&codex_index_path).map_err(to_string)?;
+
+            for line in index_content.lines() {
+                if let Ok(entry) = serde_json::from_str::<Value>(line) {
+                    if let (Some(id), Some(thread_name), Some(updated_at)) = (
+                        entry.get("id").and_then(|i| i.as_str()),
+                        entry.get("thread_name").and_then(|n| n.as_str()),
+                        entry.get("updated_at").and_then(|u| u.as_str()),
+                    ) {
+                        sessions.push(NativeSessionRecord {
+                            id: id.to_string(),
+                            source: "codex".to_string(),
+                            title: thread_name.to_string(),
+                            updated_at: Some(updated_at.to_string()),
+                            message_count: 0, // Don't open every rollout to count
+                            workspace_path: None, // Codex index doesn't contain cwd
+                        });
+                    }
+                }
+            }
+
+            // Sort by updated_at descending
+            sessions.sort_by(|a, b| {
+                b.updated_at
+                    .as_ref()
+                    .unwrap_or(&String::new())
+                    .cmp(a.updated_at.as_ref().unwrap_or(&String::new()))
+            });
+
+            Ok(sessions)
+        }
+        _ => Err(format!("Unsupported source: {}. Must be 'claude' or 'codex'.", source)),
+    }
+}
+
+/// Maps Claude JSONL records to WorkbenchEvent-compatible JSON values
+fn map_claude_records_to_events(records: &[Value], session_id: &str) -> Vec<Value> {
+    let mut events = Vec::new();
+
+    for record in records {
+        let record_type = record.get("type").and_then(|t| t.as_str()).unwrap_or("");
+        let timestamp = record.get("timestamp")
+            .and_then(|t| t.as_str())
+            .unwrap_or("");
+
+        match record_type {
+            "user" => {
+                if let Some(message) = record.get("message") {
+                    if let Some(content) = message.get("content") {
+                        let text = if let Some(s) = content.as_str() {
+                            s.to_string()
+                        } else if let Some(arr) = content.as_array() {
+                            // Check if this contains tool_result blocks
+                            let has_tool_result = arr.iter().any(|block| {
+                                block.get("type").and_then(|t| t.as_str()) == Some("tool_result")
+                            });
+
+                            if has_tool_result {
+                                // Emit command.output events for tool_result blocks
+                                for block in arr {
+                                    if let Some(block_type) = block.get("type").and_then(|t| t.as_str()) {
+                                        if block_type == "tool_result" {
+                                            let tool_use_id = block.get("tool_use_id")
+                                                .and_then(|id| id.as_str())
+                                                .unwrap_or("tool-result");
+                                            let content_text = block.get("content")
+                                                .and_then(|c| c.as_str())
+                                                .unwrap_or("");
+
+                                            events.push(serde_json::json!({
+                                                "type": "command.output",
+                                                "sessionId": session_id,
+                                                "commandId": tool_use_id,
+                                                "stream": "stdout",
+                                                "text": content_text,
+                                                "status": "succeeded",
+                                                "at": timestamp
+                                            }));
+                                        }
+                                    }
+                                }
+                                continue; // Skip the normal user.message emission
+                            }
+
+                            // Normal text content - concatenate text blocks
+                            arr.iter()
+                                .filter_map(|block| block.get("text"))
+                                .filter_map(|t| t.as_str())
+                                .collect::<Vec<_>>()
+                                .join(" ")
+                        } else {
+                            String::new()
+                        };
+
+                        if !text.is_empty() {
+                            events.push(serde_json::json!({
+                                "type": "user.message",
+                                "sessionId": session_id,
+                                "text": text,
+                                "at": timestamp
+                            }));
+                        }
+                    }
+                }
+            }
+            "assistant" => {
+                if let Some(message) = record.get("message") {
+                    if let Some(content) = message.get("content").and_then(|c| c.as_array()) {
+                        let mut text_parts = Vec::new();
+                        let message_id = record.get("uuid")
+                            .and_then(|u| u.as_str())
+                            .unwrap_or("unknown");
+
+                        // First pass: collect text and emit tool.call.started
+                        for block in content {
+                            if let Some(block_type) = block.get("type").and_then(|t| t.as_str()) {
+                                if block_type == "text" {
+                                    if let Some(text) = block.get("text").and_then(|t| t.as_str()) {
+                                        text_parts.push(text);
+                                    }
+                                } else if block_type == "tool_use" {
+                                    let tool_id = block.get("id")
+                                        .and_then(|id| id.as_str())
+                                        .unwrap_or("unknown");
+                                    let tool_name = block.get("name")
+                                        .and_then(|n| n.as_str())
+                                        .unwrap_or("unknown");
+                                    let tool_input = block.get("input")
+                                        .and_then(|i| i.as_str())
+                                        .unwrap_or("{}");
+
+                                    // Truncate input summary
+                                    let input_summary = if tool_input.len() > 200 {
+                                        format!("{}...", &tool_input[..200])
+                                    } else {
+                                        tool_input.to_string()
+                                    };
+
+                                    events.push(serde_json::json!({
+                                        "type": "tool.call.started",
+                                        "sessionId": session_id,
+                                        "toolCall": {
+                                            "id": tool_id,
+                                            "name": tool_name,
+                                            "status": "succeeded",
+                                            "inputSummary": input_summary
+                                        },
+                                        "at": timestamp
+                                    }));
+                                }
+                            }
+                        }
+
+                        // Emit assistant.text.completed with concatenated text
+                        if !text_parts.is_empty() {
+                            let full_text = text_parts.join("\n");
+                            events.push(serde_json::json!({
+                                "type": "assistant.text.completed",
+                                "sessionId": session_id,
+                                "messageId": message_id,
+                                "text": full_text,
+                                "at": timestamp
+                            }));
+                        }
+                    }
+                }
+            }
+            // Skip all other types (summary, system, file-history-snapshot, ai-title, etc.)
+            _ => continue,
+        }
+    }
+
+    events
+}
+
+/// Maps Codex JSONL records to WorkbenchEvent-compatible JSON values
+fn map_codex_records_to_events(records: &[Value], session_id: &str) -> Vec<Value> {
+    let mut events = Vec::new();
+
+    for record in records {
+        let timestamp = record.get("timestamp")
+            .and_then(|t| t.as_str())
+            .unwrap_or("");
+        let record_type = record.get("type").and_then(|t| t.as_str()).unwrap_or("");
+        let payload = record.get("payload");
+
+        match record_type {
+            "response_item" => {
+                if let Some(payload) = payload.and_then(|p| p.as_object()) {
+                    let payload_type = payload.get("type").and_then(|t| t.as_str()).unwrap_or("");
+
+                    match payload_type {
+                        "message" => {
+                            let role = payload.get("role").and_then(|r| r.as_str()).unwrap_or("unknown");
+                            let content = payload.get("content");
+
+                            let text = if let Some(arr) = content.and_then(|c| c.as_array()) {
+                                arr.iter()
+                                    .filter_map(|block| {
+                                        let block_type = block.get("type").and_then(|t| t.as_str()).unwrap_or("");
+                                        if block_type == "input_text" || block_type == "output_text" {
+                                            block.get("text").and_then(|t| t.as_str())
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .collect::<Vec<_>>()
+                                    .join(" ")
+                            } else if let Some(s) = content.and_then(|c| c.as_str()) {
+                                s.to_string()
+                            } else {
+                                String::new()
+                            };
+
+                            if !text.is_empty() {
+                                if role == "user" {
+                                    events.push(serde_json::json!({
+                                        "type": "user.message",
+                                        "sessionId": session_id,
+                                        "text": text,
+                                        "at": timestamp
+                                    }));
+                                } else if role == "assistant" {
+                                    events.push(serde_json::json!({
+                                        "type": "assistant.text.completed",
+                                        "sessionId": session_id,
+                                        "messageId": timestamp, // Use timestamp as message ID
+                                        "text": text,
+                                        "at": timestamp
+                                    }));
+                                }
+                            }
+                        }
+                        "function_call" => {
+                            let call_id = payload.get("call_id").and_then(|id| id.as_str()).unwrap_or("unknown");
+                            let tool_name = payload.get("name").and_then(|n| n.as_str()).unwrap_or("unknown");
+                            let arguments = payload.get("arguments").and_then(|a| a.as_str()).unwrap_or("{}");
+
+                            // Truncate arguments summary
+                            let input_summary = if arguments.len() > 200 {
+                                format!("{}...", &arguments[..200])
+                            } else {
+                                arguments.to_string()
+                            };
+
+                            events.push(serde_json::json!({
+                                "type": "tool.call.started",
+                                "sessionId": session_id,
+                                "toolCall": {
+                                    "id": call_id,
+                                    "name": tool_name,
+                                    "status": "succeeded",
+                                    "inputSummary": input_summary
+                                },
+                                "at": timestamp
+                            }));
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            "event_msg" => {
+                if let Some(payload) = payload.and_then(|p| p.as_object()) {
+                    let event_type = payload.get("type").and_then(|t| t.as_str()).unwrap_or("");
+
+                    match event_type {
+                        "user_message" => {
+                            let message = payload.get("message");
+                            let text = if let Some(s) = message.and_then(|m| m.as_str()) {
+                                s.to_string()
+                            } else if let Some(arr) = message.and_then(|m| m.as_array()) {
+                                // Handle array content structure
+                                arr.iter()
+                                    .filter_map(|item| item.as_str())
+                                    .collect::<Vec<_>>()
+                                    .join(" ")
+                            } else {
+                                String::new()
+                            };
+
+                            if !text.is_empty() {
+                                events.push(serde_json::json!({
+                                    "type": "user.message",
+                                    "sessionId": session_id,
+                                    "text": text,
+                                    "at": timestamp
+                                }));
+                            }
+                        }
+                        "agent_message" => {
+                            let message = payload.get("message").and_then(|m| m.as_str()).unwrap_or("");
+                            if !message.is_empty() {
+                                events.push(serde_json::json!({
+                                    "type": "assistant.text.completed",
+                                    "sessionId": session_id,
+                                    "messageId": timestamp,
+                                    "text": message,
+                                    "at": timestamp
+                                }));
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            // Skip session_meta and other non-message types
+            _ => {}
+        }
+    }
+
+    events
+}
+
+/// Recursively walks `root` looking for a Codex rollout JSONL whose filename
+/// contains `id` (matching `rollout-<timestamp>-<id>.jsonl`). Returns the first
+/// match (ids are unique uuids, so there is at most one). Returns None if the
+/// tree cannot be read or no match is found (best-effort).
+fn find_codex_rollout(root: &Path, id: &str) -> Option<PathBuf> {
+    if !root.is_dir() {
+        return None;
+    }
+    let mut stack = vec![PathBuf::from(root)];
+    while let Some(dir) = stack.pop() {
+        let entries = match fs::read_dir(&dir) {
+            Ok(entries) => entries,
+            Err(_) => continue,
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                stack.push(path);
+                continue;
+            }
+            let is_jsonl = path
+                .extension()
+                .and_then(|ext| ext.to_str())
+                .map(|ext| ext.eq_ignore_ascii_case("jsonl"))
+                .unwrap_or(false);
+            if !is_jsonl {
+                continue;
+            }
+            let matches = path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .map(|name| name.contains(id))
+                .unwrap_or(false);
+            if matches {
+                return Some(path);
+            }
+        }
+    }
+    None
+}
+
+#[tauri::command]
+fn read_native_session(
+    source: String,
+    id: String,
+    workspace_path: Option<String>,
+) -> Result<Vec<Value>, String> {
+    let home = home_dir();
+    if home.is_none() {
+        return Ok(vec![]);
+    }
+    let home = home.unwrap();
+
+    let session_id = format!("native:{}:{}", source, id);
+
+    match source.as_str() {
+        "claude" => {
+            if workspace_path.is_none() {
+                return Err("workspace_path is required for Claude sessions".to_string());
+            }
+
+            let encoded = encode_claude_cwd(workspace_path.as_ref().unwrap());
+            let claude_session_path = home
+                .join(".claude")
+                .join("projects")
+                .join(&encoded)
+                .join(format!("{}.jsonl", id));
+
+            if !claude_session_path.exists() {
+                return Ok(vec![]);
+            }
+
+            let file_content = fs::read_to_string(&claude_session_path).map_err(to_string)?;
+            let mut records = Vec::new();
+
+            for line in file_content.lines() {
+                if let Ok(record) = serde_json::from_str::<Value>(line) {
+                    records.push(record);
+                }
+            }
+
+            let events = map_claude_records_to_events(&records, &session_id);
+            Ok(events)
+        }
+        "codex" => {
+            // Codex rollouts live under ~/.codex/sessions/YYYY/MM/DD/rollout-<timestamp>-<id>.jsonl
+            // The session id (uuid) is embedded in the filename, so we walk the sessions
+            // tree and match any file whose filename contains the id.
+            let sessions_root = home.join(".codex").join("sessions");
+            let rollout_path = match find_codex_rollout(&sessions_root, &id) {
+                Some(path) => path,
+                None => return Ok(vec![]),
+            };
+
+            let file_content = fs::read_to_string(&rollout_path).map_err(to_string)?;
+            let mut records = Vec::new();
+            for line in file_content.lines() {
+                // Best-effort: skip malformed lines instead of aborting.
+                if let Ok(record) = serde_json::from_str::<Value>(line) {
+                    records.push(record);
+                }
+            }
+
+            Ok(map_codex_records_to_events(&records, &session_id))
+        }
+        _ => Err(format!("Unsupported source: {}. Must be 'claude' or 'codex'.", source)),
+    }
 }
 
 fn cancel_registered_process(channel_id: &str, label: &str) -> Result<bool, String> {
@@ -5006,5 +5572,170 @@ mod tests {
         let mut connection = Connection::open_in_memory().expect("open in-memory sqlite");
         create_event_store_schema(&mut connection).expect("create event store schema");
         connection
+    }
+
+    #[test]
+    fn encode_claude_cwd_replaces_slashes_with_dashes() {
+        assert_eq!(encode_claude_cwd("/Users/x/geond-agent"), "-Users-x-geond-agent");
+        assert_eq!(encode_claude_cwd("/home/user/project"), "-home-user-project");
+        assert_eq!(encode_claude_cwd("C:\\Users\\test"), "C:\\Users\\test"); // No replacement on Windows paths
+    }
+
+    #[test]
+    fn claude_jsonl_maps_to_workbench_events() {
+        let sample_records = vec![
+            // User message with string content
+            serde_json::json!({
+                "type": "user",
+                "message": {
+                    "role": "user",
+                    "content": "Hello, how are you?"
+                },
+                "timestamp": "2026-07-01T10:00:00.000Z",
+                "uuid": "user-1"
+            }),
+            // Assistant message with text and tool_use
+            serde_json::json!({
+                "type": "assistant",
+                "uuid": "assistant-1",
+                "timestamp": "2026-07-01T10:00:01.000Z",
+                "message": {
+                    "id": "msg-1",
+                    "role": "assistant",
+                    "content": [
+                        {"type": "text", "text": "I'll help you with that."},
+                        {
+                            "type": "tool_use",
+                            "id": "tool-1",
+                            "name": "read_files",
+                            "input": {"paths": ["src/main.rs"]}
+                        }
+                    ]
+                }
+            }),
+            // User message with tool_result
+            serde_json::json!({
+                "type": "user",
+                "message": {
+                    "role": "user",
+                    "content": [
+                        {"type": "tool_result", "tool_use_id": "tool-1", "content": "File content here"}
+                    ]
+                },
+                "timestamp": "2026-07-01T10:00:02.000Z",
+                "uuid": "user-2"
+            }),
+            // Summary record (should be skipped)
+            serde_json::json!({
+                "type": "summary",
+                "timestamp": "2026-07-01T10:00:03.000Z"
+            }),
+        ];
+
+        let events = map_claude_records_to_events(&sample_records, "native:claude:test-session");
+
+        // Should have 4 events: user.message, assistant.text.completed, tool.call.started, command.output
+        assert_eq!(events.len(), 4);
+
+        // Find specific events by type
+        let user_message = events.iter().find(|e| e["type"] == "user.message").unwrap();
+        assert_eq!(user_message["sessionId"], "native:claude:test-session");
+        assert_eq!(user_message["text"], "Hello, how are you?");
+
+        let assistant_text = events.iter().find(|e| e["type"] == "assistant.text.completed").unwrap();
+        assert_eq!(assistant_text["text"], "I'll help you with that.");
+
+        let tool_call = events.iter().find(|e| e["type"] == "tool.call.started").unwrap();
+        assert_eq!(tool_call["toolCall"]["name"], "read_files");
+
+        let command_output = events.iter().find(|e| e["type"] == "command.output").unwrap();
+        assert_eq!(command_output["commandId"], "tool-1");
+        assert_eq!(command_output["text"], "File content here");
+    }
+
+    #[test]
+    fn codex_jsonl_maps_to_workbench_events() {
+        // Fixture mirrors the real codex rollout schema:
+        //  - response_item/message (user, input_text array content)
+        //  - response_item/message (assistant, output_text array content)
+        //  - event_msg/user_message (string message)
+        //  - event_msg/agent_message (string message)
+        //  - response_item/function_call (tool invocation)
+        //  - session_meta (must be skipped)
+        let sample_records = vec![
+            serde_json::json!({
+                "timestamp": "2026-05-20T01:01:55.458Z",
+                "type": "session_meta",
+                "payload": {"id": "codex-session-1", "cwd": "/tmp"}
+            }),
+            serde_json::json!({
+                "timestamp": "2026-05-20T01:01:55.461Z",
+                "type": "response_item",
+                "payload": {
+                    "type": "message",
+                    "role": "user",
+                    "content": [{"type": "input_text", "text": "Codex를 추가 테스트베드로 검증해보자."}]
+                }
+            }),
+            serde_json::json!({
+                "timestamp": "2026-05-20T01:01:55.470Z",
+                "type": "event_msg",
+                "payload": {"type": "user_message", "message": "이 리포지토리를 평가해줘."}
+            }),
+            serde_json::json!({
+                "timestamp": "2026-05-20T01:02:09.433Z",
+                "type": "event_msg",
+                "payload": {"type": "agent_message", "message": "리포지토리 구조를 먼저 읽겠습니다."}
+            }),
+            serde_json::json!({
+                "timestamp": "2026-05-20T01:02:09.440Z",
+                "type": "response_item",
+                "payload": {
+                    "type": "function_call",
+                    "name": "exec_command",
+                    "arguments": "{\"cmd\":\"rg --files\"}",
+                    "call_id": "call_1"
+                }
+            }),
+            serde_json::json!({
+                "timestamp": "2026-05-20T01:02:30.000Z",
+                "type": "response_item",
+                "payload": {
+                    "type": "message",
+                    "role": "assistant",
+                    "content": [{"type": "output_text", "text": "Codex 세션 파서를 추가했습니다."}]
+                }
+            }),
+        ];
+
+        let events = map_codex_records_to_events(&sample_records, "native:codex:codex-session-1");
+
+        // session_meta is skipped. Expect: user.message x2, agent_message -> assistant.text.completed,
+        // function_call -> tool.call.started, assistant message -> assistant.text.completed.
+        // That is 5 events total.
+        assert_eq!(events.len(), 5);
+
+        let user_messages: Vec<&Value> = events
+            .iter()
+            .filter(|e| e["type"] == "user.message")
+            .collect();
+        assert_eq!(user_messages.len(), 2);
+        assert_eq!(user_messages[0]["text"], "Codex를 추가 테스트베드로 검증해보자.");
+        assert_eq!(user_messages[1]["text"], "이 리포지토리를 평가해줘.");
+
+        let assistant_texts: Vec<&Value> = events
+            .iter()
+            .filter(|e| e["type"] == "assistant.text.completed")
+            .collect();
+        assert_eq!(assistant_texts.len(), 2);
+        assert_eq!(assistant_texts[0]["text"], "리포지토리 구조를 먼저 읽겠습니다.");
+        assert_eq!(assistant_texts[1]["text"], "Codex 세션 파서를 추가했습니다.");
+
+        let tool_call = events
+            .iter()
+            .find(|e| e["type"] == "tool.call.started")
+            .expect("tool.call.started emitted");
+        assert_eq!(tool_call["toolCall"]["id"], "call_1");
+        assert_eq!(tool_call["toolCall"]["name"], "exec_command");
     }
 }
