@@ -21,6 +21,7 @@ export function SessionRailPane({
   onOpenSettings,
   onRestoreSession,
   onSelectNativeSession,
+  onResumeNativeSession,
   onStartNewChat,
   projection,
   selectSession,
@@ -40,6 +41,7 @@ export function SessionRailPane({
   readonly onOpenSettings: () => void;
   readonly onRestoreSession: (id: string) => void;
   readonly onSelectNativeSession?: (source: "claude" | "codex", id: string) => void;
+  readonly onResumeNativeSession?: (source: "claude" | "codex", id: string) => void;
   readonly onStartNewChat: (workspacePath?: string) => void;
   readonly projection: Projection;
   readonly selectSession: (sessionId: string) => void;
@@ -92,6 +94,7 @@ export function SessionRailPane({
         onArchiveSession={onArchiveSession}
         onSelect={selectSession}
         onSelectNativeSession={onSelectNativeSession}
+        onResumeNativeSession={onResumeNativeSession}
         onSelectWorkspace={setWorkspacePath}
         onStartNewChat={onStartNewChat}
         onToggleWorkspaceFavorite={toggleWorkspaceFavorite}

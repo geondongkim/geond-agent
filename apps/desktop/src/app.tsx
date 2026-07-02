@@ -584,6 +584,7 @@ export function App({ document }: AppProps) {
               onOpenSettings={openSettings}
               onRestoreSession={unarchiveSession}
               onSelectNativeSession={selectNativeSession}
+              onResumeNativeSession={resumeNativeSession}
               onStartNewChat={createNewChat}
               projection={projection}
               selectSession={selectSession}

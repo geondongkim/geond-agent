@@ -22,7 +22,8 @@ export function WorkspaceSessionList({
   onSelectNativeSession,
   onSelectWorkspace,
   onStartNewChat,
-  onToggleWorkspaceFavorite
+  onToggleWorkspaceFavorite,
+  onResumeNativeSession
 }: {
   readonly activeSessionId?: string;
   readonly archivedSessions: readonly ProjectedSessionListItem[];
@@ -34,6 +35,7 @@ export function WorkspaceSessionList({
   readonly onRestoreSession: (id: string) => void;
   readonly onSelect: (sessionId: string) => void;
   readonly onSelectNativeSession?: (source: "claude" | "codex", id: string) => void;
+  readonly onResumeNativeSession?: (source: "claude" | "codex", id: string) => void;
   readonly onSelectWorkspace: (path: string) => void;
   readonly onStartNewChat: (workspacePath: string) => void;
   readonly onToggleWorkspaceFavorite: (path: string, label: string) => void;
@@ -72,6 +74,7 @@ export function WorkspaceSessionList({
                 onToggleWorkspaceFavorite={onToggleWorkspaceFavorite}
                 onDeleteSession={onDeleteSession}
                 onArchiveSession={onArchiveSession}
+                onResumeNativeSession={onResumeNativeSession}
               />
             ))}
             {unfiledGroups.length ? (
@@ -92,6 +95,7 @@ export function WorkspaceSessionList({
                     onToggleWorkspaceFavorite={onToggleWorkspaceFavorite}
                     onDeleteSession={onDeleteSession}
                     onArchiveSession={onArchiveSession}
+                    onResumeNativeSession={onResumeNativeSession}
                   />
                 ))}
               </section>
@@ -141,13 +145,15 @@ function WorkspaceSessionGroupView({
   onStartNewChat,
   onToggleWorkspaceFavorite,
   onDeleteSession,
-  onArchiveSession
+  onArchiveSession,
+  onResumeNativeSession
 }: {
   readonly activeSessionId?: string;
   readonly group: WorkspaceSessionGroup;
   readonly i18n: UiI18n;
   readonly onSelect: (sessionId: string) => void;
   readonly onSelectNativeSession?: (source: "claude" | "codex", id: string) => void;
+  readonly onResumeNativeSession?: (source: "claude" | "codex", id: string) => void;
   readonly onSelectWorkspace: (path: string) => void;
   readonly onStartNewChat: (workspacePath: string) => void;
   readonly onToggleWorkspaceFavorite: (path: string, label: string) => void;
@@ -225,24 +231,21 @@ function WorkspaceSessionGroupView({
         {group.sessions.length ? (
           group.sessions.map((session) => {
             const isNative = session.source && session.source !== "app";
+            const nativeParts = isNative ? session.id.match(/^native:(claude|codex):(.+)$/) : null;
+            const nativeSource = nativeParts?.[1] as "claude" | "codex" | undefined;
+            const nativeId = nativeParts?.[2];
             const handleSelect = () => {
               onSelectWorkspace(group.path);
-              if (isNative && onSelectNativeSession) {
-                const match = session.id.match(/^native:(claude|codex):(.+)$/);
-                if (match) {
-                  const [, source, id] = match;
-                  if (id) {
-                    onSelectNativeSession(source as "claude" | "codex", id);
-                  } else {
-                    onSelect(session.id);
-                  }
-                } else {
-                  onSelect(session.id);
-                }
+              if (isNative && nativeId && nativeSource && onSelectNativeSession) {
+                onSelectNativeSession(nativeSource, nativeId);
               } else {
                 onSelect(session.id);
               }
             };
+            const handleResume =
+              isNative && nativeId && nativeSource && onResumeNativeSession
+                ? () => onResumeNativeSession(nativeSource, nativeId)
+                : undefined;
 
             return (
               <SessionCard
@@ -251,6 +254,7 @@ function WorkspaceSessionGroupView({
                 active={session.id === activeSessionId}
                 i18n={i18n}
                 onSelect={handleSelect}
+                onResume={handleResume}
                 onDelete={!isNative ? () => onDeleteSession(session.id) : undefined}
                 onArchive={!isNative ? () => onArchiveSession(session.id) : undefined}
               />
