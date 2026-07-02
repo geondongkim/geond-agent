@@ -14,7 +14,8 @@ export function SessionCard({
   onArchive,
   onRestore,
   onSelect,
-  session
+  session,
+  showNativeActions
 }: {
   readonly active: boolean;
   readonly archived?: boolean;
@@ -24,7 +25,11 @@ export function SessionCard({
   readonly onRestore?: () => void;
   readonly onSelect: () => void;
   readonly session: ProjectedSessionListItem;
+  readonly showNativeActions?: boolean;
 }) {
+  const source = session.source ?? "app";
+  const isNative = source !== "app";
+
   return (
     <div className="session-card-row group">
       <button
@@ -41,7 +46,14 @@ export function SessionCard({
             backendLabel={session.backendLabel}
           />
           <div className="min-w-0 space-y-1">
-            <p className="truncate text-sm font-semibold leading-5">{session.title}</p>
+            <div className="flex items-center gap-2">
+              <p className="truncate text-sm font-semibold leading-5">{session.title}</p>
+              {isNative && (
+                <span className="session-source-badge">
+                  {source === "claude" ? "Claude" : "Codex"}
+                </span>
+              )}
+            </div>
             <p className="truncate text-xs leading-5 text-[color:var(--ink-soft)]">
               {session.backendLabel ?? i18n.t("workbench.status.unknown")}
             </p>
@@ -68,7 +80,7 @@ export function SessionCard({
           </div>
         </div>
       </button>
-      {(onDelete || onArchive || onRestore) ? (
+      {!isNative && (onDelete || onArchive || onRestore) ? (
         <div className="session-card-actions">
           {archived ? (
             <>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { listen } from "@tauri-apps/api/event";
 import {
   type WorkbenchRuntimeSnapshot,
   type WorkbenchSessionDefaults
@@ -118,7 +119,9 @@ export function App({ document }: AppProps) {
     selectedWorkspaces,
     sessionDefaults,
     sessionQuery,
-    workspacePath
+    workspacePath,
+    nativeClaudeSessions,
+    nativeCodexSessions
   });
   const inspectorEvidenceSignature = useMemo(
     () => createInspectorEvidenceSignature(activeSession),
@@ -461,6 +464,37 @@ export function App({ document }: AppProps) {
     })();
   }, [document.activeWorkspace.path, workspacePath, nativeSessionsRefreshKey]);
 
+  // Real-time native sessions refresh via Tauri event
+  useEffect(() => {
+    const isTauri = Boolean((globalThis as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
+    if (!isTauri) {
+      return;
+    }
+
+    const unlisten = listen("geond-agent://native-sessions-changed", () => {
+      setNativeSessionsRefreshKey((key) => key + 1);
+    });
+
+    return () => {
+      unlisten.then((fn) => fn()).catch(console.error);
+    };
+  }, []);
+
+  // Refresh native sessions on window focus as fallback
+  useEffect(() => {
+    const isTauri = Boolean((globalThis as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
+    if (!isTauri) {
+      return;
+    }
+
+    const handleFocus = () => {
+      setNativeSessionsRefreshKey((key) => key + 1);
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
+
   function openInspectorTab(tab: string) {
     if (tab === "settings") {
       openSettings();
@@ -545,15 +579,11 @@ export function App({ document }: AppProps) {
               archivedSessions={archivedSessions}
               chooseWorkspace={chooseWorkspace}
               i18n={i18n}
-              nativeClaudeSessions={nativeClaudeSessions}
-              nativeCodexSessions={nativeCodexSessions}
               onDeleteSession={deleteSession}
               onArchiveSession={archiveSession}
               onOpenSettings={openSettings}
-              onRefreshNativeSessions={refreshNativeSessions}
               onRestoreSession={unarchiveSession}
               onSelectNativeSession={selectNativeSession}
-              onResumeNativeSession={resumeNativeSession}
               onStartNewChat={createNewChat}
               projection={projection}
               selectSession={selectSession}

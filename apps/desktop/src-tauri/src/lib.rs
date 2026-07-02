@@ -13,6 +13,7 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use tauri::{AppHandle, Emitter, Manager};
+use notify::{RecursiveMode, recommended_watcher, EventKind, Watcher};
 
 const LANGUAGE_SETTINGS_KEY: &str = "geond-agent.workbench.language";
 const SESSION_DEFAULTS_SETTINGS_KEY: &str = "geond-agent.workbench.session-defaults";
@@ -27,6 +28,7 @@ const EVIDENCE_EXPORT_PREFERENCES_SETTINGS_KEY: &str =
 const LOCAL_ENV_FILE_NAME: &str = ".env.local";
 const CLAUDE_STREAM_EVENT_NAME: &str = "geond-agent://claude-code-stream-json";
 const CODEX_STREAM_EVENT_NAME: &str = "geond-agent://codex-cli-jsonl";
+const NATIVE_SESSIONS_CHANGED_EVENT: &str = "geond-agent://native-sessions-changed";
 const CLAUDE_DEFAULT_TIMEOUT_MS: u64 = 10 * 60 * 1000;
 const CLAUDE_MAX_TIMEOUT_MS: u64 = 60 * 60 * 1000;
 const PROCESS_OUTPUT_CAP_BYTES: usize = 1024 * 1024;
@@ -281,6 +283,83 @@ pub struct WorkbenchRunAttemptRecord {
 
 type ProcessHandle = Arc<Mutex<Child>>;
 
+/// Spawns a filesystem watcher that monitors ~/.claude/projects and ~/.codex/sessions
+/// for changes and emits a Tauri event when they occur. The watcher runs on a background
+/// thread and lives for the app lifetime. Returns early if both directories don't exist.
+/// Never crashes the app — all watcher setup failures are logged and ignored.
+fn spawn_native_session_watcher(app: AppHandle) {
+    thread::spawn(move || {
+        let home = match home_dir() {
+            Some(h) => h,
+            None => return,
+        };
+
+        let claude_projects_dir = home.join(".claude").join("projects");
+        let codex_sessions_dir = home.join(".codex").join("sessions");
+
+        // Check if at least one directory exists
+        let claude_exists = claude_projects_dir.exists();
+        let codex_exists = codex_sessions_dir.exists();
+
+        if !claude_exists && !codex_exists {
+            return; // Nothing to watch
+        }
+
+        // Use a channel to communicate between watcher callback and debounce thread
+        let (tx, rx) = std::sync::mpsc::channel::<()>();
+
+        // Create the watcher with a callback that sends to our channel
+        let mut watcher = match recommended_watcher(move |result: Result<notify::Event, notify::Error>| {
+            // Ignore watcher errors, just send notification for successful events
+            if let Ok(event) = result {
+                match event.kind {
+                    EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_) => {
+                        let _ = tx.send(());
+                    }
+                    _ => {}
+                }
+            }
+        }) {
+            Ok(w) => w,
+            Err(_) => return, // Silently fail if watcher creation fails
+        };
+
+        // Watch directories that exist
+        if claude_exists {
+            let _ = watcher.watch(&claude_projects_dir, RecursiveMode::Recursive);
+        }
+        if codex_exists {
+            let _ = watcher.watch(&codex_sessions_dir, RecursiveMode::Recursive);
+        }
+
+        // Move the watcher into a thread to keep it alive
+        thread::spawn(move || {
+            // Simple debouncing: collect events for 500ms then emit once
+            let mut pending_event = false;
+
+            while let Ok(_) = rx.recv() {
+                if !pending_event {
+                    pending_event = true;
+                    thread::sleep(Duration::from_millis(500));
+                }
+
+                // Drain any additional events during the debounce period
+                while let Ok(_) = rx.try_recv() {
+                    // Just drain, don't process
+                }
+
+                if pending_event {
+                    let _ = app.emit(NATIVE_SESSIONS_CHANGED_EVENT, serde_json::json!({}));
+                    pending_event = false;
+                }
+            }
+        });
+
+        // Keep the watcher alive by leaking it (it lives for app lifetime)
+        Box::leak(Box::new(watcher));
+    });
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct NativeSessionRecord {
@@ -302,6 +381,10 @@ struct BuiltClaudeCommand {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            spawn_native_session_watcher(app.handle().clone());
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             load_app_setting,
             save_app_setting,
@@ -918,6 +1001,29 @@ fn home_dir() -> Option<PathBuf> {
     env::var("HOME").ok().map(PathBuf::from)
 }
 
+/// Extracts the workspace cwd from a Codex rollout JSONL file.
+/// Reads only the first line and parses it as JSON. If it's a session_meta
+/// record with a payload.cwd field, returns that path as a String.
+/// Returns None if the file can't be read, the first line isn't valid JSON,
+/// or the record isn't a session_meta with cwd. (Best-effort, never errors.)
+fn codex_rollout_workspace(rollout_path: &Path) -> Option<String> {
+    let file = fs::File::open(rollout_path).ok()?;
+    let reader = BufReader::new(file);
+    let first_line = reader.lines().next()?.ok()?;
+
+    if let Ok(record) = serde_json::from_str::<Value>(&first_line) {
+        let record_type = record.get("type").and_then(|t| t.as_str()).unwrap_or("");
+        if record_type == "session_meta" {
+            if let Some(payload) = record.get("payload") {
+                if let Some(cwd) = payload.get("cwd").and_then(|c| c.as_str()) {
+                    return Some(cwd.to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
 #[tauri::command]
 fn list_native_sessions(
     workspace_path: Option<String>,
@@ -1040,6 +1146,7 @@ fn list_native_sessions(
 
             let mut sessions = Vec::new();
             let index_content = fs::read_to_string(&codex_index_path).map_err(to_string)?;
+            let sessions_root = home.join(".codex").join("sessions");
 
             for line in index_content.lines() {
                 if let Ok(entry) = serde_json::from_str::<Value>(line) {
@@ -1048,13 +1155,17 @@ fn list_native_sessions(
                         entry.get("thread_name").and_then(|n| n.as_str()),
                         entry.get("updated_at").and_then(|u| u.as_str()),
                     ) {
+                        // Find the rollout file and extract workspace path from first line
+                        let workspace_path = find_codex_rollout(&sessions_root, id)
+                            .and_then(|rollout_path| codex_rollout_workspace(&rollout_path));
+
                         sessions.push(NativeSessionRecord {
                             id: id.to_string(),
                             source: "codex".to_string(),
                             title: thread_name.to_string(),
                             updated_at: Some(updated_at.to_string()),
                             message_count: 0, // Don't open every rollout to count
-                            workspace_path: None, // Codex index doesn't contain cwd
+                            workspace_path,
                         });
                     }
                 }
@@ -5737,5 +5848,22 @@ mod tests {
             .expect("tool.call.started emitted");
         assert_eq!(tool_call["toolCall"]["id"], "call_1");
         assert_eq!(tool_call["toolCall"]["name"], "exec_command");
+    }
+
+    #[test]
+    fn codex_rollout_workspace_extracts_cwd() {
+        use std::io::Write;
+
+        let temp_dir = env::temp_dir();
+        let temp_file = temp_dir.join("test_rollout.jsonl");
+
+        let mut file = fs::File::create(&temp_file).unwrap();
+        writeln!(file, r#"{{"type":"session_meta","payload":{{"cwd":"/test/workspace/path"}}}}"#).unwrap();
+        writeln!(file, r#"{{"type":"other_record"}}"#).unwrap();
+
+        let result = codex_rollout_workspace(&temp_file);
+        assert_eq!(result, Some("/test/workspace/path".to_string()));
+
+        fs::remove_file(&temp_file).ok();
     }
 }

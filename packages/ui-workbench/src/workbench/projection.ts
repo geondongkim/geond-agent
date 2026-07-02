@@ -126,6 +126,7 @@ export interface ProjectedSessionListItem {
   readonly pendingApprovalCount: number;
   readonly warningCount: number;
   readonly errorCount: number;
+  readonly source?: "app" | "claude" | "codex";
 }
 
 export interface ProjectedWorkspaceSummary {

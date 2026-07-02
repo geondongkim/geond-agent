@@ -3,6 +3,7 @@ import type { UiI18n, WorkbenchSessionDefaults } from "@geond-agent/ui-workbench
 
 import type { DesktopDemoDocument } from "../demo-workbench.js";
 import type { DesktopWorkspaceDescriptor } from "../workspace.js";
+import type { NativeSessionRecord } from "../native-sessions.js";
 import type { RecentContextItem } from "./recent-context.js";
 import {
   createWorkspaceSessionGroups,
@@ -20,7 +21,9 @@ export function useWorkbenchDerivedState({
   selectedWorkspaces,
   sessionDefaults,
   sessionQuery,
-  workspacePath
+  workspacePath,
+  nativeClaudeSessions,
+  nativeCodexSessions
 }: {
   readonly i18n: UiI18n;
   readonly pinnedSessionIds: readonly string[];
@@ -31,6 +34,8 @@ export function useWorkbenchDerivedState({
   readonly sessionDefaults: WorkbenchSessionDefaults;
   readonly sessionQuery: string;
   readonly workspacePath: string;
+  readonly nativeClaudeSessions: readonly NativeSessionRecord[];
+  readonly nativeCodexSessions: readonly NativeSessionRecord[];
 }) {
   const activeSession = projection.activeSession;
   const pendingApprovals = useMemo(
@@ -46,10 +51,47 @@ export function useWorkbenchDerivedState({
   const activeExternalSession = activeSession
     ? getExternalSessionLink(activeSession, sessionDefaults.defaultBackendAdapterId)
     : undefined;
-  const nonArchivedSessions = useMemo(
-    () => projection.sessions.filter((session) => !archivedSessionIds.includes(session.id)),
-    [projection.sessions, archivedSessionIds]
-  );
+
+  // Merge native and app sessions
+  const mergedSessions = useMemo(() => {
+    // Map app sessions with source tag
+    const appWithSource = projection.sessions
+      .filter((session) => !archivedSessionIds.includes(session.id))
+      .map((session) => ({ ...session, source: "app" as const }));
+
+    // Map native Claude sessions
+    const claudeMapped = nativeClaudeSessions.map((rec) => ({
+      id: `native:claude:${rec.id}`,
+      source: "claude" as const,
+      title: rec.title,
+      workspacePath: rec.workspacePath,
+      updatedAt: rec.updatedAt,
+      lifecycle: "completed" as const,
+      resumable: true,
+      pendingApprovalCount: 0,
+      warningCount: 0,
+      errorCount: 0
+    }));
+
+    // Map native Codex sessions
+    const codexMapped = nativeCodexSessions.map((rec) => ({
+      id: `native:codex:${rec.id}`,
+      source: "codex" as const,
+      title: rec.title,
+      workspacePath: rec.workspacePath,
+      updatedAt: rec.updatedAt,
+      lifecycle: "completed" as const,
+      resumable: true,
+      pendingApprovalCount: 0,
+      warningCount: 0,
+      errorCount: 0
+    }));
+
+    return [...appWithSource, ...claudeMapped, ...codexMapped];
+  }, [projection.sessions, archivedSessionIds, nativeClaudeSessions, nativeCodexSessions]);
+
+  const nonArchivedSessions = mergedSessions;
+
   const archivedSessions = useMemo(
     () => archivedSessionIds
       .map((id) => projection.sessions.find((session) => session.id === id))
