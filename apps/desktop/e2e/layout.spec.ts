@@ -22,7 +22,7 @@ test("workbench layout and command palette expose docked surfaces", async ({ pag
   await expect(page.getByRole("heading", { name: "Workspaces", exact: true })).toBeVisible();
   await expect(page.locator("#workspace-filter")).toHaveCount(0);
   await expect(page.locator(".workspace-session-group")).toHaveCount(1);
-  await expect(page.locator(".agent-backend-icon-claude")).toHaveCount(1);
+  await expect(page.locator(".session-card")).toHaveCount(1);
   await expect(page.getByRole("heading", { name: "Event timeline", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Workspace panel", exact: true })).toHaveCount(0);
 
