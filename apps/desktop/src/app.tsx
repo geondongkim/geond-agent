@@ -715,6 +715,7 @@ export function App({ document }: AppProps) {
           updateRunnerMode={updateRunnerMode}
           updateSessionDefaults={updateSessionDefaults}
           updateUiLanguage={updateUiLanguage}
+          workspacePath={document.activeWorkspace.path}
           onClose={closeSettings}
         />
       ) : null}

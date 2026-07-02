@@ -828,6 +828,26 @@ body {
     @apply block bg-transparent px-1 py-2;
   }
 
+  .settings-key-input {
+    @apply flex flex-col gap-2;
+  }
+
+  .settings-key-status {
+    @apply mt-2 text-sm text-[color:var(--ink-soft)];
+  }
+
+  .settings-key-row {
+    @apply mt-2 flex flex-wrap gap-2;
+  }
+
+  .settings-password-input {
+    @apply h-9 flex-1 rounded-md bg-[#111614] px-3 text-sm outline-none focus:ring-1 focus:ring-white/10;
+  }
+
+  .settings-button {
+    @apply h-9 rounded-md bg-white/10 px-4 text-sm outline-none transition-colors hover:bg-white/15 focus:ring-1 focus:ring-white/10 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
   .settings-sections {
     @apply space-y-3;
   }

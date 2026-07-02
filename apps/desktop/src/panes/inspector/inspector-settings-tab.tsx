@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 
 import { SettingsRow } from "../../components/workbench/settings-row.js";
 import { SettingsSelect } from "../../components/workbench/settings-select.js";
+import { SettingsKeyInput } from "../../components/workbench/settings-key-input.js";
 import type { ClaudeCodeCliProbe } from "../../claude-runner.js";
 import type { DesktopRunnerMode } from "../../demo-workbench.js";
 import {
@@ -39,7 +40,8 @@ export function InspectorSettingsTab({
   updateAgentResponseLanguage,
   updateRunnerMode,
   updateSessionDefaults,
-  updateUiLanguage
+  updateUiLanguage,
+  workspacePath
 }: {
   readonly agentLanguageOptions: readonly { readonly value: string; readonly label: string }[];
   readonly backendOptions: readonly WorkbenchCatalogOption[];
@@ -63,6 +65,7 @@ export function InspectorSettingsTab({
   readonly updateRunnerMode: (mode: DesktopRunnerMode) => void;
   readonly updateSessionDefaults: (patch: Partial<WorkbenchSessionDefaults>) => void;
   readonly updateUiLanguage: (language: string) => void;
+  readonly workspacePath?: string;
 }) {
   const firstRunChecklist = createClaudeFirstRunChecklist({
     bridgeCommand,
@@ -201,6 +204,13 @@ export function InspectorSettingsTab({
             label={settingsLabels.fields.persistenceBoundary}
             value={settingsLabels.values.persistenceBoundaryLocalOnly}
             detail={persistenceNotes.join(" ")}
+          />
+        </SettingsSection>
+
+        <SettingsSection title={i18n.t("workbench.settings.providerSection")}>
+          <SettingsKeyInput
+            workspacePath={workspacePath}
+            i18n={i18n}
           />
         </SettingsSection>
     </div>

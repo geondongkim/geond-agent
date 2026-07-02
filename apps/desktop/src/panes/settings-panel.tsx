@@ -8,10 +8,12 @@ type InspectorSettingsTabProps = React.ComponentProps<typeof InspectorSettingsTa
 export function SettingsPanel({
   onClose,
   i18n,
+  workspacePath,
   ...settingsProps
 }: InspectorSettingsTabProps & {
   readonly onClose: () => void;
   readonly i18n: UiI18n;
+  readonly workspacePath?: string;
 }) {
   return (
     <div
@@ -37,7 +39,7 @@ export function SettingsPanel({
           </button>
         </div>
         <div className="settings-overlay-body">
-          <InspectorSettingsTab {...settingsProps} i18n={i18n} />
+          <InspectorSettingsTab {...settingsProps} i18n={i18n} workspacePath={workspacePath} />
         </div>
       </div>
     </div>
