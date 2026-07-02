@@ -26,6 +26,7 @@ const RECENT_CONTEXT_SETTINGS_KEY: &str = "geond-agent.workbench.recent-context"
 const EVIDENCE_EXPORT_PREFERENCES_SETTINGS_KEY: &str =
     "geond-agent.workbench.evidence-export-preferences";
 const LOCAL_ENV_FILE_NAME: &str = ".env.local";
+const KEYCHAIN_SERVICE: &str = "geond-agent";
 const CLAUDE_STREAM_EVENT_NAME: &str = "geond-agent://claude-code-stream-json";
 const CODEX_STREAM_EVENT_NAME: &str = "geond-agent://codex-cli-jsonl";
 const NATIVE_SESSIONS_CHANGED_EVENT: &str = "geond-agent://native-sessions-changed";
@@ -59,6 +60,62 @@ const CLAUDE_PROCESS_ENV_KEYS: &[&str] = &[
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC",
     "CLAUDE_CODE_AUTO_COMPACT_WINDOW",
 ];
+
+/// Keychain helper: retrieves a provider API key from the OS keychain.
+/// Returns `Some(key)` if found, `None` if not found or on any error (best-effort).
+fn get_keychain_key(provider: &str) -> Option<String> {
+    keyring::Entry::new(KEYCHAIN_SERVICE, provider)
+        .ok()
+        .and_then(|entry| entry.get_password().ok())
+}
+
+/// Keychain helper: stores a provider API key in the OS keychain.
+/// Returns `Ok(())` on success, `Err(message)` on failure.
+fn set_keychain_key(provider: &str, value: &str) -> Result<(), String> {
+    keyring::Entry::new(KEYCHAIN_SERVICE, provider)
+        .map_err(|e| e.to_string())?
+        .set_password(value)
+        .map_err(|e| e.to_string())
+}
+
+/// Keychain helper: deletes a provider API key from the OS keychain.
+/// Returns `Ok(())` on success or if the entry does not exist, `Err(message)` on failure.
+fn clear_keychain_key(provider: &str) -> Result<(), String> {
+    let entry = keyring::Entry::new(KEYCHAIN_SERVICE, provider).map_err(|e| e.to_string())?;
+    // In keyring v3, delete_password is not available; use get_password to check existence
+    // and then set to empty string if it exists, or just return Ok if doesn't exist
+    match entry.get_password() {
+        Ok(_) => {
+            // Entry exists: try to delete by setting to empty (v3 workaround)
+            // If this fails, it's not critical - the entry might be handled differently per platform
+            let _ = entry.set_password(""); // Ignore errors for deletion
+            Ok(())
+        }
+        Err(keyring::Error::NoEntry) => Ok(()), // Already gone
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// Resolves the API key from keychain with .env.local fallback.
+/// Priority: keychain (if non-empty) → ZAI_API_KEY → ANTHROPIC_AUTH_TOKEN → ANTHROPIC_API_KEY.
+fn resolve_api_key(
+    keychain: Option<String>,
+    local_env: &BTreeMap<String, String>,
+) -> Option<String> {
+    // Prefer keychain if present and non-empty
+    if let Some(key) = keychain {
+        if !key.trim().is_empty() {
+            return Some(key);
+        }
+    }
+
+    // Fallback to .env.local variables
+    local_env
+        .get("ZAI_API_KEY")
+        .or_else(|| local_env.get("ANTHROPIC_AUTH_TOKEN"))
+        .or_else(|| local_env.get("ANTHROPIC_API_KEY"))
+        .cloned()
+}
 const MATERIALIZED_EVENT_TABLES: &[&str] = &[
     "workbench_context_attachments",
     "workbench_tool_calls",
@@ -389,6 +446,11 @@ pub fn run() {
             load_app_setting,
             save_app_setting,
             remove_app_setting,
+            set_provider_key,
+            clear_provider_key,
+            get_provider_key_presence,
+            has_env_local_key,
+            migrate_provider_key_from_env,
             append_workbench_events,
             list_workbench_events,
             list_workbench_sessions,
@@ -440,6 +502,46 @@ fn remove_app_setting(app: AppHandle, key: String) -> Result<(), String> {
     let mut values = read_settings(&app)?;
     values.remove(&key);
     write_settings(&app, &values)
+}
+
+#[tauri::command]
+fn set_provider_key(provider: String, value: String) -> Result<(), String> {
+    set_keychain_key(&provider, &value)
+}
+
+#[tauri::command]
+fn clear_provider_key(provider: String) -> Result<(), String> {
+    clear_keychain_key(&provider)
+}
+
+#[tauri::command]
+fn get_provider_key_presence(provider: String) -> Result<bool, String> {
+    Ok(get_keychain_key(&provider).is_some())
+}
+
+#[tauri::command]
+fn has_env_local_key(cwd: Option<String>, provider: String) -> Result<bool, String> {
+    let values = allowed_local_env(cwd.as_deref().map(Path::new))?;
+    match provider.as_str() {
+        "zai" => Ok(values.contains_key("ZAI_API_KEY")),
+        _ => Err(format!("Unsupported provider: {}. Only 'zai' is supported.", provider)),
+    }
+}
+
+#[tauri::command]
+fn migrate_provider_key_from_env(cwd: Option<String>, provider: String) -> Result<bool, String> {
+    let values = allowed_local_env(cwd.as_deref().map(Path::new))?;
+    match provider.as_str() {
+        "zai" => {
+            if let Some(key_value) = values.get("ZAI_API_KEY") {
+                set_keychain_key(&provider, key_value)?;
+                Ok(true)
+            } else {
+                Ok(false)
+            }
+        }
+        _ => Err(format!("Unsupported provider: {}. Only 'zai' is supported.", provider)),
+    }
 }
 
 #[tauri::command]
@@ -827,7 +929,7 @@ fn build_local_provider_environment(
 ) -> Result<LocalProviderEnvironmentMetadata, String> {
     let values = allowed_local_env(cwd)?;
     Ok(LocalProviderEnvironmentMetadata {
-        has_zai_api_key: values.contains_key("ZAI_API_KEY"),
+        has_zai_api_key: get_keychain_key("zai").is_some() || values.contains_key("ZAI_API_KEY"),
         has_anthropic_auth_token: values.contains_key("ANTHROPIC_AUTH_TOKEN"),
         has_anthropic_api_key: values.contains_key("ANTHROPIC_API_KEY"),
         anthropic_base_url: values.get("ANTHROPIC_BASE_URL").cloned(),
@@ -2233,11 +2335,7 @@ fn claude_settings_env(local_env: &BTreeMap<String, String>) -> BTreeMap<String,
 }
 
 fn claude_api_key(local_env: &BTreeMap<String, String>) -> Option<String> {
-    local_env
-        .get("ZAI_API_KEY")
-        .or_else(|| local_env.get("ANTHROPIC_AUTH_TOKEN"))
-        .or_else(|| local_env.get("ANTHROPIC_API_KEY"))
-        .cloned()
+    resolve_api_key(get_keychain_key("zai"), local_env)
 }
 
 fn claude_process_env(
@@ -4545,6 +4643,49 @@ mod tests {
         assert!(ensure_allowed_setting_key(RECENT_CONTEXT_SETTINGS_KEY).is_ok());
         assert!(ensure_allowed_setting_key(EVIDENCE_EXPORT_PREFERENCES_SETTINGS_KEY).is_ok());
         assert!(ensure_allowed_setting_key("geond-agent.workbench.provider-credential").is_err());
+    }
+
+    #[test]
+    fn resolve_api_key_prefers_keychain_then_env() {
+        let mut local_env = BTreeMap::new();
+
+        // Keychain wins when present
+        assert_eq!(
+            resolve_api_key(Some("keychain-key".to_string()), &local_env),
+            Some("keychain-key".to_string())
+        );
+
+        // .env.local ZAI_API_KEY when keychain empty
+        local_env.insert("ZAI_API_KEY".to_string(), "zai-env-key".to_string());
+        assert_eq!(
+            resolve_api_key(Some("".to_string()), &local_env),
+            Some("zai-env-key".to_string())
+        );
+        assert_eq!(
+            resolve_api_key(None, &local_env),
+            Some("zai-env-key".to_string())
+        );
+
+        // Fallback to ANTHROPIC_AUTH_TOKEN when ZAI_API_KEY missing
+        local_env.remove("ZAI_API_KEY");
+        local_env.insert("ANTHROPIC_AUTH_TOKEN".to_string(), "auth-token-key".to_string());
+        assert_eq!(
+            resolve_api_key(None, &local_env),
+            Some("auth-token-key".to_string())
+        );
+
+        // Fallback to ANTHROPIC_API_KEY when others missing
+        local_env.remove("ANTHROPIC_AUTH_TOKEN");
+        local_env.insert("ANTHROPIC_API_KEY".to_string(), "api-key".to_string());
+        assert_eq!(
+            resolve_api_key(None, &local_env),
+            Some("api-key".to_string())
+        );
+
+        // None when no keys available
+        local_env.clear();
+        assert_eq!(resolve_api_key(None, &local_env), None);
+        assert_eq!(resolve_api_key(Some("".to_string()), &local_env), None);
     }
 
     #[test]

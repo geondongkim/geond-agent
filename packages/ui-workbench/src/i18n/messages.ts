@@ -583,7 +583,14 @@ export type UiMessageKey =
   | "workbench.settings.routingSection"
   | "workbench.settings.inputSection"
   | "workbench.settings.safetySection"
+  | "workbench.settings.providerSection"
   | "workbench.settings.firstRunSection"
+  | "workbench.settings.providerKeySet"
+  | "workbench.settings.providerKeyMissing"
+  | "workbench.settings.providerKeyEnvAvailable"
+  | "workbench.settings.setKey"
+  | "workbench.settings.clearKey"
+  | "workbench.settings.importFromEnv"
   | "workbench.firstRun.summaryReady"
   | "workbench.firstRun.summaryAttention"
   | "workbench.firstRun.summaryBlocked"
@@ -1224,6 +1231,13 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.settings.routingSection": "Backend and model route",
     "workbench.settings.inputSection": "Composer and review",
     "workbench.settings.safetySection": "Safety and persistence",
+    "workbench.settings.providerSection": "Provider key",
+    "workbench.settings.providerKeySet": "Key set (keychain)",
+    "workbench.settings.providerKeyMissing": "No key configured",
+    "workbench.settings.providerKeyEnvAvailable": "No keychain key; .env.local key available (import)",
+    "workbench.settings.setKey": "Set",
+    "workbench.settings.clearKey": "Clear",
+    "workbench.settings.importFromEnv": "Import from .env.local",
     "workbench.settings.firstRunSection": "First-run checklist",
     "workbench.firstRun.summaryReady": "Claude live route is ready for a first dogfood run.",
     "workbench.firstRun.summaryAttention": "Claude live route is usable, but one or more items need attention before a serious run.",
@@ -1862,6 +1876,13 @@ export const uiMessages: Readonly<Record<SupportedUiLanguage, UiMessageCatalog>>
     "workbench.settings.routingSection": "백엔드와 모델 라우트",
     "workbench.settings.inputSection": "입력과 검토",
     "workbench.settings.safetySection": "안전과 저장",
+    "workbench.settings.providerSection": "프로바이더 키",
+    "workbench.settings.providerKeySet": "키체인에 저장됨",
+    "workbench.settings.providerKeyMissing": "키 없음",
+    "workbench.settings.providerKeyEnvAvailable": ".env.local에 있음 (가져오기)",
+    "workbench.settings.setKey": "저장",
+    "workbench.settings.clearKey": "삭제",
+    "workbench.settings.importFromEnv": ".env.local에서 가져오기",
     "workbench.settings.firstRunSection": "첫 실행 점검",
     "workbench.firstRun.summaryReady": "Claude live 경로를 첫 dogfood 실행에 사용할 준비가 되었습니다.",
     "workbench.firstRun.summaryAttention": "Claude live 경로는 사용할 수 있지만, 중요한 실행 전 확인할 항목이 있습니다.",
